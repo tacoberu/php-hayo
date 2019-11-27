@@ -1,0 +1,9 @@
+includes:
+#	- phpstan-baseline.neon
+	- vendor/spaze/phpstan-disallowed-calls/extension.neon
+
+
+parameters:
+	level: 7
+	paths:
+		- libs

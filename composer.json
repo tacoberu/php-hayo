@@ -1,0 +1,45 @@
+{
+	"name": "tacoberu/hayo",
+	"type": "library",
+	"description": "Minimalistic builder with strong and static typing, packaging and semver.",
+	"license": [
+		"MIT"
+	],
+	"authors": [
+		{
+			"name": "Martin Takáč",
+			"homepage": "http://martin.takac.name"
+		}
+	],
+	"require-dev": {
+		"tracy/tracy": "^2.7",
+		"phpunit/phpunit": "^11.5",
+		"slevomat/coding-standard": "^8.24",
+		"phpstan/phpstan": "^2.1",
+		"spaze/phpstan-disallowed-calls": "^4.6"
+	},
+	"autoload": {
+		"classmap": [
+			"libs/"
+		]
+	},
+	"config": {
+		"allow-plugins": {
+			"dealerdirect/phpcodesniffer-composer-installer": true
+		}
+	},
+	"scripts": {
+		"phpunit": [
+			"vendor/bin/phpunit"
+		],
+		"phpcs": [
+			"vendor/bin/phpcs"
+		],
+		"phpcbf": [
+			"vendor/bin/phpcbf"
+		],
+		"phpstan": [
+			"vendor/bin/phpstan analyse --memory-limit=512M"
+		]
+	}
+}

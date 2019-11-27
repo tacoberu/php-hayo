@@ -1,9 +1,7 @@
 php-hayo
 ========
 
-Motivace je vytvoření knihovny, která poskytuje runtime na Hayo. Vložíme
-zdrojový kod, a on ho přeloží na "funkci". Funkce je objekt, který má všechny
-požadované metody API. Objekt je přeložený a rovnou použitelný. Objekt je serializovatelný
+Motivace je vytvoření knihovny, která poskytuje runtime na Hayo. Vložíme zdrojový kod, a on ho přeloží na "funkci". Funkce je objekt, který má všechny požadované metody API. Objekt je přeložený a rovnou použitelný. Objekt je serializovatelný
 do souboru a tím přilinkovatelný.
 
 - reflexe pro informaci o požadovaných závislostech

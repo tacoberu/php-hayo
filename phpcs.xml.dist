@@ -1,0 +1,103 @@
+<?xml version="1.0"?>
+<ruleset name="Taco">
+    <arg name="colors"/>
+    <arg name="extensions" value="php"/>
+    <arg value="sp"/>
+    <arg name="basepath" value="./"/>
+    <arg name="cache" value="./temp/phpcs.dat"/>
+	<arg name="tab-width" value="4"/>
+
+    <file>libs</file>
+    <file>tests</file>
+
+    <config name="installed_paths" value="vendor/slevomat/coding-standard"/>
+
+	<rule ref="vendor/slevomat/coding-standard/SlevomatCodingStandard/ruleset.xml">
+		<exclude name="SlevomatCodingStandard.Commenting.RequireOneLineDocComment.MultiLineDocComment" />
+		<exclude name="SlevomatCodingStandard.Commenting.RequireOneLinePropertyDocComment.MultiLinePropertyComment" />
+		<exclude name="SlevomatCodingStandard.Classes.ClassConstantVisibility.MissingConstantVisibility" />
+		<exclude name="SlevomatCodingStandard.Classes.ClassLength" />
+		<exclude name="SlevomatCodingStandard.Classes.RequireConstructorPropertyPromotion" />
+		<exclude name="SlevomatCodingStandard.Classes.SuperfluousExceptionNaming" />
+		<exclude name="SlevomatCodingStandard.Classes.ModernClassNameReference" />
+		<exclude name="SlevomatCodingStandard.ControlStructures.DisallowEmpty" />
+		<exclude name="SlevomatCodingStandard.ControlStructures.AssignmentInCondition" />
+		<exclude name="SlevomatCodingStandard.ControlStructures.DisallowShortTernaryOperator" />
+		<exclude name="SlevomatCodingStandard.Files.TypeNameMatchesFileName.NoMatchBetweenTypeNameAndFileName" />
+		<exclude name="SlevomatCodingStandard.Files.LineLength" />
+		<exclude name="SlevomatCodingStandard.Files.FileLength" />
+		<exclude name="SlevomatCodingStandard.Functions.RequireArrowFunction.RequiredArrowFunction" />
+		<exclude name="SlevomatCodingStandard.Functions.RequireTrailingCommaInCall" />
+		<exclude name="SlevomatCodingStandard.Functions.RequireTrailingCommaInDeclaration" />
+		<exclude name="SlevomatCodingStandard.Functions.FunctionLength" />
+		<exclude name="SlevomatCodingStandard.Namespaces.UseOnlyWhitelistedNamespaces.NonFullyQualified" />
+		<exclude name="SlevomatCodingStandard.Namespaces.FullyQualifiedClassNameInAnnotation.NonFullyQualifiedClassName" />
+		<exclude name="SlevomatCodingStandard.Namespaces.FullyQualifiedGlobalConstants.NonFullyQualified" />
+		<exclude name="SlevomatCodingStandard.Namespaces.FullyQualifiedGlobalFunctions.NonFullyQualified" />
+		<exclude name="SlevomatCodingStandard.Namespaces.FullyQualifiedExceptions.NonFullyQualifiedException" />
+		<exclude name="SlevomatCodingStandard.TypeHints.DisallowMixedTypeHint.DisallowedMixedTypeHint" />
+		<exclude name="SlevomatCodingStandard.TypeHints.ReturnTypeHint.MissingNativeTypeHint" />
+		<exclude name="SlevomatCodingStandard.TypeHints.ParameterTypeHint.MissingNativeTypeHint" />
+		<exclude name="SlevomatCodingStandard.TypeHints.PropertyTypeHint" />
+		<exclude name="SlevomatCodingStandard.TypeHints.UnionTypeHintFormat" />
+		<exclude name="SlevomatCodingStandard.Arrays.AlphabeticallySortedByKeys" />
+		<exclude name="SlevomatCodingStandard.PHP.ShortList" />
+
+		<!-- Duplicitní k phpstan -->
+		<exclude name="SlevomatCodingStandard.TypeHints.ReturnTypeHint.MissingAnyTypeHint" />
+		<exclude name="SlevomatCodingStandard.TypeHints.ParameterTypeHint.MissingAnyTypeHint" />
+
+		<!-- Ke zvážení -->
+		<exclude name="SlevomatCodingStandard.Numbers.RequireNumericLiteralSeparator" />
+		<exclude name="SlevomatCodingStandard.Exceptions.RequireNonCapturingCatch" />
+		<exclude name="SlevomatCodingStandard.Functions.UnusedParameter.UnusedParameter" />
+		<exclude name="SlevomatCodingStandard.Functions.RequireMultiLineCall" />
+		<exclude name="SlevomatCodingStandard.Classes.RequireAbstractOrFinal.ClassNeitherAbstractNorFinal" />
+		<exclude name="SlevomatCodingStandard.Classes.RequireMultiLineMethodSignature" />
+		<exclude name="SlevomatCodingStandard.Commenting.DocCommentSpacing.IncorrectLinesCountBetweenDescriptionAndAnnotations" />
+		<exclude name="SlevomatCodingStandard.Commenting.DisallowCommentAfterCode" />
+		<exclude name="SlevomatCodingStandard.Complexity.Cognitive" />
+		<exclude name="SlevomatCodingStandard.ControlStructures.EarlyExit" />
+		<exclude name="SlevomatCodingStandard.ControlStructures.RequireYodaComparison" />
+		<exclude name="SlevomatCodingStandard.ControlStructures.RequireNullCoalesceOperator" />
+		<exclude name="SlevomatCodingStandard.ControlStructures.UselessIfConditionWithReturn.UselessIfCondition" />
+		<exclude name="SlevomatCodingStandard.ControlStructures.NewWithoutParentheses" />
+		<exclude name="SlevomatCodingStandard.Operators.DisallowIncrementAndDecrementOperators" />
+		<exclude name="SlevomatCodingStandard.Operators.RequireOnlyStandaloneIncrementAndDecrementOperators" />
+		<exclude name="SlevomatCodingStandard.PHP.DisallowReference" />
+		<exclude name="SlevomatCodingStandard.PHP.ReferenceSpacing" />
+
+		<!-- dev -->
+		<exclude name="SlevomatCodingStandard.Namespaces.AlphabeticallySortedUses" />
+		<exclude name="SlevomatCodingStandard.Attributes.AttributesOrder" />
+	</rule>
+	<rule ref="SlevomatCodingStandard.Namespaces.NamespaceSpacing">
+		<properties>
+			<property name="linesCountAfterNamespace" value="1"/>
+		</properties>
+	</rule>
+	<rule ref="SlevomatCodingStandard.Classes.MethodSpacing">
+		<properties>
+			<property name="minLinesCount" value="3"/>
+			<property name="maxLinesCount" value="3"/>
+		</properties>
+	</rule>
+	<rule ref="SlevomatCodingStandard.Namespaces.UseSpacing">
+		<properties>
+			<property name="linesCountAfterLastUse" value="2"/>
+		</properties>
+	</rule>
+	<rule ref="SlevomatCodingStandard.ControlStructures.JumpStatementsSpacing">
+		<severity>0</severity>
+	</rule>
+	<rule ref="SlevomatCodingStandard.ControlStructures.BlockControlStructureSpacing">
+		<severity>0</severity>  <!-- Vypne kontrolu -->
+	</rule>
+    <rule ref="SlevomatCodingStandard.TypeHints.DeclareStrictTypes">
+        <properties>
+            <property name="declareOnFirstLine" value="true"/>
+            <property name="spacesCountAroundEqualsSign" value="1"/>
+        </properties>
+    </rule>
+
+</ruleset>
