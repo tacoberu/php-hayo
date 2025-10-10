@@ -13,7 +13,11 @@ use LogicException;
 
 
 /**
- * ???
+ * `a: Int + b :: Int` - Sčítání
+ * `a: Int - b :: Int` - Odčítání
+ * `a: Int * b :: Int` - Násobení
+ * `a: Int div b :: Int` - Celočíselné dělení
+ * `a: Int mod b :: Int` - Zbytek po celočíselném dělení.
  */
 class BuildinMathOperator implements BuildinFunc
 {
@@ -29,7 +33,7 @@ class BuildinMathOperator implements BuildinFunc
 
 	function type(): string
 	{
-		return "<buildin-func {$this->op}>";
+		return 'Int';
 	}
 
 
@@ -39,12 +43,18 @@ class BuildinMathOperator implements BuildinFunc
 	 */
 	function refs(): array
 	{
-		return [];
+		return array_map(static function($x) {
+			return $x->getBindName();
+		}, $this->getBinds());
 	}
 
 
 
-	function buildValue(): VariadicVal
+	/**
+	 * Které argumenty to vyžaduje.
+	 * @return list<BindVal>
+	 */
+	function getBinds(): array
 	{
 		switch ($this->op) {
 			case '+':
@@ -52,9 +62,10 @@ class BuildinMathOperator implements BuildinFunc
 			case '*':
 			case 'div':
 			case 'mod':
-				return new VariadicVal($this->buildCallback()
-					, 'Int'
-					, [new BindVal('a', 'Int'), new BindVal('a', 'Int')]);
+				return [
+					new BindVal('a', 'Int'),
+					new BindVal('b', 'Int'),
+				];
 
 			default:
 				throw new LogicException("Unsupported operator: {$this->op}.");
@@ -64,31 +75,33 @@ class BuildinMathOperator implements BuildinFunc
 
 
 	/**
-	 * @return callable
+	 * Předáme požadované argumenty a vypočítáme výsledek. Argumenty už musí
+	 * být finální hodnoty.
+	 * @param array<string, Term> $args
 	 */
-	private function buildCallback()
+	function apply(array $args): Term
 	{
+		$args = array_values($args);
+		$args = array_map(static function($x) {
+			return $x instanceof FinalVal
+				? $x->unpack()
+				: $x;
+		}, $args);
 		switch ($this->op) {
 			case '+':
-				return static function(array $args) {
-					return $args[0]->unpack() + $args[1]->unpack();
-				};
+				return new FinalVal($args[0] + $args[1], $this->type());
+
 			case '-':
-				return static function(array $args) {
-					return $args[0]->unpack() - $args[1]->unpack();
-				};
+				return new FinalVal($args[0] - $args[1], $this->type());
+
 			case '*':
-				return static function(array $args) {
-					return $args[0]->unpack() * $args[1]->unpack();
-				};
+				return new FinalVal($args[0] * $args[1], $this->type());
+
 			case 'div':
-				return static function(array $args) {
-					return intdiv($args[0]->unpack(), $args[1]->unpack());
-				};
+				return new FinalVal(intdiv($args[0], $args[1]), $this->type());
+
 			case 'mod':
-				return static function(array $args) {
-					return $args[0]->unpack() % $args[1]->unpack();
-				};
+				return new FinalVal($args[0] % $args[1], $this->type());
 
 			default:
 				throw new LogicException("Unsupported operator: {$this->op}.");
@@ -97,16 +110,9 @@ class BuildinMathOperator implements BuildinFunc
 
 
 
-	function apply(array $args): Val
-	{
-		throw new \LogicException("Comming soon...");
-	}
-
-
-
 	function __toString()
 	{
-		return $this->type();
+		return '<' . $this->op . ' ' . implode(' ', $this->refs()) . '>';
 	}
 
 }
