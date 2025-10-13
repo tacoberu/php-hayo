@@ -31,7 +31,7 @@ class CompilerTest extends TestCase
 	{
 		$this->assertEquals(new FinalVal((object) [
 			'a' => new FinalVal(45, 'Int'),
-			'b' => new FinalVal('"abc"', 'Str'),
+			'b' => new FinalVal('abc', 'Str'),
 			'c' => new FinalVal(88, 'Int'),
 		], 'Dict'), $this->compile('
 {a: a, b: "abc", c: c}')
@@ -57,7 +57,7 @@ class CompilerTest extends TestCase
 	{
 		return [
 			['42', new FinalVal(42, 'Int')],
-			['"Ahoj"', new FinalVal('"Ahoj"', 'Str')],
+			['"Ahoj"', new FinalVal('Ahoj', 'Str')],
 
 			// @TODO
 		];

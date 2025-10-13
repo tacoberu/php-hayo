@@ -38,7 +38,7 @@ a = 5
 	{
 		$this->assertEquals(new FinalVal((object) [
 			'a' => new FinalVal(4, 'Int'),
-			'b' => new FinalVal('"abc"', 'Str'),
+			'b' => new FinalVal('abc', 'Str'),
 		], 'Dict'), $this->compile('
 {a: 4, b: "abc"}'));
 	}
@@ -49,7 +49,7 @@ a = 5
 	{
 		$this->assertEquals(new FinalVal((object) [
 			'a' => new FinalVal(45, 'Int'),
-			'b' => new FinalVal('"abc"', 'Str'),
+			'b' => new FinalVal('abc', 'Str'),
 			'c' => new FinalVal(88, 'Int'),
 		], 'Dict'), $this->compile('
 {a: a, b: "abc", c: c}')
@@ -165,9 +165,9 @@ xs = (strings.split "," "une, deux, trois")
 		], 'Dict'), $this->compile('
 xs = (strings.split "," "une, deux, trois")
 {
-	une: (list.first xs)
-	deux: (list.at 1 xs Null)
-	trois: (list.at 2 xs Null)
+	une: (list.first xs "")
+	deux: (list.at 1 xs "")
+	trois: (list.at 2 xs "")
 }')
 		);
 	}
@@ -203,7 +203,7 @@ xs = (strings.split "," src)
 }');
 		$this->assertSame("?", $call->type());
 		$this->assertEquals([
-			new BindVal('src', '?')
+			new BindVal('src', '?'),
 		], $call->getBinds());
 		$this->assertEquals(new FinalVal((object) [
 			'une' => new FinalVal('Lorem ipsum', 'a'),

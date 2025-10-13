@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "20844c364e4cba8ad3d984bba28553d9",
+    "content-hash": "c90f446724695b30bec36333898678c9",
     "packages": [
         {
             "name": "nette/utils",
@@ -97,16 +97,16 @@
         },
         {
             "name": "tacoberu/hayo-decoder",
-            "version": "v0.2.6",
+            "version": "v0.2.7",
             "source": {
                 "type": "git",
                 "url": "git@gitlab.com:tacoberu/php-hayo-decoder.git",
-                "reference": "ba16681db185bd67c1d9acd58e8d19fb5e3b9054"
+                "reference": "9e07963b1c4fb7b3a0beed4c36ffa547d7091cb4"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://gitlab.com/api/v4/projects/tacoberu%2Fphp-hayo-decoder/repository/archive.zip?sha=ba16681db185bd67c1d9acd58e8d19fb5e3b9054",
-                "reference": "ba16681db185bd67c1d9acd58e8d19fb5e3b9054",
+                "url": "https://gitlab.com/api/v4/projects/tacoberu%2Fphp-hayo-decoder/repository/archive.zip?sha=9e07963b1c4fb7b3a0beed4c36ffa547d7091cb4",
+                "reference": "9e07963b1c4fb7b3a0beed4c36ffa547d7091cb4",
                 "shasum": ""
             },
             "require": {
@@ -136,10 +136,10 @@
             ],
             "description": "...",
             "support": {
-                "source": "https://gitlab.com/tacoberu/php-hayo-decoder/-/tree/v0.2.6",
+                "source": "https://gitlab.com/tacoberu/php-hayo-decoder/-/tree/v0.2.7",
                 "issues": "https://gitlab.com/tacoberu/php-hayo-decoder/-/issues"
             },
-            "time": "2025-10-12T01:43:21+02:00"
+            "time": "2025-10-13T07:09:58+02:00"
         }
     ],
     "packages-dev": [

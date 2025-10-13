@@ -101,11 +101,8 @@ class BuildinStringFunction implements BuildinFunc
 	{
 		$args = array_values($args);
 		$args = array_map(static function($x) {
-			$x = $x instanceof FinalVal
+			return $x instanceof FinalVal
 				? $x->unpack()
-				: $x;
-			return is_string($x)
-				? trim($x, '"')
 				: $x;
 		}, $args);
 		switch ($this->name) {
