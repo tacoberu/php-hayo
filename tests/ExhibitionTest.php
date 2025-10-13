@@ -192,6 +192,24 @@ xs = (strings.split "," "une, deux, trois")
 
 
 
+	function testComposeTupleStatic()
+	{
+		$this->assertEquals(new FinalVal([
+			new FinalVal('une', 'a'),
+			new FinalVal(' deux', 'a'),
+			new FinalVal(' trois', 'a'),
+		], 'Tuple'), $this->compile('
+xs = (strings.split "," "une, deux, trois")
+(
+	(list.first xs "")
+	(list.at 1 xs "")
+	(list.at 2 xs "")
+)')
+		);
+	}
+
+
+
 	function testComposeDict()
 	{
 		$call = $this->compile('

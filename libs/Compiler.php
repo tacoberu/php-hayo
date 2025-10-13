@@ -176,6 +176,7 @@ class Compiler
 			case $term instanceof Expr && $term->refs() !== []:
 				return self::partialEvaluateExpr($term);
 
+			case $term instanceof StructTuple && $term->refs() === []:
 			case $term instanceof StructList && $term->refs() === []:
 			case $term instanceof StructDict && $term->refs() === []:
 				return $term;
@@ -186,7 +187,15 @@ class Compiler
 			case $term instanceof StructList && $term->refs() !== []:
 				return self::partialEvaluateStructList($term, $lets);
 
+			case $term instanceof StructTuple && $term->refs() !== []:
+				return self::partialEvaluateStructTuple($term, $lets);
+
 			case $term instanceof BuildinFunc:
+				return $term;
+
+			// @TODO Prostor pro optimalizaci: Labda se nedá vykonata celá, protože závisí na stavu argumentu.
+			// ale části toho Expr by možná šli. Záleží jak moc je ta lambda košatá.
+			case $term instanceof Lambda:
 				return $term;
 
 			default:
@@ -296,6 +305,31 @@ class Compiler
 	/**
 	 * @param array<string, Let> $lets
 	 */
+	private static function partialEvaluateStructTuple(StructTuple $term, array $lets): StructTuple
+	{
+		$xs = [];
+		foreach ($term->getItems() as $i => $node) {
+			if (is_string($node) && self::is_operator($node)) {
+				throw new LogicException("Comming soon...");
+			}
+			elseif ($node instanceof Expr) {
+				// Pokud má podřízený prvek nějaké navázané symboly, tak přepíšou ty z rodiče.
+				$node = new Expr($node->getItems(), array_merge($lets, $node->getLets()));
+				$xs[$i] = self::partialEvaluate($node, []);
+			}
+			else {
+				$xs[$i] = self::partialEvaluate($node, $lets);
+			}
+		}
+
+		return new StructTuple($xs);// @phpstan-ignore argument.type
+	}
+
+
+
+	/**
+	 * @param array<string, Let> $lets
+	 */
 	private static function partialEvaluateStructList(StructList $term, array $lets): StructList
 	{
 		$xs = [];
@@ -375,6 +409,9 @@ class Compiler
 			case $term instanceof Lambda:
 				return self::castLambda($term);
 
+			case $term instanceof StructTuple:
+				return self::castStructTuple($term);
+
 			case $term instanceof StructList:
 				return self::castStructList($term);
 
@@ -434,6 +471,22 @@ class Compiler
 			, self::castType($val->type())
 			, $args);
 			*/
+	}
+
+
+
+	private static function castStructTuple(StructTuple $src): Val
+	{
+		if (empty($src->refs())) {
+			$items = [];
+			foreach ($src->getItems() as $x) {
+				$items[] = is_string($x)
+					? new BindVal($x, '?')
+					: self::compileRuntimeValue($x); // @phpstan-ignore argument.type
+			}
+			return new FinalVal($items, 'Tuple');
+		}
+		throw new LogicException("Comming soon...");
 	}
 
 
@@ -503,6 +556,14 @@ class Compiler
 					$xs[] = self::castLiteral($x);
 					break;
 
+				case $x instanceof StructTuple:
+					$xs[] = self::castStructTuple($x);
+					break;
+
+				case $x instanceof StructList:
+					$xs[] = self::castStructList($x);
+					break;
+
 				case $x instanceof StructDict:
 					$xs[] = self::castStructDict($x);
 					break;
@@ -513,7 +574,9 @@ class Compiler
 
 				default:
 					dump($x);
-					throw new LogicException("oops.");
+					throw new LogicException("Unsupported term (" . (is_object($x)
+						? get_class($x)
+						: gettype($term)) . "): '{$x}'."); // @phpstan-ignore encapsedStringPart.nonString
 			}
 		}
 
