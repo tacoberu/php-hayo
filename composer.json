@@ -12,7 +12,7 @@
 		}
 	],
 	"require": {
-		"tacoberu/hayo-decoder": "~0.2.7"
+		"tacoberu/hayo-decoder": "~0.2.8"
 	},
 	"require-dev": {
 		"tracy/tracy": "^2.7",

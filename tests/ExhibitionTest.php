@@ -219,7 +219,7 @@ xs = (strings.split "," src)
 	deux: (list.at 1 xs "")
 	trois: (list.at 2 xs "")
 }');
-		$this->assertSame("?", $call->type());
+		$this->assertSame("Dict", $call->type());
 		$this->assertEquals([
 			new BindVal('src', '?'),
 		], $call->getBinds());

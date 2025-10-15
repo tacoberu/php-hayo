@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c90f446724695b30bec36333898678c9",
+    "content-hash": "29c23535d59ae46a140e6e0c393680d4",
     "packages": [
         {
             "name": "nette/utils",
@@ -97,16 +97,16 @@
         },
         {
             "name": "tacoberu/hayo-decoder",
-            "version": "v0.2.7",
+            "version": "v0.2.8",
             "source": {
                 "type": "git",
                 "url": "git@gitlab.com:tacoberu/php-hayo-decoder.git",
-                "reference": "9e07963b1c4fb7b3a0beed4c36ffa547d7091cb4"
+                "reference": "40d418e3f4ef3586ca061ab27860e05c5e822b0b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://gitlab.com/api/v4/projects/tacoberu%2Fphp-hayo-decoder/repository/archive.zip?sha=9e07963b1c4fb7b3a0beed4c36ffa547d7091cb4",
-                "reference": "9e07963b1c4fb7b3a0beed4c36ffa547d7091cb4",
+                "url": "https://gitlab.com/api/v4/projects/tacoberu%2Fphp-hayo-decoder/repository/archive.zip?sha=40d418e3f4ef3586ca061ab27860e05c5e822b0b",
+                "reference": "40d418e3f4ef3586ca061ab27860e05c5e822b0b",
                 "shasum": ""
             },
             "require": {
@@ -115,14 +115,30 @@
                 "php": ">=5.3.3"
             },
             "require-dev": {
+                "phpstan/phpstan": "^2.1",
                 "phpunit/phpunit": "^11.5",
                 "slevomat/coding-standard": "^8.24",
+                "spaze/phpstan-disallowed-calls": "^4.6",
                 "tracy/tracy": "^2.4"
             },
             "type": "library",
             "autoload": {
                 "classmap": [
                     "libs/"
+                ]
+            },
+            "scripts": {
+                "phpunit": [
+                    "vendor/bin/phpunit"
+                ],
+                "phpcs": [
+                    "vendor/bin/phpcs"
+                ],
+                "phpcbf": [
+                    "vendor/bin/phpcbf"
+                ],
+                "phpstan": [
+                    "vendor/bin/phpstan analyse --memory-limit=512M"
                 ]
             },
             "license": [
@@ -136,10 +152,10 @@
             ],
             "description": "...",
             "support": {
-                "source": "https://gitlab.com/tacoberu/php-hayo-decoder/-/tree/v0.2.7",
+                "source": "https://gitlab.com/tacoberu/php-hayo-decoder/-/tree/v0.2.8",
                 "issues": "https://gitlab.com/tacoberu/php-hayo-decoder/-/issues"
             },
-            "time": "2025-10-13T07:09:58+02:00"
+            "time": "2025-10-15T04:57:46+02:00"
         }
     ],
     "packages-dev": [

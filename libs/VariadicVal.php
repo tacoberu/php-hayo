@@ -162,12 +162,7 @@ class VariadicVal implements Val, HasRefs, Term
 		// @TODO Přidat validaci, zda jsem předal správný počet prvků.
 		switch (True) {
 			case $this->expr instanceof Expr:
-				$lets = [];
-				foreach ($this->expr->getLets() as $x) {
-					$lets[$x->getSymbol()] = $x->getTerm();
-				}
-				$lets = array_merge($lets, $args);
-				return self::applyExpr($this->expr, $lets);// @phpstan-ignore return.type
+				return self::applyExpr($this->expr, $args);// @phpstan-ignore return.type
 
 			case $this->expr instanceof StructDict:
 				$lets = array_merge([], $args);
