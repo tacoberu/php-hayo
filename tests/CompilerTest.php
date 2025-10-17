@@ -50,6 +50,53 @@ class CompilerTest extends TestCase
 
 
 
+	function testComposeDict_1()
+	{
+		$call = $this->compile("
+{
+	content: content
+}
+");
+		$this->assertSame("Dict", $call->type());
+		$this->assertEquals([
+			new BindVal('content', '?'),
+		], $call->getBinds());
+		$this->assertEquals(new FinalVal((object) [
+			'content' => new FinalVal('Iem', 'Str'),
+			], 'Dict')
+			, $call->apply([
+				'content' => new FinalVal("Iem", 'Str'),
+			]));
+	}
+
+
+
+	function testComposeDict_2()
+	{
+		$call = $this->compile("
+{
+	a: {
+		b: content
+	}
+}
+");
+		$this->assertSame("Dict", $call->type());
+		$this->assertEquals([
+			new BindVal('content', '?'),
+		], $call->getBinds());
+
+		$this->assertEquals(new FinalVal((object) [
+				'a' => new FinalVal((object) [
+					'b' => new FinalVal('Iem', 'Str'),
+				], 'Dict'),
+			], 'Dict')
+			, $call->apply([
+				'content' => new FinalVal("Iem", 'Str'),
+			]));
+	}
+
+
+
 	/**
 	 * @return array<array<mixed>>
 	 */

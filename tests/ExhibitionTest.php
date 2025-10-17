@@ -219,7 +219,131 @@ xs = (strings.split "," src)
 	deux: (list.at 1 xs "")
 	trois: (list.at 2 xs "")
 }');
+//~ dump($call);
 		$this->assertSame("Dict", $call->type());
+		$this->assertEquals([
+			new BindVal('src', '?'),
+		], $call->getBinds());
+		$this->assertEquals(new FinalVal((object) [
+			'une' => new FinalVal('Lorem ipsum', 'a'),
+			'deux' => new FinalVal(' doler ist', 'a'),
+			'trois' => new FinalVal('', 'a'),
+			], 'Dict')
+			, $call->apply(['src' => new FinalVal("Lorem ipsum, doler ist", 'Str')]));
+	}
+
+
+
+	function testComposeDictBug1()
+	{
+		$call = $this->compile("
+{
+	content: [
+		{
+			key: \"content\"
+			content: content
+		}
+	]
+}
+");
+		$this->assertSame("Dict", $call->type());
+		$this->assertEquals([
+			new BindVal('content', '?'),
+		], $call->getBinds());
+
+		//~ dump($call->apply([
+				//~ 'content' => new FinalVal("Iem", 'Str'),
+			//~ ]));
+		$this->assertEquals(new FinalVal((object) [
+			'content' => new FinalVal([
+				new FinalVal((object) [
+					'key' => new FinalVal('content', 'Str'),
+					'content' => new FinalVal('Iem', 'Str'),
+					], 'Dict'),
+				], 'List'),
+			], 'Dict')
+			, $call->apply([
+				'content' => new FinalVal("Iem", 'Str'),
+			]));
+	}
+
+
+
+	function testComposeDictBug2()
+	{
+		$call = $this->compile("
+{
+	name: \"contact\"
+	recipient: \"contact@domain.tld\"
+	content: [
+		{key: \"youremail\", content: email}
+		{key: \"yourname\", content: author}
+		{key: \"content\", content: content}
+		{key: \"domain\", content: \"domain.tld\"}
+	]
+}
+");
+		$this->assertSame("Dict", $call->type());
+		/* dump($call->apply([
+				'author' => new FinalVal("Iem", 'Str'),
+				'email' => new FinalVal("iem@domain.tld", 'Str'),
+				'content' => new FinalVal([], 'List'),
+			])); //*/
+		$this->assertEquals([
+			new BindVal('email', '?'),
+			new BindVal('author', '?'),
+			new BindVal('content', '?'),
+		], $call->getBinds());
+		$this->assertEquals(new FinalVal((object) [
+			//~ 'author' => new FinalVal("Iem", 'Str'),
+			'name' => new FinalVal("contact", 'Str'),
+			'recipient' => new FinalVal("contact@domain.tld", 'Str'),
+			'content' => new FinalVal([
+				new FinalVal((object) [
+					'key' => new FinalVal("youremail", 'Str'),
+					'content' => new FinalVal("iem@domain.tld", 'Str'),
+					], 'Dict'),
+				new FinalVal((object) [
+					'key' => new FinalVal("yourname", 'Str'),
+					'content' => new FinalVal("Iem", 'Str'),
+					], 'Dict'),
+				new FinalVal((object) [
+					'key' => new FinalVal("content", 'Str'),
+					'content' => new FinalVal("Lorem ipsum doler ist", 'Str'),
+					], 'Dict'),
+				new FinalVal((object) [
+					'key' => new FinalVal("domain", 'Str'),
+					'content' => new FinalVal("domain.tld", 'Str'),
+					], 'Dict'),
+				], 'List'),
+			], 'Dict')
+			, $call->apply([
+				'author' => new FinalVal("Iem", 'Str'),
+				'email' => new FinalVal("iem@domain.tld", 'Str'),
+				'content' => new FinalVal("Lorem ipsum doler ist", 'Str'),
+			]));
+	}
+
+
+
+	function _testComposeDictBug5()
+	{
+		$call = $this->compile("
+content = [
+	{key: \"yourname\", content: author}
+	{key: \"youremail\", content: email}
+	{key: \"content\", content: content}
+	{key: \"domain\", content: \"domain.tld\"}
+]
+{
+	name: \"contact\"
+	recipient: \"tacoberu@gmail.com\"
+	content: content
+}
+");
+		$this->assertSame("Dict", $call->type());
+
+die("\n------\n" . __file__ . ':' . __line__ . "\n");
 		$this->assertEquals([
 			new BindVal('src', '?'),
 		], $call->getBinds());

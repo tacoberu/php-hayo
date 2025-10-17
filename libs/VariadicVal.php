@@ -57,6 +57,7 @@ class VariadicVal implements Val, HasRefs, Term
 	 */
 	static function expr(Expr $expr, string $type, array $binds): self
 	{
+/* protože nyní má $expr všechny volné symboli označneé jako BindVal, tak to nyní nevrací v refs()
 		$refs = $expr->refs();
 		$binds2 = [];
 		foreach ($binds as $x) {
@@ -69,7 +70,7 @@ class VariadicVal implements Val, HasRefs, Term
 			if (array_search($x, $binds2, True) === False) {
 				throw new InvalidArgumentException("Missing argument: '{$x}'.");
 			}
-		}
+		}*/
 		return new self($expr, $type, $binds);
 	}
 
@@ -78,7 +79,29 @@ class VariadicVal implements Val, HasRefs, Term
 	/**
 	 * @param list<BindVal> $binds
 	 */
-	static function dict(StructDict $expr, string $type, array $binds): self
+	static function dict(StructDict $expr, array $binds, string $type = 'Dict'): self
+	{
+		// @TODO Nějaká validace
+		return new self($expr, $type, $binds);
+	}
+
+
+
+	/**
+	 * @param list<BindVal> $binds
+	 */
+	static function list_(StructList $expr, array $binds, string $type = 'List'): self
+	{
+		// @TODO Nějaká validace
+		return new self($expr, $type, $binds);
+	}
+
+
+
+	/**
+	 * @param list<BindVal> $binds
+	 */
+	static function tuple_(StructTuple $expr, array $binds, string $type = 'Tuple'): self
 	{
 		// @TODO Nějaká validace
 		return new self($expr, $type, $binds);
@@ -160,13 +183,46 @@ class VariadicVal implements Val, HasRefs, Term
 		}
 
 		// @TODO Přidat validaci, zda jsem předal správný počet prvků.
-		switch (True) {
-			case $this->expr instanceof Expr:
-				return self::applyExpr($this->expr, $args);// @phpstan-ignore return.type
 
-			case $this->expr instanceof StructDict:
-				$lets = array_merge([], $args);
-				return self::applyStructDict($this->expr, $lets);// @phpstan-ignore return.type
+		return self::applyAny($this->expr, $args);// @phpstan-ignore return.type
+	}
+
+
+
+	/**
+	 * @param string|Term|Val $src
+	 * @param array<string, Val> $lets
+	 */
+	private static function applyAny($src, array $lets): Val
+	{
+		switch (True) {
+			case is_string($src):
+				// @TODO validace
+				return $lets[$src];
+
+			case $src instanceof BindVal:
+				self::assertBindInArguments($src, $lets);
+				$src = $lets[$src->getBindName()];
+				if ( ! $src instanceof FinalVal) {
+					throw new LogicException("Comming soon...");
+				}
+				return $src;
+
+			case $src instanceof self:
+				// @TODO nějaké omezení, aby se neposílaly všeechny lets, ale jen ty, co jsou v getBindNames()
+				return $src->apply($lets);// @phpstan-ignore return.type
+
+			case $src instanceof Expr:
+				return self::applyExpr($src, $lets);
+
+			case $src instanceof StructDict:
+				return self::applyStructDict($src, $lets);
+
+			case $src instanceof StructList:
+				return self::applyStructList($src, $lets);
+
+			case $src instanceof FinalVal:
+				return $src;
 
 			default:
 				throw new LogicException("oops.");
@@ -182,29 +238,12 @@ class VariadicVal implements Val, HasRefs, Term
 	{
 		$items = $expr->getItems();
 		foreach ($items as $i => $x) {
-			switch (True) {
-				case is_string($x):
-					// @TODO validace
-					$items[$i] = $lets[$x];
-					break;
-
-				case $x instanceof self:
-					// @TODO nějaké omezení, aby se neposílaly všeechny lets, ale jen ty, co jsou v getBindNames()
-					$items[$i] = $x->apply($lets);
-					break;
-
-				// funkce na úrovni expression, bude pravděpobodně to ta první. Ta nemá žádné závislosti.
-				// naopak, nejdříve se musí vyřešit závislosti ze stejné úrovně - což právě děláme.
-				case $x instanceof BuildinFunc:
-					break;
-
-				case $x instanceof FinalVal:
-					break;
-
-				default:
-					dump(['@' . __method__ . ':' . __line__, $x]);
-					throw new LogicException("oops.");
+			// funkce na úrovni expression, bude pravděpobodně to ta první. Ta nemá žádné závislosti.
+			// naopak, nejdříve se musí vyřešit závislosti ze stejné úrovně - což právě děláme.
+			if ($x instanceof BuildinFunc) {
+				continue;
 			}
+			$items[$i] = self::applyAny($x, $lets);
 		}
 
 		// volání funkce
@@ -227,35 +266,25 @@ class VariadicVal implements Val, HasRefs, Term
 	/**
 	 * @param array<string, Val> $lets
 	 */
+	private static function applyStructList(StructList $expr, array $lets): Val
+	{
+		$items = [];
+		foreach ($expr->getItems() as $k => $x) {
+			$items[$k] = self::applyAny($x, $lets);
+		}
+		return new FinalVal($items, 'List');
+	}
+
+
+
+	/**
+	 * @param array<string, Val> $lets
+	 */
 	private static function applyStructDict(StructDict $expr, array $lets): Val
 	{
 		$items = [];
 		foreach ($expr->getItems() as $k => $x) {
-			switch (True) {
-				case $x instanceof BindVal:
-					$x = $lets[$x->getBindName()];
-					if ( ! $x instanceof FinalVal) {
-						throw new LogicException("Comming soon...");
-					}
-					$items[$k] = $x;
-					break;
-
-				case $x instanceof self:
-					$args2 = [];
-					foreach ($x->refs() as $x2) {
-						$args2[$x2] = $lets[$x2];
-					}
-					$items[$k] = $x->apply($args2);
-					break;
-
-				case $x instanceof FinalVal:
-					$items[$k] = $x;
-					break;
-
-				default:
-					dump($x);
-					throw new LogicException("oops.");
-			}
+			$items[$k] = self::applyAny($x, $lets);
 		}
 
 		return new FinalVal((object) $items, 'Dict');
@@ -264,13 +293,13 @@ class VariadicVal implements Val, HasRefs, Term
 
 
 	/**
-	 * @param list<string> $args
-	 * /
-	private static function assertBindInArguments(BindVal $bind, array $args): void
+	 * @param array<string, Val> $xs
+	 */
+	private static function assertBindInArguments(BindVal $bind, array $xs): void
 	{
-		if ( ! array_key_exists($bind->getBindName(), $args)) {
-			throw new LogicException("Missing args: {$bind->getBindName()}.");
+		if ( ! array_key_exists($bind->getBindName(), $xs)) {
+			throw new LogicException("Missing args: '{$bind->getBindName()}'.");
 		}
-	} //*/
+	}
 
 }
