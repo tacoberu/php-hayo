@@ -19,7 +19,8 @@
 		"phpunit/phpunit": "^11.5",
 		"slevomat/coding-standard": "^8.24",
 		"phpstan/phpstan": "^2.1",
-		"spaze/phpstan-disallowed-calls": "^4.6"
+		"spaze/phpstan-disallowed-calls": "^4.6",
+		"rector/rector": "^2.2"
 	},
 	"repositories": [
 		{
@@ -49,6 +50,9 @@
 		],
 		"phpstan": [
 			"vendor/bin/phpstan analyse --memory-limit=512M"
+		],
+		"rector": [
+			"vendor/bin/rector process --dry-run"
 		]
 	}
 }
