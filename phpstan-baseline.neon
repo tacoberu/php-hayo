@@ -1,0 +1,103 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Call to an undefined method Taco\\Hayo\\Term\:\:getItems\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: libs/Compiler.php
+
+		-
+			message: '#^Cannot call method apply\(\) on string\|Taco\\Hayo\\Expr\|Taco\\Hayo\\Val\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: libs/Compiler.php
+
+		-
+			message: '#^Method Taco\\Hayo\\Compiler\:\:castStructItems\(\) should return array\{array\<Taco\\Hayo\\Val\>, array\<string, Taco\\Hayo\\BindVal\>\} but returns array\{array\<int\|string, string\|Taco\\Hayo\\BindVal\|Taco\\Hayo\\Term\>, array\<string, Taco\\Hayo\\BindVal\>\}\.$#'
+			identifier: return.type
+			count: 1
+			path: libs/Compiler.php
+
+		-
+			message: '#^Parameter \#1 \$args of method Taco\\Hayo\\BuildinFunc\:\:apply\(\) expects array\<string, Taco\\Hayo\\Term\>, array\<int\|string, Taco\\Hayo\\Val\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: libs/Compiler.php
+
+		-
+			message: '#^Parameter \#1 \$fn of static method Taco\\Hayo\\Compiler\:\:combineBindWithValues\(\) expects Taco\\Hayo\\BuildinFunc, string\|Taco\\Hayo\\Expr\|Taco\\Hayo\\Val given\.$#'
+			identifier: argument.type
+			count: 1
+			path: libs/Compiler.php
+
+		-
+			message: '#^Parameter \#1 \$items of class Taco\\Hayo\\StructDict constructor expects array\<string, string\|Taco\\Hayo\\Expr\|Taco\\Hayo\\Val\>, array\<int\|string, string\|Taco\\Hayo\\Term\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: libs/Compiler.php
+
+		-
+			message: '#^Parameter \#1 \$items of class Taco\\Hayo\\StructList constructor expects list\<string\|Taco\\Hayo\\Expr\|Taco\\Hayo\\Val\>, array\<Taco\\Hayo\\Val\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: libs/Compiler.php
+
+		-
+			message: '#^Parameter \#1 \$items of class Taco\\Hayo\\StructList constructor expects list\<string\|Taco\\Hayo\\Expr\|Taco\\Hayo\\Val\>, array\<int\|string, string\|Taco\\Hayo\\Term\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: libs/Compiler.php
+
+		-
+			message: '#^Parameter \#1 \$items of class Taco\\Hayo\\StructTuple constructor expects list\<string\|Taco\\Hayo\\Expr\|Taco\\Hayo\\Val\>, array\<Taco\\Hayo\\Val\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: libs/Compiler.php
+
+		-
+			message: '#^Parameter \#1 \$items of class Taco\\Hayo\\StructTuple constructor expects list\<string\|Taco\\Hayo\\Expr\|Taco\\Hayo\\Val\>, array\<int\|string, string\|Taco\\Hayo\\Term\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: libs/Compiler.php
+
+		-
+			message: '#^Parameter \#1 \$src of static method Taco\\Hayo\\Compiler\:\:castStructItems\(\) expects array\<int\|string, string\|Taco\\Hayo\\Term\>, array\<string, string\|Taco\\Hayo\\Expr\|Taco\\Hayo\\Val\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: libs/Compiler.php
+
+		-
+			message: '#^Parameter \#1 \$src of static method Taco\\Hayo\\Compiler\:\:castStructItems\(\) expects array\<int\|string, string\|Taco\\Hayo\\Term\>, list\<string\|Taco\\Hayo\\Expr\|Taco\\Hayo\\Val\> given\.$#'
+			identifier: argument.type
+			count: 3
+			path: libs/Compiler.php
+
+		-
+			message: '#^Parameter \#1 \$xs of class Taco\\Hayo\\Expr constructor expects list\<string\|Taco\\Hayo\\Expr\|Taco\\Hayo\\Val\>, array\<Taco\\Hayo\\Val\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: libs/Compiler.php
+
+		-
+			message: '#^Parameter \#1 \$xs of class Taco\\Hayo\\Expr constructor expects list\<string\|Taco\\Hayo\\Expr\|Taco\\Hayo\\Val\>, array\<int\|string, string\|Taco\\Hayo\\Term\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: libs/Compiler.php
+
+		-
+			message: '#^Parameter \#1 \$xs of class Taco\\Hayo\\Expr constructor expects list\<string\|Taco\\Hayo\\Expr\|Taco\\Hayo\\Val\>, non\-empty\-list\<string\|Taco\\Hayo\\Term\|Taco\\Hayo\\Val\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: libs/Compiler.php
+
+		-
+			message: '#^Part \$fn \(Taco\\Hayo\\BuildinFunc\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 1
+			path: libs/Compiler.php
+
+		-
+			message: '#^Static method Taco\\Hayo\\Compiler\:\:castLambda\(\) invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
+			count: 1
+			path: libs/Compiler.php

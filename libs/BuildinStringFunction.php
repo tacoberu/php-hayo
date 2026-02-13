@@ -109,13 +109,13 @@ class BuildinStringFunction implements BuildinFunc
 			case 'strings.split':
 				return new FinalVal(array_map(static function (string $x): FinalVal {
 					return new FinalVal($x, 'Str');
-				}, self::applySplit($args)), 'List');
+				}, self::applySplit($args)), 'List'); // @phpstan-ignore argument.type
 
 			case 'strings.len':
-				return new FinalVal(self::applyLen($args), 'Int');
+				return new FinalVal(self::applyLen($args), 'Int'); // @phpstan-ignore argument.type
 
 			case 'strings.concat':
-				return new FinalVal(self::applyConcat($args), 'Str');
+				return new FinalVal(self::applyConcat($args), 'Str'); // @phpstan-ignore argument.type
 
 			default:
 				throw new LogicException("Comming soon: {$this->name}");

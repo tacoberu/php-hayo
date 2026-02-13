@@ -326,33 +326,166 @@ xs = (strings.split "," src)
 
 
 
-	function _testComposeDictBug5()
+	function testComposeDictBug3()
+	{
+		$call = $this->compile("
+author = \"John\"
+{
+	recipient: \"contact@domain.tld\"
+	content: author
+	address: address
+}
+");
+		$this->assertSame("Dict", $call->type());
+		$this->assertEquals([
+			new BindVal('address', '?'),
+		], $call->getBinds());
+		$this->assertEquals(new FinalVal((object) [
+			'recipient' => new FinalVal("contact@domain.tld", 'Str'),
+			'content' => new FinalVal("John", 'Str'),
+			'address' => new FinalVal("Iem", 'Str'),
+			], 'Dict')
+			, $call->apply([
+				'address' => new FinalVal("Iem", 'Str'),
+			]));
+	}
+
+
+
+	function testComposeDictBug4()
+	{
+		$call = $this->compile("
+author = address
+{
+	recipient: \"contact@domain.tld\"
+	content: author
+	address: address
+}
+");
+		$this->assertSame("Dict", $call->type());
+		$this->assertEquals([
+			new BindVal('address', '?'),
+		], $call->getBinds());
+		$this->assertEquals(new FinalVal((object) [
+			'recipient' => new FinalVal("contact@domain.tld", 'Str'),
+			'content' => new FinalVal("John", 'Str'),
+			'address' => new FinalVal("John", 'Str'),
+			], 'Dict')
+			, $call->apply([
+				'address' => new FinalVal("John", 'Str'),
+			]));
+	}
+
+
+
+	function testComposeDictBug5()
+	{
+		$call = $this->compile("
+author = {
+	foo: address
+}
+{
+	recipient: \"contact@domain.tld\"
+	content: author
+	address: address
+}
+");
+		$this->assertSame("Dict", $call->type());
+		$this->assertEquals([
+			new BindVal('address', '?'),
+		], $call->getBinds());
+		$this->assertEquals(new FinalVal((object) [
+			'recipient' => new FinalVal("contact@domain.tld", 'Str'),
+			'content' => new FinalVal((object) [
+				'foo' => new FinalVal("John", 'Str'),
+			], 'Dict'),
+			'address' => new FinalVal("John", 'Str'),
+			], 'Dict')
+			, $call->apply([
+				'address' => new FinalVal("John", 'Str'),
+			]));
+	}
+
+
+
+	function testComposeDictBug6()
+	{
+		$call = $this->compile("
+author = {
+	foo: address
+	boo: name
+}
+name = \"Hi\"
+{
+	recipient: \"contact@domain.tld\"
+	content: author
+	address: address
+}
+");
+		$this->assertSame("Dict", $call->type());
+		$this->assertEquals([
+			new BindVal('address', '?'),
+		], $call->getBinds());
+		$this->assertEquals(new FinalVal((object) [
+			'recipient' => new FinalVal("contact@domain.tld", 'Str'),
+			'content' => new FinalVal((object) [
+				'foo' => new FinalVal("John", 'Str'),
+				'boo' => new FinalVal("Hi", 'Str'),
+			], 'Dict'),
+			'address' => new FinalVal("John", 'Str'),
+			], 'Dict')
+			, $call->apply([
+				'address' => new FinalVal("John", 'Str'),
+			]));
+	}
+
+
+
+	/**
+	 * Problém, kdy parametr je zanořený v lokální proměnné.
+	 * LogicException: Symbol 'author' is not found.
+	 */
+	function testComposeDictBugX()
 	{
 		$call = $this->compile("
 content = [
 	{key: \"yourname\", content: author}
 	{key: \"youremail\", content: email}
-	{key: \"content\", content: content}
 	{key: \"domain\", content: \"domain.tld\"}
 ]
 {
-	name: \"contact\"
-	recipient: \"tacoberu@gmail.com\"
+	name: \"Contact\"
+	recipient: \"contact@domain.tld\"
 	content: content
 }
 ");
 		$this->assertSame("Dict", $call->type());
-
-die("\n------\n" . __file__ . ':' . __line__ . "\n");
 		$this->assertEquals([
-			new BindVal('src', '?'),
+			new BindVal('author', '?'),
+			new BindVal('email', '?'),
 		], $call->getBinds());
 		$this->assertEquals(new FinalVal((object) [
-			'une' => new FinalVal('Lorem ipsum', 'a'),
-			'deux' => new FinalVal(' doler ist', 'a'),
-			'trois' => new FinalVal('', 'a'),
+			'name' => new FinalVal('Contact', 'Str'),
+			'recipient' => new FinalVal('contact@domain.tld', 'Str'),
+			'content' => new FinalVal([
+				new FinalVal((object) [
+					'key' => new FinalVal('yourname', 'Str'),
+					'content' => new FinalVal('Laura', 'Str'),
+					], 'Dict'),
+				new FinalVal((object) [
+					'key' => new FinalVal('youremail', 'Str'),
+					'content' => new FinalVal('contact@domain.tld', 'Str'),
+					], 'Dict'),
+				new FinalVal((object) [
+					'key' => new FinalVal('domain', 'Str'),
+					'content' => new FinalVal('domain.tld', 'Str'),
+					], 'Dict'),
+				], 'List'),
 			], 'Dict')
-			, $call->apply(['src' => new FinalVal("Lorem ipsum, doler ist", 'Str')]));
+			, $call->apply([
+				'author' => new FinalVal("Laura", 'Str'),
+				'email' => new FinalVal("contact@domain.tld", 'Str'),
+			]));
 	}
 
 

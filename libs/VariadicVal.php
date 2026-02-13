@@ -170,17 +170,8 @@ class VariadicVal implements Val, HasRefs, Term
 	 */
 	function apply(array $args): Term
 	{
-		foreach ($args as $key => $val) {
-			if ( ! is_string($key)) { // @phpstan-ignore function.alreadyNarrowedType
-				throw new InvalidArgumentException("Argument must be with name.");
-			}
-			if ( ! $val instanceof Val) { // @phpstan-ignore instanceof.alwaysTrue
-				throw new InvalidArgumentException("Argument '{$key}' must be package into Val.");
-			}
-		}
-
-		// @TODO Přidat validaci, zda jsem předal správný počet prvků.
-
+		self::assertArguments($args);
+		self::assertBindArguments($this->getBinds(), $args);
 		return self::applyAny($this->expr, $args);// @phpstan-ignore return.type
 	}
 
@@ -295,8 +286,60 @@ class VariadicVal implements Val, HasRefs, Term
 	private static function assertBindInArguments(BindVal $bind, array $xs): void
 	{
 		if ( ! array_key_exists($bind->getBindName(), $xs)) {
-			throw new LogicException("Missing args: '{$bind->getBindName()}'.");
+			throw new InvalidArgumentException("Missing args: '{$bind->getBindName()}'.");
 		}
+	}
+
+
+
+	/**
+	 * Validaci, zda jsem předal správný počet prvků.
+	 *
+	 * @param array<BindVal> $binds
+	 * @param array<string, Val> $args
+	 */
+	private static function assertBindArguments(array $binds, array $args): void
+	{
+		$binds = array_map(static function(BindVal $x): string { return $x->getBindName(); }, $binds);
+		$args = array_keys($args);
+		if (count($binds) !== count($args)) {
+			$binds = implode(', ', array_map(static function(string $x): string { return "'{$x}'";}, $binds));
+			$args = implode(', ', array_map(static function(string $x): string { return "'{$x}'";}, $args));
+			throw new InvalidArgumentException("Invalid count of arguments. Expected {$binds}; given {$args}.");
+		}
+		$missing = array_diff($binds, $args);
+		$extra = array_diff($args, $binds);
+		if (count($missing) || count($extra)) {
+			$binds = implode(', ', array_map(static function(string $x): string { return "'{$x}'";}, $binds));
+			$args = implode(', ', array_map(static function(string $x): string { return "'{$x}'";}, $args));
+			throw new InvalidArgumentException("Invalid arguments. Expected {$binds}; given {$args}.");
+		}
+	}
+
+
+
+	/**
+	 * @param array<string, Val> $args
+	 */
+	private static function assertArguments(array $args): void
+	{
+		foreach ($args as $key => $val) {
+			self::assertArgument($key, $val);
+		}
+	}
+
+
+
+	private static function assertArgument(string $key, Val $val): void
+	{
+		/*
+		if ( ! is_string($key)) { // phpstan-ignore function.alreadyNarrowedType
+			throw new InvalidArgumentException("Argument must be with name.");
+		}
+		if ( ! $val instanceof Val) { // phpstan-ignore instanceof.alwaysTrue
+			throw new InvalidArgumentException("Argument '{$key}' must be package into Val.");
+		}
+		*/
 	}
 
 }

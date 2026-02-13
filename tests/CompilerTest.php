@@ -211,6 +211,29 @@ class CompilerTest extends TestCase
 
 
 
+	/**
+	 * Struktura odkazuje na symbol, který bude vytvořen. Zacyklí se to.
+	 * Řešení by mohlo být, že zakážu vytvářet odkazy na sebe sama.
+	 * Zakázání se projeví tím, že nemohu odkazovat na symbol jehož jsem součástí
+	 * a tudíž se to neresolvne a tudíž se ten symbol bude požadovat zvenčí.
+	 */
+	function _testSelfReferencingBug()
+	{
+		$call = $this->compile("
+content = {
+	foo: content
+}
+{
+	name: \"contact\"
+	content: content
+}
+");
+		$this->assertSame("Dict", $call->type());
+		die("\n------\n" . __file__ . ':' . __line__ . "\n");
+	}
+
+
+
 	private function compile($src)
 	{
 		return (new Compiler())->compile($src);
