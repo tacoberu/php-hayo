@@ -78,7 +78,7 @@ class Compiler
 		$term = self::partialEvaluate($term);
 
 		if (is_string($term)) {
-			throw new LogicException("Comming soon...");
+			throw new LogicException("Illegal term: '$term'.");
 		}
 
 		// Druhá váze: převedem term -> val
@@ -169,7 +169,7 @@ class Compiler
 				return self::partialEvaluateExpr($term);
 
 			default:
-				throw new LogicException("Unsupported term (" . (is_object($term) ? get_class($term) : gettype($term)) . "): '{$term}'."); // @phpstan-ignore encapsedStringPart.nonString
+				throw self::UnsupportedException('partial evaluate', $term);
 		}
 	}
 
@@ -245,7 +245,7 @@ class Compiler
 				return self::partialEvaluate(new StructTuple($xs));
 
 			default:
-				throw new LogicException("oops: {$term->getTerm()}");
+				throw self::UnsupportedException('partial evaluate const scope', $term->getTerm());
 		}
 	}
 
@@ -273,7 +273,7 @@ class Compiler
 				return $fn->apply(self::combineBindWithValues($fn, $items));
 
 			default:
-				throw new LogicException("oops: {$term}");
+				throw self::UnsupportedException('partial evaluate const', $term);
 		}
 	}
 
@@ -356,7 +356,7 @@ class Compiler
 //~ $items = array_map([self::class, 'compileRuntimeValue'], $items);
 //~ return $fn->apply(self::combineBindWithValues($fn, $items));
 			default:
-				throw new LogicException("oops: {$term}");
+				throw self::UnsupportedException('partial evaluate scope', $term);
 		}
 	}
 
@@ -391,7 +391,7 @@ class Compiler
 				return new Expr($items);
 
 			default:
-				throw new LogicException("oops: {$term}");
+				throw self::UnsupportedException('partial evaluate expr of term', $term);
 		}
 	}
 
@@ -441,7 +441,7 @@ class Compiler
 				return VariadicVal::tuple_($val, array_values($binds));
 
 			default:
-				throw new LogicException("Unsupported compile value: '{$term}'.");
+				throw self::UnsupportedException('compile value', $term);
 		}
 	}
 
@@ -478,9 +478,7 @@ class Compiler
 				return [$term, []];
 
 			default:
-				throw new LogicException("Unsupported casting of term (" . (is_object($term)
-					? get_class($term)
-					: gettype($term)) . "): '{$term}'.");
+				throw self::UnsupportedException('casting of term', $term);
 		}
 	}
 
@@ -679,6 +677,15 @@ class Compiler
 			throw new LogicException("Too few arguments to function {$fn}, {$passed} passed and exactly {$expected} expected.");
 		}
 		return array_combine($refs, $values);
+	}
+
+
+
+	private static function UnsupportedException(string $label, $term): LogicException
+	{
+		return new LogicException("Unsupported {$label} (" . (is_object($term)
+					? get_class($term)
+					: gettype($term)) . "): '{$term}'.");
 	}
 
 }
