@@ -46,6 +46,9 @@ class Compiler
 
 
 
+	/**
+	 * Vrací konečnou hodnotu, nebo funkci, kterou je třeba naplnit argumenty.
+	 */
 	function compile(string $source): Val
 	{
 		$decoder = new HayoDecoder();
@@ -254,21 +257,24 @@ class Compiler
 	private static function partialEvaluateConstExpr_2(Expr $term)
 	{
 		$items = $term->getItems();
-        // operátor
-        if (count($items) === 3 && $items[1] instanceof BuildinFunc) {
-            $arg1 = array_shift($items);
-            $fn = array_shift($items);
-            $items = array_merge([$arg1], $items);
-            $items = array_map([self::class, 'compileRuntimeValue'], $items);
-            return $fn->apply(self::combineBindWithValues($fn, $items));
-        }
-		// operátor
-		if (isset($items[0]) && $items[0] instanceof BuildinFunc) {
-            $fn = array_shift($items);
-            $items = array_map([self::class, 'compileRuntimeValue'], $items);
-            return $fn->apply(self::combineBindWithValues($fn, $items));
-        }
-        throw new LogicException("oops: {$term}");
+		switch (True) {
+			// operátor
+			case count($items) === 3 && $items[1] instanceof BuildinFunc:
+				$arg1 = array_shift($items);
+				$fn = array_shift($items);
+				$items = array_merge([$arg1], $items);
+				$items = array_map([self::class, 'compileRuntimeValue'], $items);
+				return $fn->apply(self::combineBindWithValues($fn, $items));
+
+			// operátor
+			case isset($items[0]) && $items[0] instanceof BuildinFunc:
+				$fn = array_shift($items);
+				$items = array_map([self::class, 'compileRuntimeValue'], $items);
+				return $fn->apply(self::combineBindWithValues($fn, $items));
+
+			default:
+				throw new LogicException("oops: {$term}");
+		}
 	}
 
 
@@ -363,28 +369,29 @@ class Compiler
 	private static function partialEvaluateExpr(Expr $term): Term
 	{
 		$items = $term->getItems();
-		// operátor
-		if (count($items) === 3 && $items[1] instanceof BuildinFunc) {
-			throw new LogicException("Comming soon...");
-			//~ $arg1 = array_shift($items);
-			//~ $fn = array_shift($items);
-			//~ $items = array_merge([$arg1], $items);
-			//~ $items = array_map([self::class, 'compileRuntimeValue'], $items);
+		switch (True) {
+			// operátor
+			case count($items) === 3 && $items[1] instanceof BuildinFunc:
+				throw new LogicException("Comming soon...");
+				//~ $arg1 = array_shift($items);
+				//~ $fn = array_shift($items);
+				//~ $items = array_merge([$arg1], $items);
+				//~ $items = array_map([self::class, 'compileRuntimeValue'], $items);
 
-			//~ return $fn->apply(self::combineBindWithValues($fn, $items));
-		}
-		// funkce
-		elseif (isset($items[0]) && $items[0] instanceof BuildinFunc) {
-			foreach ($items as $i => $x) {
-				if ( ! is_string($x) && ! $x instanceof BuildinFunc) {
-					list($x, ) = self::castAny($x, False);
-					$items[$i] = $x;
+				//~ return $fn->apply(self::combineBindWithValues($fn, $items));
+
+			// funkce
+			case isset($items[0]) && $items[0] instanceof BuildinFunc:
+				foreach ($items as $i => $x) {
+					if ( ! is_string($x) && ! $x instanceof BuildinFunc) {
+						list($x, ) = self::castAny($x, False);
+						$items[$i] = $x;
+					}
 				}
-			}
-			return new Expr($items);
-		}
-		else {
-			throw new LogicException("oops: {$term}");
+				return new Expr($items);
+
+			default:
+				throw new LogicException("oops: {$term}");
 		}
 	}
 
@@ -417,22 +424,25 @@ class Compiler
 	{
 		list($val, $binds) = self::castAny($term, True);
 
-		if ($val instanceof FinalVal) {
-			return $val;
+		switch (True) {
+			case $val instanceof FinalVal:
+				return $val;
+
+			case $val instanceof Expr:
+				return VariadicVal::expr($val, '?', array_values($binds));
+
+			case $val instanceof StructDict:
+				return VariadicVal::dict($val, array_values($binds));
+
+			case $val instanceof StructList:
+				return VariadicVal::list_($val, array_values($binds));
+
+			case $val instanceof StructTuple:
+				return VariadicVal::tuple_($val, array_values($binds));
+
+			default:
+				throw new LogicException("Unsupported compile value: '{$term}'.");
 		}
-		if ($val instanceof Expr) {
-			return VariadicVal::expr($val, '?', array_values($binds));
-		}
-		if ($val instanceof StructDict) {
-			return VariadicVal::dict($val, array_values($binds));
-		}
-		if ($val instanceof StructList) {
-			return VariadicVal::list_($val, array_values($binds));
-		}
-		if ($val instanceof StructTuple) {
-			return VariadicVal::tuple_($val, array_values($binds));
-		}
-		throw new LogicException("Comming soon...");
 	}
 
 
@@ -468,7 +478,7 @@ class Compiler
 				return [$term, []];
 
 			default:
-				throw new LogicException("Unsupported term (" . (is_object($term)
+				throw new LogicException("Unsupported casting of term (" . (is_object($term)
 					? get_class($term)
 					: gettype($term)) . "): '{$term}'.");
 		}
