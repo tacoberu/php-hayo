@@ -58,7 +58,6 @@ class BuildinListFunction implements BuildinFunc
 				return 'Int';
 
 			case 'list.first':
-				return 'a';
 
 			case 'list.at':
 				return 'a';
@@ -116,7 +115,7 @@ class BuildinListFunction implements BuildinFunc
 	 */
 	function refs(): array
 	{
-		return array_map(static function($x) {
+		return array_map(static function (BindVal $x): string {
 			return $x->getBindName();
 		}, $this->getBinds());
 	}
@@ -131,7 +130,7 @@ class BuildinListFunction implements BuildinFunc
 	function apply(array $args): Term
 	{
 		$args = array_values($args);
-		$args = array_map(static function($x) {
+		$args = array_map(static function(Term $x) {
 			return $x instanceof FinalVal
 				? $x->unpack()
 				: $x;
@@ -145,7 +144,7 @@ class BuildinListFunction implements BuildinFunc
 				self::assertArgumentExist($args, 0, 'src: List<a>');
 				self::assertArgumentExist($args, 1, 'default: a');
 				$xs = $args[0];
-				if (count($xs)) {
+				if (count($xs) > 0) {
 					return new FinalVal($xs[0], 'a');
 				}
 				return new FinalVal($args[1], 'a');
@@ -155,9 +154,7 @@ class BuildinListFunction implements BuildinFunc
 				self::assertArgumentExist($args, 1, 'src: List<a>');
 				self::assertArgumentExist($args, 2, 'default: a');
 				$index = $args[0];
-				$xs = isset($args[1])
-					? $args[1]
-					: [];
+				$xs = $args[1] ?? [];
 				return array_key_exists($index, $xs)
 					? new FinalVal($xs[$index], 'a')
 					: new FinalVal($args[2], 'a');
@@ -188,7 +185,7 @@ class BuildinListFunction implements BuildinFunc
 
 
 
-	function __toString()
+	function __toString(): string
 	{
 		return '<' . $this->name . ' ' . implode(' ', $this->refs()) . '>';
 	}

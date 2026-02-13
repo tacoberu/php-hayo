@@ -54,7 +54,7 @@ class BuildinStringFunction implements BuildinFunc
 	 */
 	function refs(): array
 	{
-		return array_map(static function($x) {
+		return array_map(static function (BindVal $x): string {
 			return $x->getBindName();
 		}, $this->getBinds());
 	}
@@ -100,14 +100,14 @@ class BuildinStringFunction implements BuildinFunc
 	function apply(array $args): Term
 	{
 		$args = array_values($args);
-		$args = array_map(static function($x) {
+		$args = array_map(static function (Term $x) {
 			return $x instanceof FinalVal
 				? $x->unpack()
 				: $x;
 		}, $args);
 		switch ($this->name) {
 			case 'strings.split':
-				return new FinalVal(array_map(static function($x) {
+				return new FinalVal(array_map(static function (string $x): FinalVal {
 					return new FinalVal($x, 'Str');
 				}, self::applySplit($args)), 'List');
 
@@ -172,7 +172,7 @@ class BuildinStringFunction implements BuildinFunc
 
 
 
-	function __toString()
+	function __toString(): string
 	{
 		return '<' . $this->name . ' ' . implode(' ', $this->refs()) . '>';
 	}

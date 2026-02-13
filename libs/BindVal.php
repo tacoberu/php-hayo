@@ -41,10 +41,7 @@ class BindVal implements Val
 
 
 
-	/**
-	 * @return mixed
-	 */
-	function unpack()
+	function unpack(): string
 	{
 		return "<?{$this->name}> :: {$this->type}";
 	}

@@ -57,7 +57,7 @@ class Compiler
 		$lets = [];
 		if ($term instanceof HasRefs) {
 			foreach ($term->refs() as $x) {
-				if ($symbol = $this->resolveGlobalSymbols($x)) {
+				if (($symbol = $this->resolveGlobalSymbols($x)) instanceof Let) {
 					$lets[] = $symbol;
 				}
 			}
@@ -137,24 +137,6 @@ class Compiler
 			case is_string($term) && self::is_operator($term):
 			case is_string($term) && self::is_bind($term):
 			case $term instanceof Literal:
-				return $term;
-
-			case $term instanceof Scope && $term->refs() === []:
-				return self::partialEvaluateConstScope($term);
-
-			case $term instanceof Scope && $term->refs() !== []:
-				return self::partialEvaluateScope($term);
-
-			// Může se jednat o volání funkce: `format(1 2 3)`, vrátíme výsledek
-			// Může se jednat o operaci: `1 + 1`, vrátíme výsledek
-			case $term instanceof Expr && $term->refs() === []:
-				return self::partialEvaluateConstExpr_2($term);
-
-			// Může se jednat o volání funkce: `format(1 a 3)`, protoře "a" neznáme, vrátíme funkci.
-			// Může se jednat o operaci: `1 + a`, vrátíme protoře "a" neznáme, vrátíme funkci.
-			// Může se jednat o predikát: `equals(1, 1) and a == 42`, protoře "a" neznáme, vrátíme funkci.
-			case $term instanceof Expr && $term->refs() !== []:
-				return self::partialEvaluateExpr($term);
 
 			case $term instanceof StructTuple && $term->refs() === []:
 			case $term instanceof StructList && $term->refs() === []:
@@ -162,15 +144,26 @@ class Compiler
 			case $term instanceof StructDict && $term->refs() !== []:
 			case $term instanceof StructList && $term->refs() !== []:
 			case $term instanceof StructTuple && $term->refs() !== []:
-				return $term;
 
 			case $term instanceof BuildinFunc:
-				return $term;
 
 			// @TODO Prostor pro optimalizaci: Labda se nedá vykonata celá, protože závisí na stavu argumentu.
 			// ale části toho Expr by možná šli. Záleží jak moc je ta lambda košatá.
 			case $term instanceof Lambda:
 				return $term;
+            case $term instanceof Scope && $term->refs() === []:
+				return self::partialEvaluateConstScope($term);
+            case $term instanceof Scope && $term->refs() !== []:
+				return self::partialEvaluateScope($term);
+            // Může se jednat o volání funkce: `format(1 2 3)`, vrátíme výsledek
+            // Může se jednat o operaci: `1 + 1`, vrátíme výsledek
+            case $term instanceof Expr && $term->refs() === []:
+				return self::partialEvaluateConstExpr_2($term);
+            // Může se jednat o volání funkce: `format(1 a 3)`, protoře "a" neznáme, vrátíme funkci.
+            // Může se jednat o operaci: `1 + a`, vrátíme protoře "a" neznáme, vrátíme funkci.
+            // Může se jednat o predikát: `equals(1, 1) and a == 42`, protoře "a" neznáme, vrátíme funkci.
+            case $term instanceof Expr && $term->refs() !== []:
+				return self::partialEvaluateExpr($term);
 
 			default:
 				throw new LogicException("Unsupported term (" . (is_object($term) ? get_class($term) : gettype($term)) . "): '{$term}'."); // @phpstan-ignore encapsedStringPart.nonString
@@ -261,23 +254,21 @@ class Compiler
 	private static function partialEvaluateConstExpr_2(Expr $term)
 	{
 		$items = $term->getItems();
+        // operátor
+        if (count($items) === 3 && $items[1] instanceof BuildinFunc) {
+            $arg1 = array_shift($items);
+            $fn = array_shift($items);
+            $items = array_merge([$arg1], $items);
+            $items = array_map([self::class, 'compileRuntimeValue'], $items);
+            return $fn->apply(self::combineBindWithValues($fn, $items));
+        }
 		// operátor
-		if (count($items) === 3 && $items[1] instanceof BuildinFunc) {
-			$arg1 = array_shift($items);
-			$fn = array_shift($items);
-			$items = array_merge([$arg1], $items);
-			$items = array_map([self::class, 'compileRuntimeValue'], $items);
-			return $fn->apply(self::combineBindWithValues($fn, $items));
-		}
-		// funkce
-		elseif (isset($items[0]) && $items[0] instanceof BuildinFunc) {
-			$fn = array_shift($items);
-			$items = array_map([self::class, 'compileRuntimeValue'], $items);
- 			return $fn->apply(self::combineBindWithValues($fn, $items));
-		}
-		else {
-			throw new LogicException("oops: {$term}");
-		}
+		if (isset($items[0]) && $items[0] instanceof BuildinFunc) {
+            $fn = array_shift($items);
+            $items = array_map([self::class, 'compileRuntimeValue'], $items);
+            return $fn->apply(self::combineBindWithValues($fn, $items));
+        }
+        throw new LogicException("oops: {$term}");
 	}
 
 
@@ -295,10 +286,8 @@ class Compiler
 				// @TODO A co konstrukce v Let, ty jsou vyrenderované?
 				$xs = [];
 				foreach ($term->getTerm()->getItems() as $x) {
-					if (is_string($x)) {
-						if ($ref = $term->selectSymbol($x)) {
-							$x = $ref;
-						}
+					if (is_string($x) && $ref = $term->selectSymbol($x)) {
+						$x = $ref;
 					}
 					if (! is_string($x) && $x instanceof HasRefs && count($x->refs())) {
 						$x = new Scope($lets, $x);
@@ -453,7 +442,7 @@ class Compiler
 	 * @param bool $packref Když narazíme na symbol závislosti, tak nědy se nám nehodí, že se zabalí do BindVal
 	 * @return array{0: Term, 1: array<string, BindVal>}
 	 */
-	private static function castAny($term, bool $packref)
+	private static function castAny($term, bool $packref): array
 	{
 		switch (True) {
 			case $term instanceof Literal:
@@ -495,13 +484,10 @@ class Compiler
 
 
 	private static function is_operator(string $m): bool
-	{
-		// Mathematic
-		if (in_array($m, ['+', '-', '*', 'div', 'mod'], True)) {
-			return True;
-		}
-		return False;
-	}
+    {
+        // Mathematic
+        return in_array($m, ['+', '-', '*', 'div', 'mod'], True);
+    }
 
 
 
@@ -512,24 +498,23 @@ class Compiler
 
 
 
-	private static function castLambda(Lambda $val): VariadicVal
-	{
-		//~ $args = [];
-		//~ foreach ($val->getArgs() as $arg) {
-			//~ $args[] = is_string($arg)
-				//~ ? new BindVal($arg, '?')
-				//~ : self::compileRuntimeValue($arg);
-		//~ }
-
-		throw new LogicException("Comming soon...");
-	}
+	private static function castLambda(): VariadicVal
+    {
+        //~ $args = [];
+        //~ foreach ($val->getArgs() as $arg) {
+        //~ $args[] = is_string($arg)
+        //~ ? new BindVal($arg, '?')
+        //~ : self::compileRuntimeValue($arg);
+        //~ }
+        throw new LogicException("Comming soon...");
+    }
 
 
 
 	/**
 	 * @return array{0: Term, 1: array<string, BindVal>}
 	 */
-	private static function castStructTuple(StructTuple $src, bool $packref)
+	private static function castStructTuple(StructTuple $src, bool $packref): array
 	{
 		$lets = [];
 		$items = [];
@@ -548,7 +533,7 @@ class Compiler
 				$items[$i] = $x;
 			}
 		}
-		if (empty($src->refs())) {
+		if ($src->refs() === []) {
 			return [new FinalVal($items, 'Tuple'), $lets];
 		}
 		return [new StructTuple($items), $lets];
@@ -559,7 +544,7 @@ class Compiler
 	/**
 	 * @return array{0: Term, 1: array<string, BindVal>}
 	 */
-	private static function castStructList(StructList $src, bool $packref)
+	private static function castStructList(StructList $src, bool $packref): array
 	{
 		$lets = [];
 		$items = [];
@@ -578,7 +563,7 @@ class Compiler
 				$items[$i] = $x;
 			}
 		}
-		if (empty($src->refs())) {
+		if ($src->refs() === []) {
 			return [new FinalVal($items, 'List'), $lets];
 		}
 		return [new StructList($items), $lets];
@@ -589,7 +574,7 @@ class Compiler
 	/**
 	 * @return array{0: Term, 1: array<string, BindVal>}
 	 */
-	private static function castStructDict(StructDict $src, bool $packref)
+	private static function castStructDict(StructDict $src, bool $packref): array
 	{
 		$lets = [];
 		$items = [];
@@ -608,7 +593,7 @@ class Compiler
 				$items[$k] = $x;
 			}
 		}
-		if (empty($src->refs())) {
+		if ($src->refs() === []) {
 			return [new FinalVal((object) $items, 'Dict'), $lets];
 		}
 		return [new StructDict($items), $lets];
@@ -620,7 +605,7 @@ class Compiler
 	 * První element je vždy operátor/funkce.
 	 * @return array{0: Term, 1: array<string, BindVal>}
 	 */
-	private static function castExpr(Expr $src, bool $packref)
+	private static function castExpr(Expr $src, bool $packref): array
 	{
 		$items = [];
 		$lets = [];
@@ -674,7 +659,7 @@ class Compiler
 	 */
 	private static function combineBindWithValues(BuildinFunc $fn, array $values): array
 	{
-		$refs = array_map(static function($x) {
+		$refs = array_map(static function (BindVal $x): string {
 			return $x->getBindName();
 		}, $fn->getBinds());
 

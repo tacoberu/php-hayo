@@ -43,7 +43,7 @@ class BuildinMathOperator implements BuildinFunc
 	 */
 	function refs(): array
 	{
-		return array_map(static function($x) {
+		return array_map(static function (BindVal $x): string {
 			return $x->getBindName();
 		}, $this->getBinds());
 	}
@@ -82,7 +82,7 @@ class BuildinMathOperator implements BuildinFunc
 	function apply(array $args): Term
 	{
 		$args = array_values($args);
-		$args = array_map(static function($x) {
+		$args = array_map(static function (Term $x) {
 			return $x instanceof FinalVal
 				? $x->unpack()
 				: $x;
@@ -110,7 +110,7 @@ class BuildinMathOperator implements BuildinFunc
 
 
 
-	function __toString()
+	function __toString(): string
 	{
 		return '<' . $this->op . ' ' . implode(' ', $this->refs()) . '>';
 	}

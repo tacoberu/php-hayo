@@ -64,7 +64,7 @@ class FinalVal implements Val, Term
 		if (is_object($this->val)) {
 			$xs = [];
 			foreach ((array) $this->val as $i => $x) {
-				$xs[$i] = is_object($x) && $x instanceof self
+				$xs[$i] = $x instanceof self
 					? $x->unpack()
 					: $x;
 			}
@@ -73,7 +73,7 @@ class FinalVal implements Val, Term
 		if (is_array($this->val)) {
 			$xs = [];
 			foreach ($this->val as $i => $x) {
-				$xs[$i] = is_object($x) && $x instanceof self
+				$xs[$i] = $x instanceof self
 					? $x->unpack()
 					: $x;
 			}

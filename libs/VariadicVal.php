@@ -123,10 +123,7 @@ class VariadicVal implements Val, HasRefs, Term
 
 
 
-	/**
-	 * @return mixed
-	 */
-	function unpack()
+	function unpack(): string
 	{
 		return "<lambda> -> {$this->type}";
 	}
