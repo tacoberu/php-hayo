@@ -256,6 +256,14 @@ content = {
 
 
 
+	function _testFunction()
+	{
+		$src = 'strings.split " " ""';
+		dump($this->compile($src));
+	}
+
+
+
 	private function compile($src)
 	{
 		return (new Compiler())->compile($src);

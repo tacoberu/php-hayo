@@ -132,6 +132,11 @@ class BuildinStringFunction implements BuildinFunc
 	{
 		self::assertArgumentExist($args, 0, 'sep: Str');
 		self::assertArgumentExist($args, 1, 'src: Str');
+		self::assertStr($args[0]);
+		self::assertStr($args[1]);
+		if ($args[1] === "") {
+			return [];
+		}
 		return explode($args[0], $args[1]);
 	}
 
@@ -143,7 +148,8 @@ class BuildinStringFunction implements BuildinFunc
 	private static function applyLen(array $args): int
 	{
 		self::assertArgumentExist($args, 0, 'src: Str');
-		return strlen($args[0]);
+		self::assertStr($args[0]);
+		return mb_strlen($args[0]);
 	}
 
 
@@ -155,6 +161,8 @@ class BuildinStringFunction implements BuildinFunc
 	{
 		self::assertArgumentExist($args, 0, 'sep: Str');
 		self::assertArgumentExist($args, 1, 'src: List<Str>');
+		self::assertStr($args[0]);
+		self::assertListOfStr($args[1]);
 		return implode($args[0], $args[1]);
 	}
 
@@ -167,6 +175,39 @@ class BuildinStringFunction implements BuildinFunc
 	{
 		if ( ! array_key_exists($index, $src)) {
 			throw new InvalidArgumentException("Missing {$index}'th argument '{$label}'.");
+		}
+	}
+
+
+
+	/**
+	 * @param mixed $val
+	 */
+	private static function assertStr($val): void
+	{
+		if (!is_string($val)) {
+			throw new InvalidArgumentException('Expected string, got ' . gettype($val));
+		}
+	}
+
+
+
+	/**
+	 * @param mixed $value
+	 */
+	private static function assertListOfStr($value): void
+	{
+		if ( ! is_array($value)) {
+			throw new InvalidArgumentException('Expected array, got ' . gettype($value));
+		}
+
+		foreach ($value as $key => $item) {
+			if (!is_string($item)) {
+				$item = is_object($item)
+					? get_class($item)
+					: gettype($item);
+				throw new InvalidArgumentException("Expected string at index $key, got '$item'.");
+			}
 		}
 	}
 
