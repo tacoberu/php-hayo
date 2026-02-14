@@ -82,4 +82,11 @@ class FinalVal implements Val, Term
 		throw new LogicException("Comming soon...");
 	}
 
+
+
+	function __toString(): string
+	{
+		return (string) $this->unpack();
+	}
+
 }
