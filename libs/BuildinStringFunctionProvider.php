@@ -18,7 +18,7 @@ class BuildinStringFunctionProvider implements SymbolProvider
 			return Null;
 		}
 
-		if (! in_array($symbol, ['strings.len', 'strings.split',], True)) {
+		if (! in_array($symbol, ['strings.len', 'strings.split', 'strings.concat',], True)) {
 			return Null;
 		}
 
