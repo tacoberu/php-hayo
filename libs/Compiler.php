@@ -197,20 +197,27 @@ class Compiler
 	/**
 	 * Provede **částečné vyhodnocení** výrazu, u kterého očekáváme jako výsledek lambdu.
 	 * Očekáváme, že, všechny závislosti jsou vyřešeny, a ty které nejsou jsou vnější.
+	 *
+	 * `41 + a`
+	 * `strings.len a`
+	 * `strings.split "," src`
+	 * `list.at 2 src`
+	 * `list.at 2 ["une", a, "trois"]`
 	 */
 	private static function partialEvaluateExpr(Expr $term): Term
 	{
 		$items = $term->getItems();
 		switch (True) {
 			// operátor
+			// Záleží na pořadí?
 			case count($items) === 3 && $items[1] instanceof BuildinFunc:
-				throw new LogicException("Comming soon...");
-				//~ $arg1 = array_shift($items);
-				//~ $fn = array_shift($items);
-				//~ $items = array_merge([$arg1], $items);
-				//~ $items = array_map([self::class, 'compileRuntimeValue'], $items);
-
-				//~ return $fn->apply(self::combineBindWithValues($fn, $items));
+				foreach ($items as $i => $x) {
+					if ( ! is_string($x) && ! $x instanceof BuildinFunc) {
+						list($x, ) = self::castAny($x, False);
+						$items[$i] = $x;
+					}
+				}
+				return new Expr($items); // @phpstan-ignore argument.type
 
 			// funkce
 			case isset($items[0]) && $items[0] instanceof BuildinFunc:
@@ -248,7 +255,7 @@ class Compiler
 				$items = array_map([self::class, 'compileRuntimeValue'], array_merge([$arg1], $items));
 				return $fn->apply(self::combineBindWithValues($fn, $items));
 
-			// operátor
+			// funkce
 			case isset($items[0]) && $items[0] instanceof BuildinFunc:
 				$fn = array_shift($items);
 				$items = array_map([self::class, 'compileRuntimeValue'], $items);

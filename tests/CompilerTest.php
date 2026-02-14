@@ -19,6 +19,7 @@ class CompilerTest extends TestCase
 	#[DataProvider('dataScalar')]
 	#[DataProvider('dataStructs')]
 	#[DataProvider('dataOperations')]
+	#[DataProvider('dataLambdas')]
 	#[DataProvider('dataFinalValWithSymbol')]
 	function testCompile(string $code, $expected)
 	{
@@ -37,15 +38,6 @@ class CompilerTest extends TestCase
 {a: a, b: "abc", c: c}')
 		->apply(['a' => new FinalVal(45, 'Int'), 'c' => new FinalVal(88, 'Int')])
 		);
-	}
-
-
-
-	function _testDevelop()
-	{
-		$src = "a = 554\n{a: 42, b: a + 1}";
-
-		dump($this->compile($src));
 	}
 
 
@@ -170,6 +162,12 @@ class CompilerTest extends TestCase
 			["a = 2\n40 + a", new FinalVal(42, 'Int')],
 			["a = 2\nb = 40\nb + a", new FinalVal(42, 'Int')],
 			["a = 2\nb = 20\n(b + b) + a", new FinalVal(42, 'Int')],
+
+			["a = 554\n{a: 42, b: a + 1}", new FinalVal((object) [
+					'a' => new FinalVal(42, 'Int'),
+					'b' => new FinalVal(555, 'Int'),
+				], 'Dict')],
+
 			// @TODO
 		];
 	}
@@ -182,29 +180,53 @@ class CompilerTest extends TestCase
 	static function dataLambdas(): array
 	{
 		return [
-			['40 + a', new VariadicVal(new BuildinMathOperator('+')
-				, 'Unknown'
-				, [ new FinalVal(40, 'Int')
-					, new BindVal('a', '?'),
+			['40 + a', VariadicVal::expr(new Expr([
+					new FinalVal(40, 'Int'),
+					new BuildinMathOperator('+'),
+					new BindVal('a', '?'),
+					])
+				, '?'
+				, [ new BindVal('a', '?'),
 					])],
 
-/* @TODO			['40 + (a + a)', new VariadicVal(new BuildinMathOperator('+')
-				, 'Unknown'
-				, [ new FinalVal(40, 'Int')
-					, new BindVal('a', '?')
+			['40 + (a + a)', VariadicVal::expr(new Expr([
+					new FinalVal(40, 'Int'),
+					new BuildinMathOperator('+'),
+					new Expr([
+						new BindVal('a', '?'),
+						new BuildinMathOperator('+'),
+						new BindVal('a', '?'),
+						]),
+					])
+				, '?'
+				, [ new BindVal('a', '?'),
 				])],
-				*/
 
-			['40 + (a + b)', new VariadicVal(new BuildinMathOperator('+')
-				, 'Unknown'
-				, [ new FinalVal(40, 'Int')
-					, new VariadicVal(new BuildinMathOperator('+')
-						, 'Unknown'
-						, [ new BindVal('a', '?')
-							, new BindVal('b', '?'),
-							]),
+			['40 + (a + b)', VariadicVal::expr(new Expr([
+					new FinalVal(40, 'Int'),
+					new BuildinMathOperator('+'),
+					new Expr([
+						new BindVal('a', '?'),
+						new BuildinMathOperator('+'),
+						new BindVal('b', '?'),
+						]),
+					])
+				, '?'
+				, [ new BindVal('a', '?'),
+					new BindVal('b', '?'),
 					])],
 
+			["list.at 2 [\"une\", a, \"trois\"]", VariadicVal::expr(new Expr([ new BuildinListFunction('list.at')
+					, new FinalVal(2, 'Int')
+					, new StructList([
+						new FinalVal("une", 'Str'),
+						new BindVal("a", '?'),
+						new FinalVal("trois", 'Str'),
+						], 'Dict'),
+					])
+				, '?'
+				, [ new BindVal('a', '?') ]
+				)],
 			// @TODO
 		];
 	}
