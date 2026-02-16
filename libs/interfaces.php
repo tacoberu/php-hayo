@@ -43,3 +43,38 @@ interface SymbolProvider
 	function lookup(string $symbol): ?BuildinFunc;
 
 }
+
+
+
+interface BuildinFunc extends Applicable
+{
+
+	/**
+	 * Které argumenty to vyžaduje.
+	 * @return list<BindVal>
+	 */
+	function getBinds(): array;
+
+
+
+	/**
+	 * Předáme požadované argumenty a vypočítáme výsledek. Argumenty už musí
+	 * být finální hodnoty.
+	 * @param array<string, FinalVal> $args
+	 */
+	function apply(array $args): Value;
+
+}
+
+
+
+interface Cache
+{
+
+	/**
+	 * @param callable $cb
+	 * @return FinalVal | ParametricValue
+	 */
+	function load(string $key, $cb);
+
+}

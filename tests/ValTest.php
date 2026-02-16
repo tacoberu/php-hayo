@@ -26,11 +26,10 @@ class ValTest extends TestCase
 
 	function testVariadic3()
 	{
-		$inst = VariadicVal::expr(new Expr([
-			new BuildinMathOperator('+'),
-			'a',
-			'b',
-		]), 'Int', [new BindVal('a', 'Int'), new BindVal('b', 'Int')]);
+		$inst = VariadicVal::Expr_(Expr::Bin_('a',
+			new MathOperator('+'),
+			'b'
+		), 'Int', [new BindVal('a', 'Int'), new BindVal('b', 'Int')]);
 		$this->assertSame('Int', $inst->getTypeName());
 		$this->assertSame(['a', 'b'], $inst->refs());
 		$this->assertEquals([
@@ -48,11 +47,11 @@ class ValTest extends TestCase
 
 	function testVariadic1()
 	{
-		$inst = VariadicVal::expr(new Expr([
-			new BuildinMathOperator('+'),
+		$inst = VariadicVal::Expr_(Expr::Bin_(
 			new FinalVal(41, 'Int'),
-			'a',
-		]), 'Int', [new BindVal('a', 'Int')]);
+			new MathOperator('+'),
+			'a'
+		), 'Int', [new BindVal('a', 'Int')]);
 		$this->assertSame('Int', $inst->getTypeName());
 		$this->assertSame(['a'], $inst->refs());
 		$this->assertEquals([
@@ -66,11 +65,11 @@ class ValTest extends TestCase
 
 	function testVariadic2()
 	{
-		$inst = VariadicVal::expr(new Expr([
-			new BuildinMathOperator('+'),
+		$inst = VariadicVal::Expr_(Expr::Bin_(
 			new FinalVal(41, 'Int'),
-			new FinalVal(11, 'Int'),
-		]), 'Int', []);
+			new MathOperator('+'),
+			new FinalVal(11, 'Int')
+		), 'Int', []);
 		$this->assertSame('Int', $inst->getTypeName());
 		$this->assertSame([], $inst->refs());
 		$this->assertEquals([], $inst->getBinds());

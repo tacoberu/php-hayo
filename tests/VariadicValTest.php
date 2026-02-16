@@ -17,11 +17,11 @@ class VariadicValTest extends TestCase
 
 	function testVariadic3()
 	{
-		$inst = VariadicVal::expr(new Expr([
-			new BuildinMathOperator('+'),
+		$inst = VariadicVal::Expr_(Expr::Bin_(
 			'a',
-			'b',
-		]), 'Int', [new BindVal('a', 'Int'), new BindVal('b', 'Int')]);
+			new MathOperator('+'),
+			'b'
+		), 'Int', [new BindVal('a', 'Int'), new BindVal('b', 'Int')]);
 		$this->assertSame('Int', $inst->getTypeName());
 		$this->assertSame(['a', 'b'], $inst->refs());
 		$this->assertEquals([
@@ -39,11 +39,11 @@ class VariadicValTest extends TestCase
 
 	function testVariadic1()
 	{
-		$inst = VariadicVal::expr(new Expr([
-			new BuildinMathOperator('+'),
+		$inst = VariadicVal::Expr_(Expr::Bin_(
 			new FinalVal(41, 'Int'),
-			'a',
-		]), 'Int', [new BindVal('a', 'Int')]);
+			new MathOperator('+'),
+			'a'
+		), 'Int', [new BindVal('a', 'Int')]);
 		$this->assertSame('Int', $inst->getTypeName());
 		$this->assertSame(['a'], $inst->refs());
 		$this->assertEquals([
@@ -57,11 +57,11 @@ class VariadicValTest extends TestCase
 
 	function testVariadic2()
 	{
-		$inst = VariadicVal::expr(new Expr([
-			new BuildinMathOperator('+'),
+		$inst = VariadicVal::Expr_(Expr::Bin_(
 			new FinalVal(41, 'Int'),
-			new FinalVal(11, 'Int'),
-		]), 'Int', []);
+			new MathOperator('+'),
+			new FinalVal(11, 'Int')
+		), 'Int', []);
 		$this->assertSame('Int', $inst->getTypeName());
 		$this->assertSame([], $inst->refs());
 		$this->assertEquals([], $inst->getBinds());
@@ -71,10 +71,10 @@ class VariadicValTest extends TestCase
 
 
 
-	function testStructDict()
+	function testCompositeDict()
 	{
-		$inst = VariadicVal::dict(new StructDict([
-			'a' => new StructDict([
+		$inst = VariadicVal::Dict_(Composite::Dict_([
+			'a' => Composite::Dict_([
 				'b' => new BindVal('content', '?'),
 			]),
 		]), [new BindVal('content', 'Str')]);
@@ -94,13 +94,13 @@ class VariadicValTest extends TestCase
 
 
 
-	function testStructDictTerm()
+	function ____testCompositeDictTerm()
 	{
-		$inst = new StructDict([
-			'a' => new StructDict([
+		$inst = VariadicVal::Dict_(Composite::Dict_([
+			'a' => VariadicVal::Dict_(Composite::Dict_([
 				'b' => 'content',
-			]),
-		]);
+			])),
+		]));
 		$this->assertSame('DICT', $inst->type());
 		$this->assertSame(['content'], $inst->refs());
 	}

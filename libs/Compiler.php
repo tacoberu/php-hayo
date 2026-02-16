@@ -10,7 +10,6 @@
 namespace Taco\Hayo;
 
 use LogicException;
-use InvalidArgumentException;
 
 
 /**
@@ -23,26 +22,26 @@ class Compiler
 	/**
 	 * @var list<SymbolProvider>
 	 */
-	private array $operators = [];
+	private array $libs = [];
 
 	/**
-	 * @var list<SymbolProvider>
+	 * @param list<SymbolProvider> $libs
 	 */
-	private array $functions = [];
-
-	/**
-	 * @param list<SymbolProvider> $operators
-	 * @param list<SymbolProvider> $functions
-	 */
-	function __construct(array $operators = [], array $functions = [])
+	function __construct(array $libs)
 	{
-		$this->operators = array_merge([
-			new BuildinMathOperatorProvider(),
-		], $operators);
-		$this->functions = array_merge([
-			new BuildinStringFunctionProvider(),
-			new BuildinListFunctionProvider(),
-		], $functions);
+		$this->libs = $libs;
+	}
+
+
+
+	static function WithDefaultLibraries(): self
+	{
+		return new self([
+			'predicate' => new PredicatesProvider(),
+			'math' => new MathsProvider(),
+			'str' => new StringsProvider(),
+			'list' => new ListsProvider(),
+		]);
 	}
 
 
@@ -54,17 +53,21 @@ class Compiler
 	{
 		$decoder = new HayoDecoder();
 		$term = $decoder->decode($source);
-		if ( ! $term instanceof Term) {
+		if ( ! $term instanceof Value) {
+			// `a` -- vracíme argument
+			if (is_string($term)) {
+				return VariadicVal::ShortLinkBind(new BindVal($term, '?'));
+			}
 			throw new LogicException("Invalid source code.");
 		}
 
 		// Vytáhnu si všechny závislosti. Pokusím se je dohledat; například buildin funkce, a podobně.
 		// A ty co nejsou zůstanou jako parametry funkce.
-		$term = $this->appliesGlobalSymbols($term);
+		$context = $this->createGlobalSymbols($term);
 
 		// První fáze: vyhodnotíme nabindované symboly. Vypočítáme všechny věci, které jdou vypočítat staticky.
-		$term = self::partialEvaluate($term);
-		if ( ! $term instanceof Term) {
+		$term = self::partialEvaluate($context, $term);
+		if ( ! $term instanceof Value) {
 			throw new LogicException("Invalid source code.");
 		}
 
@@ -74,25 +77,17 @@ class Compiler
 
 
 
-	/**
-	 * Pokud term obsahuje nějaké symboli, vytáhnu si je z globálního uložiště
-	 * a term převedu na Scope.
-	 */
-	private function appliesGlobalSymbols(Term $term): Term
+	private function createGlobalSymbols(Value $src): Context
 	{
-		// @var array<string, List>
 		$lets = [];
-		if ($term instanceof HasRefs) {
-			foreach ($term->refs() as $x) {
-				if (($symbol = $this->lookupGlobalSymbol($x)) instanceof Let) {
-					$lets[] = $symbol;
+		if ($src instanceof HasRefs) {
+			foreach ($src->refs() as $x) {
+				if ($pair = $this->lookupGlobalSymbol($x)) {
+					$lets[$pair[0]] = $pair[1];
 				}
 			}
 		}
-		if (count($lets)) {
-            return new Scope($lets, $term);
-        }
-		return $term;
+		return new Context($lets);
 	}
 
 
@@ -100,22 +95,15 @@ class Compiler
 	/**
 	 * Vytahuje globální symboly, jako matematické opertáry, funkce pro práci
 	 * s textem, poly, a uživatelsky definované funkce.
+	 *
 	 * @TODO Možnost lokálního importu.
+	 * @return array{0: string, 1: Value}
 	 */
-	private function lookupGlobalSymbol(string $x): ?Let
+	private function lookupGlobalSymbol(string $x): ?array
 	{
-		if (self::is_operator($x)) {
-			foreach ($this->operators as $provider) {
-				if ($fn = $provider->lookup($x)) {
-					return new Let($x, $fn);
-				}
-			}
-			return Null;
-		}
-
-		foreach ($this->functions as $provider) {
+		foreach ($this->libs as $provider) {
 			if ($fn = $provider->lookup($x)) {
-				return new Let($x, $fn);
+				return [$x, $fn];
 			}
 		}
 
@@ -146,46 +134,47 @@ class Compiler
 	 * Cílem funkce je snížit složitost výrazu před jeho úplným vyhodnocením
 	 * nebo kompilací, a tím zrychlit pozdější provádění.
 	 *
-	 * @param Term | Val | string $term
-	 * @return Term | string
+	 * @param Value | string $term
+	 * @return Value | string
 	 */
-	private static function partialEvaluate($term)
+	private static function partialEvaluate(Context $context, $term)
 	{
 		switch (True) {
-			case is_string($term) && self::is_operator($term):
-			case is_string($term) && self::is_bind($term):
-			case $term instanceof Literal:
-			case $term instanceof StructTuple:
-			case $term instanceof StructList:
-			case $term instanceof StructDict:
-			case $term instanceof BuildinFunc:
+			// Symboly musí zpracovat rodič, zde s tím nic neudělám.
+			case is_string($term):
+				return $context->trySelectSymbol($term);
 
+			// Na číslech, konkečných hodnotách a vestavěných funkcích není co zpravovávat
+			case $term instanceof Scalar:
+			case $term instanceof FinalVal:
+			case $term instanceof BuildinFunc:
+				return $term;
+
+			// Ve slovnících etc sice mohou být navázány symboly, nebo volání funkce, ale to musíme zpracovat o úroven víš, ve Scope.
+			case $term instanceof Composite:
+				return self::partialEvaluateComposite($context, $term);
+
+			//~ case $term instanceof BuildinFunc:
 			// @TODO Prostor pro optimalizaci: Labda se nedá vykonat celá, protože závisí na stavu argumentu.
 			// ale části toho Expr by možná šli. Záleží jak moc je ta lambda košatá.
 			case $term instanceof Lambda:
-				return $term;
+				return self::partialEvaluateLambda($context, $term);
 
 			// Všechny symboly z lokálního scope přesunout na místo užití, a následně symbol i scope zaniká.
 			// Provede **částečné vyhodnocení** výrazu, u kterého očekáváme jako výsledek hodnotu.
-			case $term instanceof Scope && $term->refs() === []:
-				return self::partialEvaluateScope($term);
-
-			// Některé symboly nejsou vyřešené, jsou to symboly dodané jako argumenty z vnějšku.
-			// Provede **částečné vyhodnocení** výrazu, u kterého očekáváme jako výsledek funkci.
-			// @TODO to vypadá jako funkce; zobecnit?
-			case $term instanceof Scope && $term->refs() !== []:
-				return self::partialEvaluateScope($term);
+			case $term instanceof Scope:
+				return self::partialEvaluateScope($context, $term);
 
 			// Může se jednat o volání funkce: `format(1 2 3)`, vrátíme hodnotu
 			// Může se jednat o operaci: `1 + 1`, vrátíme hodnotu
 			case $term instanceof Expr && $term->refs() === []:
-				return self::partialEvaluateExprFinal($term);
+				throw self::UnsupportedException('partial evaluate', $term);
 
 			// Může se jednat o volání funkce: `format(1 a 3)`, protože "a" neznáme, vrátíme funkci.
 			// Může se jednat o operaci: `1 + a`, protože "a" neznáme, vrátíme funkci.
 			// Může se jednat o predikát: `equals(1, 1) and a == 42`, protože "a" neznáme, vrátíme funkci.
 			case $term instanceof Expr && $term->refs() !== []:
-				return self::partialEvaluateExpr($term);
+				return self::partialEvaluateExpr($context, $term);
 
 			default:
 				throw self::UnsupportedException('partial evaluate', $term);
@@ -198,36 +187,72 @@ class Compiler
 	 * Provede **částečné vyhodnocení** výrazu, u kterého očekáváme jako výsledek lambdu.
 	 * Očekáváme, že, všechny závislosti jsou vyřešeny, a ty které nejsou jsou vnější.
 	 *
+	 * `1 + 1`
 	 * `41 + a`
+	 * `1 + (1 + a)`
 	 * `strings.len a`
 	 * `strings.split "," src`
 	 * `list.at 2 src`
 	 * `list.at 2 ["une", a, "trois"]`
+	 *
+	 * Nabindované symboly si vytáhneme z contextu. Než je ale vykonáme tak musíme vykonat zanořené expression.
+	 *
+	 * @TODO Special form
+	 * @TODO Forma? Podmíněné vyhodnocování? Vzhledem k tomu, že nemáme sideeffecty, tak to není tak horký.
 	 */
-	private static function partialEvaluateExpr(Expr $term): Term
+	private static function partialEvaluateExpr(Context $context, Expr $term): Value
 	{
 		$items = $term->getItems();
-		switch (True) {
-			// operátor
-			// Záleží na pořadí?
-			case count($items) === 3 && $items[1] instanceof BuildinFunc:
-				foreach ($items as $i => $x) {
-					if ( ! is_string($x) && ! $x instanceof BuildinFunc) {
-						list($x, ) = self::castAny($x, False);
-						$items[$i] = $x;
-					}
-				}
-				return new Expr($items); // @phpstan-ignore argument.type
 
-			// funkce
-			case isset($items[0]) && $items[0] instanceof BuildinFunc:
-				foreach ($items as $i => $x) {
-					if ( ! is_string($x) && ! $x instanceof BuildinFunc) {
-						list($x, ) = self::castAny($x, False);
-						$items[$i] = $x;
+		switch (True) {
+			case $term->getNotation() === Expr::NotationInfix:
+				foreach ($items as $k => $x) {
+					$items[$k] = self::partialEvaluate($context, $x);
+				}
+
+				$term = Expr::Bin_($items[0], $items[1], $items[2]);
+
+				// Rovnou vyhodnotit
+				if ($term->refs() === []) {
+					return $items[1]->apply([ // @phpstan-ignore method.nonObject
+						self::castAny($items[0], False)[0],
+						self::castAny($items[2], False)[0],
+						]);
+				}
+
+				// Jsou tam nějaké argumenty
+				return $term;
+
+			case $term->getNotation() === Expr::NotationPrefix:
+				foreach ($items as $k => $x) {
+					$items[$k] = self::partialEvaluate($context, $x);
+				}
+
+				$term = Expr::Func_($items[0], array_slice($items, 1));
+
+				// Rovnou vyhodnotit
+				if ($term->refs() === []) {
+					$args = array_map(static function($x) {
+						return self::castAny($x, False)[0];
+					}, array_slice($items, 1));
+
+					// phpcs:ignore SlevomatCodingStandard.Operators.DisallowEqualOperators.DisallowedEqualOperator
+					if ($items[0] instanceof Scalar && $items[1] == Composite::Tuple_([])) {
+						return $items[0];
+					}
+					return self::partialEvaluateApplicable($items[0], $args);
+				}
+				else {
+					if ($items[0] instanceof Lambda
+							&& count($items[0]->getArgs()) === (count($items) - 1)) {
+
+						// @TODO Toto píšu poněkud unaven. Myslím, že by se to mělo řešit poněkud jinak.
+						$term = self::optimalizeLambdaCalling($items[0], array_slice($items, 1));
 					}
 				}
-				return new Expr($items);
+
+				// Jsou tam nějaké argumenty
+				return $term;
 
 			default:
 				throw self::UnsupportedException('partial evaluate expr of term', $term);
@@ -236,33 +261,34 @@ class Compiler
 
 
 
-	/**
-	 * Zpracování volání funkce. Očekáváme konečnou hodnotu.
-	 *
-	 * `41 + 3`
-	 * `strings.len "hi"`
-	 * `strings.split "," "une, deux, trois"`
-	 * `list.at 2 ["une", "deux", "trois"]`
-	 */
-	private static function partialEvaluateExprFinal(Expr $term): Term
+	private static function optimalizeLambdaCalling(Lambda $fn, array $args)
 	{
-		$items = $term->getItems();
-		switch (True) {
-			// operátor
-			case count($items) === 3 && $items[1] instanceof BuildinFunc:
-				$arg1 = array_shift($items);
-				$fn = array_shift($items);
-				$items = array_map([self::class, 'compileRuntimeValue'], array_merge([$arg1], $items));
-				return $fn->apply(self::combineBindWithValues($fn, $items));
+		$context = new Context(array_combine($fn->getArgs(), $args));
+		$term = self::partialEvaluateExpr($context, $fn->getExpr());
+		return $term;
+	}
 
-			// funkce
-			case isset($items[0]) && $items[0] instanceof BuildinFunc:
-				$fn = array_shift($items);
-				$items = array_map([self::class, 'compileRuntimeValue'], $items);
-				return $fn->apply(self::combineBindWithValues($fn, $items));
+
+
+	/**
+	 * @param list<string | Value> $args
+	 * @return Value | string
+	 */
+	private static function partialEvaluateApplicable(Applicable $fn, array $args)
+	{
+		switch (True) {
+			case $fn instanceof Lambda:
+				$context = new Context([]);
+				foreach ($fn->getArgs() as $i => $id) {
+					$context->shadow($id, $args[$i]);
+				}
+				return self::partialEvaluate($context, $fn->getExpr());
+
+			case $fn instanceof BuildinFunc:
+				return $fn->apply($args);// @phpstan-ignore method.nonObject
 
 			default:
-				throw self::UnsupportedException('partial evaluate const expr', $term);
+				throw new LogicException("oops.");
 		}
 	}
 
@@ -270,68 +296,133 @@ class Compiler
 
 	/**
 	 * Provede **částečné vyhodnocení** výrazu.
-	 * @return Term | string
+	 * @return Value | string
 	 */
-	private static function partialEvaluateScope(Scope $term)
+	private static function partialEvaluateScope(Context $context, Scope $src)
 	{
 		switch (True) {
-			case $term->getTerm() instanceof Scope:
-				$lets = array_merge($term->getLets(), $term->getTerm()->getLets());
-				return self::partialEvaluateScope(new Scope($lets, $term->getTerm()->getTerm()));
-
-			case $term->getTerm() instanceof Expr:
-				// @TODO A co konstrukce v Let, ty jsou vyrenderované?
-				return self::partialEvaluate(new Expr(self::partialEvaluateItems($term)));
-
-			case $term->getTerm() instanceof StructDict:
-				return self::partialEvaluate(new StructDict(self::partialEvaluateItems($term)));
-
-			case $term->getTerm() instanceof StructList:
-				return self::partialEvaluate(new StructList(self::partialEvaluateItems($term)));
-
-			case $term->getTerm() instanceof StructTuple:
-				return self::partialEvaluate(new StructTuple(self::partialEvaluateItems($term)));
-
-			//~ case $term->getTerm() instanceof BuildinFunc:
-				//~ $fn = $term->getTerm();
-				//~ foreach ($fn->refs() as $x) {
-					//~ $args[$x] = $term->requireSymbol($x);
+			case is_string($src->getExpr()):
+				//~ if ($term = $context->selectSymbol($src->getExpr())) {
+					//~ die("\n------\n" . __file__ . ':' . __line__ . "\n");
 				//~ }
+				return $src;
+
+			// Zanořené scope není podporováno.
+			case $src->getExpr() instanceof Scope:
+				throw self::UnsupportedException('partial evaluate const scope of scope', $src->getExpr());
+
+			// `{1 + 1}` -- protože sčítání je taky symbol -> `{+ = buildin; 1 + 1}`
+			// `{a = 1; a + a}`
+			case $src->getExpr() instanceof Expr:
+				$context2 = clone $context;
+				$seconds = [];
+				// 1/ Nejdříve zpracujeme bezpečné hodnoty
+				foreach ($src->getLets() as $id => $value) {
+					if (is_string($value) && strpos($value, '.')) {
+						$seconds[$id] = $value;
+					}
+					elseif (is_string($value)) {
+						$context2->shadowAnotherSymbol($id, $value);
+					}
+					elseif ( ! $value instanceof HasRefs) {
+						$context2->shadow($id, self::partialEvaluate($context, $value)); // @phpstan-ignore argument.type
+					}
+					elseif ($value->refs() === []) {
+						$context2->shadow($id, self::partialEvaluate($context, $value)); // @phpstan-ignore argument.type
+					}
+					else {
+						$seconds[$id] = $value;
+					}
+				}
+
+				// 2/ Hodnoty, které šahají do rodičovského scope
+				// @TODO Recurse
+				foreach ($seconds as $id => $value) {
+					$context2->shadow($id, self::partialEvaluate($context2, $value)); // @phpstan-ignore argument.type
+				}
+
+				$term = self::partialEvaluate($context2, $src->getExpr());
+				$term2 = self::partialEvaluate($context2, $term);
+
+				return $term2;
+
+			// `a = 5; (a, 5)`
+			// `a = 5; [1, a]`
+			// `a = 5; {a: a}`
+			case $src->getExpr() instanceof Composite:
+				$context2 = clone $context;
+				$seconds = [];
+				// 1/ Nejdříve zpracujeme bezpečné hodnoty
+				foreach ($src->getLets() as $id => $value) {
+					if (is_string($value)) {
+						$context2->shadowAnotherSymbol($id, $value);
+					}
+					elseif ( ! $value instanceof HasRefs) {
+						$context2->shadow($id, self::partialEvaluate($context, $value));
+					}
+					elseif ($value->refs() === []) {
+						$context2->shadow($id, self::partialEvaluate($context, $value));
+					}
+					else {
+						$seconds[$id] = $value;
+					}
+				}
+
+				// 2/ Hodnoty, které šahají do rodičovského scope
+				// @TODO Recurse
+				foreach ($seconds as $id => $value) {
+					$context2->shadow($id, self::partialEvaluate($context2, $value));
+				}
+
+				return self::partialEvaluate($context2, $src->getExpr());
 
 			default:
-				throw self::UnsupportedException('partial evaluate const scope', $term->getTerm());
+				throw self::UnsupportedException('partial evaluate const scope', $src->getExpr());
 		}
 	}
 
 
 
 	/**
-	 * @return array<string|int, Term|string>
+	 * Potřebujeme zkopírovat hodnoty vnějšího kontextu.
+	 * Argumenty překrývají vnější kontext a vnitřní kontext zase překryje argumenty.
+	 * Výsledek je lambda = hodnota.
 	 */
-	private static function partialEvaluateItems(Scope $parent): array
+	private static function partialEvaluateLambda(Context $context, Lambda $src): Lambda
 	{
-		$xs = [];
-		foreach ($parent->getTerm()->getItems() as $k => $x) {
-			$xs[$k] = self::partialEvaluateItem($parent, $x);
+		$context2 = clone $context;
+		// @TODO Je to správně?
+		foreach ($src->getArgs() as $id) {
+			$context2->shadowByArg($id);
 		}
-		return $xs;
+		return new Lambda($src->getArgs(), self::partialEvaluate($context2, $src->getExpr()));
 	}
 
 
 
-	/**
-	 * @param Term | string $term
-	 * @return Term | string
-	 */
-	private static function partialEvaluateItem(Scope $parent, $term)
+	private static function partialEvaluateComposite(Context $context, Composite $src): Composite
 	{
-		if (is_string($term) && $ref = $parent->selectSymbol($term)) {
-			$term = $ref;
+		if ($src->refs() === []) {
+			return $src;
 		}
-		if ( ! is_string($term) && $term instanceof HasRefs && count($term->refs())) {
-			$term = new Scope($parent->getLets(), $term);
+		$items = [];
+		foreach ($src->getItems() as $k => $x) {
+			$items[$k] = self::partialEvaluate($context, $x);
 		}
-		return self::partialEvaluate($term);
+
+		switch ($src->type()) {
+			case Composite::TypeList:
+				return Composite::List_($items);
+
+			case Composite::TypeDict:
+				return Composite::Dict_($items);
+
+			case Composite::TypeTuple:
+				return Composite::Tuple_($items);
+
+			default:
+				throw new LogicException("Comming soon... (2026.02.18 16:30:34 CET): {$src}");
+		}
 	}
 
 
@@ -357,181 +448,216 @@ class Compiler
 	 *
 	 * Cílem funkce je vytvořit efektivní a znovupoužitelnou runtime rutinu,
 	 * která představuje konečnou podobu daného výrazu pro provádění v klientovi.
-	 * @param Term | FinalVal $term
+	 * @param Value | FinalVal $term
 	 */
-	private static function compileRuntimeValue(Term $term): Val
+	private static function compileRuntimeValue(Value $term): Val
 	{
 		list($val, $binds) = self::castAny($term, True);
 		switch (True) {
 			case $val instanceof FinalVal:
 				return $val;
 
+			case $val instanceof BindVal:
+				return VariadicVal::ShortLinkBind($val);
+
 			case $val instanceof Expr:
-				return VariadicVal::expr($val, '?', array_values($binds));
+				return VariadicVal::Expr_($val, '?', array_values($binds));
 
-			case $val instanceof StructDict:
-				return VariadicVal::dict($val, array_values($binds));
+			case $val instanceof Composite && $val->type() === Composite::TypeDict:
+				return VariadicVal::Dict_($val, array_values($binds));
 
-			case $val instanceof StructList:
-				return VariadicVal::list_($val, array_values($binds));
+			case $val instanceof Composite && $val->type() === Composite::TypeList:
+				return VariadicVal::List_($val, array_values($binds));
 
-			case $val instanceof StructTuple:
-				return VariadicVal::tuple_($val, array_values($binds));
+			case $val instanceof Composite && $val->type() === Composite::TypeTuple:
+				return VariadicVal::Tuple_($val, array_values($binds));
 
 			default:
-				throw self::UnsupportedException('compile value', $term);
+				throw self::UnsupportedException('compile value', $val);
 		}
 	}
 
 
 
 	/**
-	 * @param Term | Val $term
+	 * @param Value | Val $term
 	 * @param bool $packref Když narazíme na symbol závislosti, tak nědy se nám nehodí, že se zabalí do BindVal
-	 * @return array{0: Term, 1: array<string, BindVal>}
+	 * @return array{0: Value, 1: array<string, BindVal>}
 	 */
-	private static function castAny($term, bool $packref): array
+	private static function castAny($src, bool $packref): array
 	{
 		switch (True) {
-			case $term instanceof Literal:
-				return self::castLiteral($term);
+			case $src instanceof FinalVal:
+				return [$src, []];
 
-			case $term instanceof Lambda:
-				return self::castLambda($term);
+			case $src instanceof Scalar:
+				return self::castScalar($src);
 
-			case $term instanceof StructTuple:
-				return self::castStructTuple($term, $packref);
+			case $src instanceof Lambda:
+				return self::castLambda($src);
 
-			case $term instanceof StructList:
-				return self::castStructList($term, $packref);
+			case $src instanceof Composite:
+				return self::castComposite($src, $packref);
 
-			case $term instanceof StructDict:
-				return self::castStructDict($term, $packref);
+			case $src instanceof Expr:
+				return self::castExpr($src, $packref);
 
-			case $term instanceof Expr:
-				return self::castExpr($term, $packref);
+			case is_string($src):
+				if ($packref) {
+					$x = new BindVal($src, "?");
+					return [$x, [$x]];
+				}
+				return [$src, []];
 
-			case $term instanceof FinalVal:
-				return [$term, []];
+			// Deadcode
+			// `{a = 1; x}`
+			// `{a = b; x}`
+			case $src instanceof Scope && is_string($src->getExpr()):
+				return self::castAny($src->getExpr(), $packref);
 
 			default:
-				throw self::UnsupportedException('casting of term', $term);
+				throw self::UnsupportedException('casting', $src);
 		}
 	}
 
 
 
-	private static function is_bind(string $m): bool
+	/**
+	 * @return array{0: FinalVal, 1: array<string, BindVal>}
+	 */
+	private static function castScalar(Scalar $val): array
 	{
-		return (bool) preg_match('~[a-z][a-zA-Z0-9\_]*~', $m);
+		if ($val->type() === 'Symbol' && $val->getValue() === 'True') {
+			$value = True;
+		}
+		elseif ($val->type() === 'Symbol' && $val->getValue() === 'False') {
+			$value = False;
+		}
+		elseif ($val->type() === 'Symbol' && $val->getValue() === 'Null') {
+			$value = Null;
+		}
+		else {
+			$value = $val->getValue();
+		}
+		return [new FinalVal($value, self::castType($val->type())), []];
 	}
 
 
 
-	private static function is_operator(string $m): bool
+	/**
+	 * @return array{0: VariadicVal, 1: array<string, BindVal>}
+	 */
+	private static function castLambda(Lambda $val): array
     {
-        // Mathematic
-        return in_array($m, ['+', '-', '*', 'div', 'mod'], True);
+		$binds = [];
+		//~ foreach ($val->getArgs() as $x) {
+			//~ $binds[$x] = new BindVal($x, '?');
+		//~ }
+		foreach ($val->refs() as $x) {
+			$binds[$x] = new BindVal($x, '?');
+		}
+		return [VariadicVal::Expr_($val->getExpr(), '?', array_values($binds)), $binds];
     }
 
 
 
 	/**
-	 * @return array{0: FinalVal, 1: array<string, BindVal>}
+	 * Kompozitní hodnota může nebo nemusí obsahovat symboly a výrazy. V této
+	 * fázy už jsme veškeré možnosti optimalizace vyčerpali a už to pouze přebalíme
+	 * na čistou hodnotu, jde-li to, nebo na funkci, je-li to nutné.
+	 *
+	 * @return array{0: FinalVal | Composite, 1: array<string, BindVal>}
 	 */
-	private static function castLiteral(Literal $val): array
+	private static function castComposite(Composite $src, bool $packref): array
 	{
-		return [new FinalVal($val->getValue(), self::castType($val->type())), []];
+		// Zádné prvky, žádné problémy
+		if ((array) $src->getItems() === []) {
+			switch ($src->type()) {
+				case Composite::TypeTuple:
+					return [new FinalVal([], 'Tuple'), []];
+
+				case Composite::TypeList:
+					return [new FinalVal([], 'List'), []];
+
+				case Composite::TypeDict:
+					return [new FinalVal((object) [], 'Dict'), []];
+
+				default:
+					throw self::UnsupportedException('casting composite', $src);
+			}
+		}
+
+		list($items, $lets) = self::castCompositeItems((array) $src->getItems(), $packref);
+		switch ($src->type()) {
+			case Composite::TypeTuple:
+				return $src->refs() === []
+					? [new FinalVal($items, 'Tuple'), []]
+					: [Composite::Tuple_($items), $lets];
+
+			case Composite::TypeList:
+				return $src->refs() === []
+					? [new FinalVal($items, 'List'), []]
+					: [Composite::List_($items), $lets];
+
+			case Composite::TypeDict:
+				return $src->refs() === []
+					? [new FinalVal((object) $items, 'Dict'), []]
+					: [Composite::Dict_($items), $lets];
+
+			default:
+				throw self::UnsupportedException('casting composite', $src);
+		}
 	}
 
 
 
 	/**
-	 * @return array{0: FinalVal, 1: array<string, BindVal>}
-	 */
-	private static function castLambda(): array
-    {
-        //~ $args = [];
-        //~ foreach ($val->getArgs() as $arg) {
-        //~ $args[] = is_string($arg)
-        //~ ? new BindVal($arg, '?')
-        //~ : self::compileRuntimeValue($arg);
-        //~ }
-        throw new LogicException("Comming soon...");
-    }
-
-
-
-	/**
-	 * @return array{0: Term, 1: array<string, BindVal>}
-	 */
-	private static function castStructTuple(StructTuple $src, bool $packref): array
-	{
-		list($items, $lets) = self::castStructItems($src->getItems(), $packref);
-		return $src->refs() === []
-			? [new FinalVal($items, 'Tuple'), $lets]
-			: [new StructTuple($items), $lets];
-	}
-
-
-
-	/**
-	 * @return array{0: Term, 1: array<string, BindVal>}
-	 */
-	private static function castStructList(StructList $src, bool $packref): array
-	{
-		list($items, $lets) = self::castStructItems($src->getItems(), $packref);
-		return $src->refs() === []
-			? [new FinalVal($items, 'List'), $lets]
-			: [new StructList($items), $lets];
-	}
-
-
-
-	/**
-	 * @return array{0: Term, 1: array<string, BindVal>}
-	 */
-	private static function castStructDict(StructDict $src, bool $packref): array
-	{
-		list($items, $lets) = self::castStructItems($src->getItems(), $packref);
-		return $src->refs() === []
-			? [new FinalVal((object) $items, 'Dict'), $lets]
-			: [new StructDict($items), $lets];
-	}
-
-
-
-	/**
-	 * První element je vždy operátor/funkce.
-	 * @return array{0: Term, 1: array<string, BindVal>}
+	 * @return array{0: Value, 1: array<string, BindVal>}
 	 */
 	private static function castExpr(Expr $src, bool $packref): array
 	{
-		list($items, $lets) = self::castStructItems($src->getItems(), $packref);
-		return [new Expr($items), $lets];
+		list($items, $lets) = self::castCompositeItems($src->getItems(), $packref);
+		if ($src->refs() === []) {
+			throw new LogicException("Comming soon... (2026.02.20 02:49:33 CET)");
+		}
+		switch ($src->getNotation()) {
+			case Expr::NotationInfix:
+				return [Expr::Bin_($items[0], $items[1], $items[2]), $lets];
+
+			case Expr::NotationPrefix:
+				return [Expr::Func_($items[0], array_slice($items, 1)), $lets];
+
+			default:
+				throw new LogicException("oops.");
+		}
 	}
 
 
 
 	/**
-	 * @param array<string|int, string | Term> $src
+	 * @param array<string|int, string | Value> $src
 	 * @return array{0: array<Val>, 1: array<string, BindVal>}
 	 */
-	private static function castStructItems(array $src, bool $packref): array
+	private static function castCompositeItems(array $src, bool $packref): array
 	{
 		$lets = [];
 		$items = [];
 		foreach ($src as $k => $x) {
 			if (is_string($x)) {
-				if ($packref) {
-					$lets[$x] = $items[$k] = new BindVal($x, '?');
-				}
-				else {
-					$items[$k] = $x;
-				}
+				$items[$k] = $packref
+					? $lets[$x] = new BindVal($x, '?')
+					: $x;
 			}
 			elseif ($x instanceof BuildinFunc) {
 				$items[$k] = $x;
+			}
+			elseif ($x instanceof Lambda) {
+				list($term, $lets2) = self::castAny($x, $packref);
+				foreach ($x->getArgs() as $key) {
+					unset($lets2[$key]);
+				}
+				$lets = array_merge($lets, $lets2);
+				$items[$k] = $term;
 			}
 			else {
 				list($x, $lets2) = self::castAny($x, $packref);
@@ -550,36 +676,20 @@ class Compiler
 			case 'NUMBER':
 			case 'INT':
 				return 'Int';
+
+			case 'REAL':
+				return 'Real';
+
 			case 'STRING':
 			case 'STR':
 				return 'Str';
+
+			case 'SYMBOL':
+				return 'Symbol';
+
 			default:
 				return 'Unknown';
 		}
-	}
-
-
-
-	/**
-	 * Funkce má svou signaturu argumentů.
-	 * Ve $values máme hodnoty těchto argumentů.
-	 * Spojíme je podle indexů.
-	 *
-	 * @param list<Val> $values
-	 * @return array<strign, Val>
-	 */
-	private static function combineBindWithValues(BuildinFunc $fn, array $values): array
-	{
-		$refs = array_map(static function (BindVal $x): string {
-			return $x->getBindName();
-		}, $fn->getBinds());
-
-		if (count($refs) !== count($values)) {
-			$expected = count($refs);
-			$passed = count($values);
-			throw new InvalidArgumentException("Too few arguments to function {$fn}, {$passed} passed and exactly {$expected} expected.");
-		}
-		return array_combine($refs, $values);
 	}
 
 

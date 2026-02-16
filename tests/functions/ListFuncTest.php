@@ -12,12 +12,12 @@ namespace Taco\Hayo;
 use PHPUnit\Framework\TestCase;
 
 
-class BuildinListFunctionTest extends TestCase
+class ListFuncTest extends TestCase
 {
 
 	function testLen()
 	{
-		$inst = new BuildinListFunction('list.len');
+		$inst = new ListFunc('list.len');
 		$this->assertSame('Int', $inst->type());
 		$this->assertEquals([
 			new BindVal('src', 'List<a>'),
@@ -35,7 +35,7 @@ class BuildinListFunctionTest extends TestCase
 
 	function testFirst()
 	{
-		$inst = new BuildinListFunction('list.first');
+		$inst = new ListFunc('list.first');
 		$this->assertSame('a', $inst->type());
 		$this->assertEquals([
 			new BindVal('src', 'List<a>'),
@@ -55,7 +55,7 @@ class BuildinListFunctionTest extends TestCase
 
 	function testFirstDefault()
 	{
-		$inst = new BuildinListFunction('list.first');
+		$inst = new ListFunc('list.first');
 		$this->assertSame('a', $inst->type());
 		$this->assertEquals([
 			new BindVal('src', 'List<a>'),
@@ -72,7 +72,7 @@ class BuildinListFunctionTest extends TestCase
 
 	function testAt()
 	{
-		$inst = new BuildinListFunction('list.at');
+		$inst = new ListFunc('list.at');
 		$this->assertSame('a', $inst->type());
 		$this->assertEquals([
 			new BindVal('index', 'Int'),
@@ -94,7 +94,7 @@ class BuildinListFunctionTest extends TestCase
 
 	function testAt_out()
 	{
-		$inst = new BuildinListFunction('list.at');
+		$inst = new ListFunc('list.at');
 		$this->assertSame('a', $inst->type());
 		$this->assertEquals([
 			new BindVal('index', 'Int'),
@@ -116,7 +116,7 @@ class BuildinListFunctionTest extends TestCase
 
 	function testExist()
 	{
-		$inst = new BuildinListFunction('list.exist');
+		$inst = new ListFunc('list.exist');
 		$this->assertSame('Bool', $inst->type());
 		$this->assertEquals([
 			new BindVal('index', 'Int'),

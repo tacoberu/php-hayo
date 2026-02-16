@@ -12,12 +12,12 @@ namespace Taco\Hayo;
 use PHPUnit\Framework\TestCase;
 
 
-class BuildinMathOperatorTest extends TestCase
+class MathOperatorTest extends TestCase
 {
 
 	function testPlusl()
 	{
-		$inst = new BuildinMathOperator('+');
+		$inst = new MathOperator('+');
 		$this->assertSame('Int', $inst->type());
 		$this->assertEquals([
 			new BindVal('a', 'Int'),
@@ -34,7 +34,7 @@ class BuildinMathOperatorTest extends TestCase
 
 	function testMinus()
 	{
-		$inst = new BuildinMathOperator('-');
+		$inst = new MathOperator('-');
 		$this->assertSame('Int', $inst->type());
 		$this->assertEquals([
 			new BindVal('a', 'Int'),
@@ -51,7 +51,7 @@ class BuildinMathOperatorTest extends TestCase
 
 	function testMultiple()
 	{
-		$inst = new BuildinMathOperator('*');
+		$inst = new MathOperator('*');
 		$this->assertSame('Int', $inst->type());
 		$this->assertEquals([
 			new BindVal('a', 'Int'),
@@ -68,7 +68,7 @@ class BuildinMathOperatorTest extends TestCase
 
 	function testDiv()
 	{
-		$inst = new BuildinMathOperator('div');
+		$inst = new MathOperator('div');
 		$this->assertSame('Int', $inst->type());
 		$this->assertEquals([
 			new BindVal('a', 'Int'),
@@ -85,7 +85,7 @@ class BuildinMathOperatorTest extends TestCase
 
 	function testMod()
 	{
-		$inst = new BuildinMathOperator('mod');
+		$inst = new MathOperator('mod');
 		$this->assertSame('Int', $inst->type());
 		$this->assertEquals([
 			new BindVal('a', 'Int'),

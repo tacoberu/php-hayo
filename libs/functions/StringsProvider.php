@@ -9,16 +9,41 @@
 
 namespace Taco\Hayo;
 
-use LogicException;
 use InvalidArgumentException;
+
+
+class StringsProvider implements SymbolProvider
+{
+
+	function lookup(string $symbol): ?BuildinFunc
+	{
+		if (strncmp('strings.', $symbol, 8) !== 0) {
+			return Null;
+		}
+
+		if (! in_array($symbol, ['strings.len', 'strings.split', 'strings.concat',], True)) {
+			return Null;
+		}
+
+		return new StringFunc($symbol);
+	}
+
+}
+
 
 
 /**
  * `strings.len src: Str :: Int` - Délka řetězce.
  * `strings.split sep: Str, src: Str :: List<Str>` - Rozdělení řetězce podle separátoru.
  * `strings.concat sep: Str, src: List<Str> :: Str` - Spojení seznamu řetězců se separátorem.
+ * `strings.join` - ...
+ * `strings.find` - ...
+ * `strings.sub` - ...
+ * `strings.toupper` - ...
+ * `strings.tolower` - ...
+ * `strings.format` - ...
  */
-class BuildinStringFunction implements BuildinFunc
+class StringFunc implements BuildinFunc
 {
 
 	private string $name;
@@ -97,14 +122,15 @@ class BuildinStringFunction implements BuildinFunc
 	 * být finální hodnoty.
 	 * @param array<string, Term> $args
 	 */
-	function apply(array $args): Term
+	function apply(array $args): Value
 	{
 		$args = array_values($args);
-		$args = array_map(static function (Term $x) {
+		$args = array_map(static function (Value $x) {
 			return $x instanceof FinalVal
 				? $x->unpack()
 				: $x;
 		}, $args);
+
 		switch ($this->name) {
 			case 'strings.split':
 				return new FinalVal(array_map(static function (string $x): FinalVal {

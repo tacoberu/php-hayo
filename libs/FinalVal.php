@@ -18,7 +18,7 @@ use LogicException;
  *
  * @TODO Rename into LiteralVal
  */
-class FinalVal implements Val, Term
+class FinalVal implements Val, Value
 {
 
 	/**
@@ -53,12 +53,22 @@ class FinalVal implements Val, Term
 
 
 
+	function getValue()
+	{
+		return $this->val;
+	}
+
+
+
 	/**
 	 * @return mixed
 	 */
 	function unpack()
 	{
 		if (is_scalar($this->val)) {
+			return $this->val;
+		}
+		if (is_null($this->val)) {
 			return $this->val;
 		}
 		if (is_object($this->val)) {
@@ -79,7 +89,7 @@ class FinalVal implements Val, Term
 			}
 			return $xs;
 		}
-		throw new LogicException("Comming soon...");
+		throw new LogicException("Comming soon...: '" . print_r($this->val, true) . "'.");
 	}
 
 

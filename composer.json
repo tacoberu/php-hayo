@@ -12,7 +12,7 @@
 		}
 	],
 	"require": {
-		"tacoberu/hayo-decoder": "~0.2.11"
+		"tacoberu/hayo-decoder": "~0.3.3"
 	},
 	"require-dev": {
 		"tracy/tracy": "^2.7",
@@ -23,6 +23,10 @@
 		"rector/rector": "^2.2"
 	},
 	"repositories": [
+		{
+			"type": "vcs",
+			"url": "git@gitlab.com:tacoberu/php-hayo-ast.git"
+		},
 		{
 			"type": "vcs",
 			"url": "git@gitlab.com:tacoberu/php-hayo-decoder.git"

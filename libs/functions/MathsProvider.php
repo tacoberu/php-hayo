@@ -9,7 +9,20 @@
 
 namespace Taco\Hayo;
 
-use LogicException;
+class MathsProvider implements SymbolProvider
+{
+
+	function lookup(string $symbol): ?BuildinFunc
+	{
+		if ( ! in_array($symbol, ['+', '-', '*', 'div', 'mod'], True)) {
+			return Null;
+		}
+
+		return new MathOperator($symbol);
+	}
+
+}
+
 
 
 /**
@@ -19,7 +32,7 @@ use LogicException;
  * `a: Int div b :: Int` - Celočíselné dělení
  * `a: Int mod b :: Int` - Zbytek po celočíselném dělení.
  */
-class BuildinMathOperator implements BuildinFunc
+class MathOperator implements BuildinFunc
 {
 
 	private string $op;
@@ -79,10 +92,10 @@ class BuildinMathOperator implements BuildinFunc
 	 * být finální hodnoty.
 	 * @param array<string, Term> $args
 	 */
-	function apply(array $args): Term
+	function apply(array $args): Value
 	{
 		$args = array_values($args);
-		$args = array_map(static function (Term $x) {
+		$args = array_map(static function (Value $x) {
 			return $x instanceof FinalVal
 				? $x->unpack()
 				: $x;

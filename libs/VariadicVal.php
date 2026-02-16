@@ -20,13 +20,13 @@ use InvalidArgumentException;
  *
  * V $binds jsou uloženy jak vyřešené, tak nevyřešené závislosti.
  *
- * @TODO rename CallableVal
+ * @TODO rename CallableValue
  */
-class VariadicVal implements Val, HasRefs, Term
+class VariadicVal implements Val, HasRefs, Value
 {
 
 	/**
-	 * @var Expr | StructDict | StructList | StructTuple
+	 * @var Expr | Composite
 	 */
 	private $expr;
 
@@ -38,7 +38,7 @@ class VariadicVal implements Val, HasRefs, Term
 	private array $binds;
 
 	/**
-	 * @param Expr | StructDict | StructList | StructTuple $expr
+	 * @param Expr | Composite $expr
 	 * @param list<BindVal> $binds
 	 */
 	private function __construct($expr, string $type, array $binds)
@@ -55,7 +55,7 @@ class VariadicVal implements Val, HasRefs, Term
 	 *
 	 * @param list<BindVal> $binds
 	 */
-	static function expr(Expr $expr, string $type, array $binds): self
+	static function Expr_(Expr $expr, string $type, array $binds): self
 	{
 /* protože nyní má $expr všechny volné symboli označneé jako BindVal, tak to nyní nevrací v refs()
 		$refs = $expr->refs();
@@ -79,10 +79,9 @@ class VariadicVal implements Val, HasRefs, Term
 	/**
 	 * @param list<BindVal> $binds
 	 */
-	static function dict(StructDict $expr, array $binds, string $type = 'Dict'): self
+	static function Dict_(Composite $expr, array $binds): self
 	{
-		// @TODO Nějaká validace
-		return new self($expr, $type, $binds);
+		return new self($expr, Composite::TypeDict, $binds);
 	}
 
 
@@ -90,10 +89,9 @@ class VariadicVal implements Val, HasRefs, Term
 	/**
 	 * @param list<BindVal> $binds
 	 */
-	static function list_(StructList $expr, array $binds, string $type = 'List'): self
+	static function List_(Composite $expr, array $binds): self
 	{
-		// @TODO Nějaká validace
-		return new self($expr, $type, $binds);
+		return new self($expr, Composite::TypeList, $binds);
 	}
 
 
@@ -101,10 +99,9 @@ class VariadicVal implements Val, HasRefs, Term
 	/**
 	 * @param list<BindVal> $binds
 	 */
-	static function tuple_(StructTuple $expr, array $binds, string $type = 'Tuple'): self
+	static function Tuple_(Composite $expr, array $binds): self
 	{
-		// @TODO Nějaká validace
-		return new self($expr, $type, $binds);
+		return new self($expr, Composite::TypeTuple, $binds);
 	}
 
 
@@ -165,14 +162,30 @@ class VariadicVal implements Val, HasRefs, Term
 
 
 
+	function getArgs(): array
+	{
+		return array_map(static function($x) {
+			return $x->getName();
+			}, $this->getBinds());
+	}
+
+
+
 	/**
 	 * @param array<string, Val> $args
 	 */
-	function apply(array $args): Term
+	function apply(array $args): Val
 	{
 		self::assertArguments($args);
 		self::assertBindArguments($this->getBinds(), $args);
-		return self::applyAny($this->expr, $args);// @phpstan-ignore return.type
+		return self::applyAny($this->expr, $args);
+	}
+
+
+
+	static function ShortLinkBind(BindVal $expr)
+	{
+		return new self($expr, '?', [$expr]);
 	}
 
 
@@ -198,16 +211,22 @@ class VariadicVal implements Val, HasRefs, Term
 
 			case $src instanceof self:
 				// @TODO nějaké omezení, aby se neposílaly všeechny lets, ale jen ty, co jsou v getBindNames()
-				return $src->apply($lets);// @phpstan-ignore return.type
+				return $src->apply($lets);
 
 			case $src instanceof Expr:
 				return self::applyExpr($src, $lets);
 
-			case $src instanceof StructDict:
+			case $src instanceof Composite && $src->type() === Composite::TypeDict:
 				return self::applyStructDict($src, $lets);
 
-			case $src instanceof StructList:
+			case $src instanceof Composite && $src->type() === Composite::TypeList:
 				return self::applyStructList($src, $lets);
+
+			case $src instanceof Composite && $src->type() === Composite::TypeTuple:
+				return self::applyStructTuple($src, $lets);
+
+			case $src instanceof Scalar:
+				return new FinalVal($src->getValue(), '?');
 
 			case $src instanceof FinalVal:
 				return $src;
@@ -254,7 +273,7 @@ class VariadicVal implements Val, HasRefs, Term
 	/**
 	 * @param array<string, Val> $lets
 	 */
-	private static function applyStructList(StructList $expr, array $lets): Val
+	private static function applyStructList(Composite $expr, array $lets): Val
 	{
 		$items = [];
 		foreach ($expr->getItems() as $k => $x) {
@@ -268,7 +287,7 @@ class VariadicVal implements Val, HasRefs, Term
 	/**
 	 * @param array<string, Val> $lets
 	 */
-	private static function applyStructDict(StructDict $expr, array $lets): Val
+	private static function applyStructDict(Composite $expr, array $lets): Val
 	{
 		$items = [];
 		foreach ($expr->getItems() as $k => $x) {
@@ -340,6 +359,14 @@ class VariadicVal implements Val, HasRefs, Term
 			throw new InvalidArgumentException("Argument '{$key}' must be package into Val.");
 		}
 		*/
+	}
+
+
+
+	function __toString(): string
+	{
+		$binds = implode(', ', array_map(static function($x) { return $x->getBindName(); }, $this->binds));
+		return "CallableValue: {$this->expr} [$binds]";
 	}
 
 }

@@ -46,4 +46,11 @@ class BindVal implements Val
 		return "<?{$this->name}> :: {$this->type}";
 	}
 
+
+
+	function __toString(): string
+	{
+		return "<?{$this->name}> :: {$this->type}";
+	}
+
 }

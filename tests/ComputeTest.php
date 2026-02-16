@@ -21,6 +21,8 @@ class ComputeTest extends TestCase
 	 */
 	#[DataProvider('dataOperations')]
 	#[DataProvider('dataStrings')]
+	#[DataProvider('dataExpressions')]
+	#[DataProvider('dataPredicators')]
 	function testCompute(string $code, array $args, $expected)
 	{
 		$this->assertEquals($expected, $this->compile($code)->apply($args));
@@ -34,6 +36,10 @@ class ComputeTest extends TestCase
 	static function dataOperations(): array
 	{
 		return [
+			['a'
+				, [ 'a' => new FinalVal(42, 'Int')]
+				, new FinalVal(42, 'Int'),
+				],
 			['40 + a'
 				, [ 'a' => new FinalVal(2, 'Int')]
 				, new FinalVal(42, 'Int'),
@@ -50,7 +56,10 @@ class ComputeTest extends TestCase
 				, [ 'a' => new FinalVal(8, 'Int')]
 				, new FinalVal(27, 'Int'),
 				],
-			// @TODO
+			['(10 + a) or (a + 1)'
+				, [ 'a' => new FinalVal(8, 'Int')]
+				, new FinalVal(True, 'Symbol'),
+				],
 		];
 	}
 
@@ -157,9 +166,133 @@ class ComputeTest extends TestCase
 
 
 
+	/**
+	 * @return array<array<mixed>>
+	 */
+	static function dataExpressions(): array
+	{
+		return [
+			["b = 40 \na + b"
+				, [ 'a' => new FinalVal(2, 'Int'),
+					]
+				, new FinalVal(42, 'Int'),
+				],
+			["b = 40 \nb + (a + a)"
+				, [ 'a' => new FinalVal(45, 'Int'),
+					]
+				, new FinalVal(130, 'Int'),
+				],
+			["b = 40 \nb + ((b + 1) + a)"
+				, [ 'a' => new FinalVal(45, 'Int'),
+					]
+				, new FinalVal(126, 'Int'),
+				],
+			["b = 40 \n(10 + a) + (a + b)"
+				, [ 'a' => new FinalVal(8, 'Int'),
+					]
+				, new FinalVal(66, 'Int'),
+				],
+			["b = 40 \n"
+			."(strings.len src) + b"
+				, [ 'src' => new FinalVal("8", 'Str'),
+					]
+				, new FinalVal(41, 'Int'),
+				],
+			["b = a\n"
+			."b"
+				, [ 'a' => new FinalVal(41, 'Int'),
+					]
+				, new FinalVal(41, 'Int'),
+				],
+			["b = a\n"
+			."b + b"
+				, [ 'a' => new FinalVal(41, 'Int'),
+					]
+				, new FinalVal(82, 'Int'),
+				],
+/*			["b = c\n"		// @FIXME
+			."c = a\n"
+			."b + b"
+				, [ 'a' => new FinalVal(41, 'Int'),
+					]
+				, new FinalVal(82, 'Int'),
+				],
+				*/
+
+			["x = y \n"
+			."(strings.len src) + x"
+				, [ 'src' => new FinalVal("9", 'Str'),
+					'y' => new FinalVal(8, "Int"),
+					]
+				, new FinalVal(9, 'Int'),
+				],
+
+			// Lambdy
+			["inc = x ->\n"
+			."	x + 1 \n"
+			."inc x"
+				, [ 'x' => new FinalVal(9, 'Int'),
+					]
+				, new FinalVal(10, 'Int'),
+				],
+			["inc = x ->\n"
+			."	y = 2 \n"
+			."	x + y \n"
+			."inc x"
+				, [ 'x' => new FinalVal(9, 'Int'),
+					]
+				, new FinalVal(11, 'Int'),
+				],
+			["inc = x ->\n"
+			."	y = 2 \n"
+			."	sqr = x ->\n"
+			."		x * x \n"
+			."	(sqr x) + (sqr y) \n"
+			."inc x"
+				, [ 'x' => new FinalVal(9, 'Int'),
+					]
+				, new FinalVal(85, 'Int'),
+				],
+		];
+	}
+
+
+
+	/**
+	 * @return array<array<mixed>>
+	 */
+	static function dataPredicators(): array
+	{
+		return [
+			["a * 2"
+				, [ 'a' => new FinalVal(41, 'Int'),
+					]
+				, new FinalVal(82, 'Int'),
+				],
+			["a || 2"
+				, [ 'a' => new FinalVal(41, 'Int'),
+					]
+				, new FinalVal(True, 'Symbol'),
+				],
+			["a && 2"
+				, [ 'a' => new FinalVal(41, 'Int'),
+					]
+				, new FinalVal(True, 'Symbol'),
+				],
+			["a && False"
+				, [ 'a' => new FinalVal(41, 'Int'),
+					]
+				, new FinalVal(False, 'Symbol'),
+				],
+		];
+	}
+
+
+
 	private function compile($src)
 	{
-		return (new Compiler())->compile($src);
+		return Compiler::WithDefaultLibraries()
+			->compile($src);
 	}
 
 }

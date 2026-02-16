@@ -13,7 +13,7 @@ use LogicException;
 use InvalidArgumentException;
 
 
-class BuildinListFunctionProvider implements SymbolProvider
+class ListsProvider implements SymbolProvider
 {
 
 	function lookup(string $symbol): ?BuildinFunc
@@ -26,7 +26,7 @@ class BuildinListFunctionProvider implements SymbolProvider
 			return Null;
 		}
 
-		return new BuildinListFunction($symbol);
+		return new ListFunc($symbol);
 	}
 
 }
@@ -38,8 +38,14 @@ class BuildinListFunctionProvider implements SymbolProvider
  * `list.first src: List<a> :: a` - První prvek ze seznamu.
  * `list.at index: Int, src: List<a> :: a` - Vrácení hodnoty z konktérního indexu.
  * `list.exist index: Int, src: List<a> :: Bool` - Zda na konkrétním indexu je nějaký prvek.
+ * `list.split` - ...
+ * `list.slice` - ...
+ * `list.fold` - ...
+ * `list.find` - ...
+ * `list.concat` - ...
+ * `list.map` - ...
  */
-class BuildinListFunction implements BuildinFunc
+class ListFunc implements BuildinFunc
 {
 
 	private string $name;
@@ -125,12 +131,12 @@ class BuildinListFunction implements BuildinFunc
 	/**
 	 * Předáme požadované argumenty a vypočítáme výsledek. Argumenty už musí
 	 * být finální hodnoty.
-	 * @param array<string, Term> $args
+	 * @param array<string, FinalVal> $args
 	 */
-	function apply(array $args): Term
+	function apply(array $args): Value
 	{
 		$args = array_values($args);
-		$args = array_map(static function(Term $x) {
+		$args = array_map(static function(Value $x) {
 			return $x instanceof FinalVal
 				? $x->unpack()
 				: $x;
