@@ -27,6 +27,7 @@ class CompilerTest extends TestCase
 	#[DataProvider('dataPredicators')]
 	#[DataProvider('dataShortLinkBind')]
 	#[DataProvider('dataPaths')]
+	#[DataProvider('dataDicts')]
 	function testCompile(string $code, $expected)
 	{
 		$this->assertEquals($expected, $this->compile($code));
@@ -1195,6 +1196,137 @@ content = [
 	/**
 	 * @return array<array<mixed>>
 	 */
+	static function dataDicts(): array
+	{
+		return [
+			// Dict.keys
+			["x = { foo: { doo: 41 }, groooo: 43 }\n"
+			."Dict.keys x",
+				new FinalValue([
+					new FinalValue('foo', 'Str'),
+					new FinalValue('groooo', 'Str'),
+					], 'List<Str>'),
+				],
+
+			["x = { foo: { doo: 41 }, groooo: 43 }\n"
+			."xs = x.foo\n"
+			."Dict.keys xs",
+				new FinalValue([
+					new FinalValue('doo', 'Str'),
+					], 'List<Str>'),
+				],
+
+			["x = {  }\n"
+			."Dict.keys x",
+				new FinalValue([], 'List<Str>'),
+				],
+
+			// Dict.values
+			["x = {  }\n"
+			."Dict.values x",
+				new FinalValue([], 'List<?>'),
+				],
+
+			["x = { foo: { doo: 41 }, groooo: 43 }\n"
+			."Dict.values x",
+				new FinalValue([
+					new FinalValue((object) [
+						'doo' => 41,
+						], '?'),
+					new FinalValue(43, '?'),
+					], 'List<?>'),
+				],
+
+			["x = { foo: { doo: 41 }, groooo: 43 }\n"
+			."Dict.values x.foo",
+				new FinalValue([
+					new FinalValue(41, '?'),
+					], 'List<?>'),
+				],
+
+			// Dict.has
+			["xs = {  }\n"
+			.'Dict.has xs "foo"',
+				new FinalValue(False, 'Bool'),
+				],
+
+			["xs = { foo: { doo: 41 }, groooo: 43 }\n"
+			.'Dict.has xs "noo"',
+				new FinalValue(False, 'Bool'),
+				],
+
+			["xs = { foo: { doo: 41 }, groooo: 43 }\n"
+			.'Dict.has xs "foo"',
+				new FinalValue(True, 'Bool'),
+				],
+
+			["xs = { foo: { doo: 41 }, groooo: 43 }\n"
+			.'Dict.has xs.foo "doo"',
+				new FinalValue(True, 'Bool'),
+				],
+
+			["xs = { foo: { doo: False }, groooo: 43 }\n"
+			.'Dict.has xs.foo "doo"',
+				new FinalValue(True, 'Bool'),
+				],
+
+			// Dict.get
+			["xs = {  }\n"
+			.'Dict.get xs "foo" "noop"',
+				new FinalValue("noop", '?'),
+				],
+			["xs = { foo: { doo: 41 }, groooo: 43 }\n"
+			.'Dict.get xs "foo" ""',
+				new FinalValue((object) [
+					'doo' => 41,
+					], '?'),
+				],
+
+			// Dict.merge
+			["xs = {  }\n"
+			.'Dict.merge xs {}',
+				new FinalValue((object) [], 'Dict'),
+				],
+			["xs = { foo: { doo: 41 }, groooo: 43 }\n"
+			.'Dict.merge xs {}',
+				new FinalValue((object) [
+					'foo' => (object) [
+						'doo' => 41,
+						],
+					'groooo' => 43,
+					], 'Dict'),
+				],
+			["xs = { foo: { doo: 41 }, groooo: 43 }\n"
+			.'Dict.merge {} xs',
+				new FinalValue((object) [
+					'foo' => (object) [
+						'doo' => 41,
+						],
+					'groooo' => 43,
+					], 'Dict'),
+				],
+			["xs = { foo: { doo: 41 }, groooo: 43 }\n"
+			.'Dict.merge xs {broo: 44}',
+				new FinalValue((object) [
+					'foo' => (object) [
+						'doo' => 41,
+						],
+					'groooo' => 43,
+					'broo' => 44,
+					], 'Dict'),
+				],
+
+			// Dict.combine
+
+
+		];
+	}
+
+
+
+	/**
+	 * @return array<array<mixed>>
+	 */
 	static function dataErrors(): array
 	{
 		return [
@@ -1213,6 +1345,7 @@ content = [
 			'Math' => new MathsProvider(),
 			'Str' => new StringsProvider(),
 			'List' => new ListsProvider(),
+			'Dict' => new DictsProvider(),
 			]))
 			->compile($src);
 	}
