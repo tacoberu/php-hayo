@@ -39,6 +39,7 @@ final class HayoEngine
 			'Math' => new MathsProvider(),
 			'Str' => new StringsProvider(),
 			'List' => new ListsProvider(),
+			'Dict' => new DictsProvider(),
 		]);
 	}
 

@@ -10,6 +10,8 @@
 namespace Taco\Hayo;
 
 use LogicException;
+use DateTimeInterface;
+use stdClass;
 
 
 /**
@@ -65,7 +67,7 @@ class FinalValue implements Value
 		if (is_null($this->value)) {
 			return $this->value;
 		}
-		if (is_object($this->value)) {
+		if (is_object($this->value) && $this->value instanceof stdClass) {
 			$xs = [];
 			foreach ((array) $this->value as $i => $x) {
 				$xs[$i] = $x instanceof self
@@ -85,6 +87,13 @@ class FinalValue implements Value
 		}
 		throw new LogicException("Comming soon...: '" . print_r($this->value, true) . "'.");
 	}
+
+
+
+	private static function allowedBaseObject(object $inst): bool
+    {
+        return $inst instanceof DateTimeInterface;
+    }
 
 
 
