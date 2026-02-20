@@ -9,34 +9,6 @@
 
 namespace Taco\Hayo;
 
-/**
- * Val = ValScalar String String
- *     | ValList List String
- *     | ValDict List String Val
- *     | ValFn Fn String
- *     | ValExpr Fn String
- * class Val a where
- *     getTypeName :: a -> String
- * instance Val ValScalar where
- *     getTypeName (ValScalar a) = a `at` 1
- */
-
-interface Val
-{
-
-	function getTypeName(): string;
-
-
-
-	/**
-	 * @return mixed
-	 */
-	function unpack();
-
-}
-
-
-
 interface SymbolProvider
 {
 

@@ -22,7 +22,7 @@ use InvalidArgumentException;
  *
  * @TODO rename CallableValue
  */
-class VariadicVal implements Val, HasRefs, Value
+class VariadicVal implements HasRefs, Value
 {
 
 	/**
@@ -57,20 +57,6 @@ class VariadicVal implements Val, HasRefs, Value
 	 */
 	static function Expr_(Expr $expr, string $type, array $binds): self
 	{
-/* protože nyní má $expr všechny volné symboli označneé jako BindVal, tak to nyní nevrací v refs()
-		$refs = $expr->refs();
-		$binds2 = [];
-		foreach ($binds as $x) {
-			if (array_search($x->getBindName(), $refs, True) === False) {
-				throw new InvalidArgumentException("The remaining argument: '{$x->getBindName()}'.");
-			}
-			$binds2[] = $x->getBindName();
-		}
-		foreach ($refs as $x) {
-			if (array_search($x, $binds2, True) === False) {
-				throw new InvalidArgumentException("Missing argument: '{$x}'.");
-			}
-		}*/
 		return new self($expr, $type, $binds);
 	}
 
@@ -172,9 +158,10 @@ class VariadicVal implements Val, HasRefs, Value
 
 
 	/**
-	 * @param array<string, Val> $args
+	 * @param array<string, FinalVal | VariadicVal> $args
+	 * @return FinalVal | VariadicVal
 	 */
-	function apply(array $args): Val
+	function apply(array $args)
 	{
 		self::assertArguments($args);
 		self::assertBindArguments($this->getBinds(), $args);
@@ -191,10 +178,11 @@ class VariadicVal implements Val, HasRefs, Value
 
 
 	/**
-	 * @param string|Term|Val $src
-	 * @param array<string, Val> $lets
+	 * @param string|FinalVal|self|BindVal| Value $src
+	 * @param array<string, FinalVal | VariadicVal> $lets
+	 * @return FinalVal | VariadicVal
 	 */
-	private static function applyAny($src, array $lets): Val
+	private static function applyAny($src, array $lets)
 	{
 		switch (True) {
 			case is_string($src):
@@ -239,9 +227,10 @@ class VariadicVal implements Val, HasRefs, Value
 
 
 	/**
-	 * @param array<string, Val> $lets
+	 * @param array<string, FinalVal | VariadicVal> $lets
+	 * @return FinalVal | self
 	 */
-	private static function applyExpr(Expr $expr, array $lets): Val
+	private static function applyExpr(Expr $expr, array $lets)
 	{
 		$items = $expr->getItems();
 		foreach ($items as $i => $x) {
@@ -271,9 +260,9 @@ class VariadicVal implements Val, HasRefs, Value
 
 
 	/**
-	 * @param array<string, Val> $lets
+	 * @param array<string, FinalVal | VariadicVal> $lets
 	 */
-	private static function applyStructList(Composite $expr, array $lets): Val
+	private static function applyStructList(Composite $expr, array $lets): FinalVal
 	{
 		$items = [];
 		foreach ($expr->getItems() as $k => $x) {
@@ -285,9 +274,9 @@ class VariadicVal implements Val, HasRefs, Value
 
 
 	/**
-	 * @param array<string, Val> $lets
+	 * @param array<string, FinalVal | VariadicVal> $lets
 	 */
-	private static function applyStructDict(Composite $expr, array $lets): Val
+	private static function applyStructDict(Composite $expr, array $lets): FinalVal
 	{
 		$items = [];
 		foreach ($expr->getItems() as $k => $x) {
@@ -300,7 +289,7 @@ class VariadicVal implements Val, HasRefs, Value
 
 
 	/**
-	 * @param array<string, Val> $xs
+	 * @param array<string, FinalVal | VariadicVal> $xs
 	 */
 	private static function assertBindInArguments(BindVal $bind, array $xs): void
 	{
@@ -315,7 +304,7 @@ class VariadicVal implements Val, HasRefs, Value
 	 * Validaci, zda jsem předal správný počet prvků.
 	 *
 	 * @param array<BindVal> $binds
-	 * @param array<string, Val> $args
+	 * @param array<string, FinalVal | VariadicVal> $args
 	 */
 	private static function assertBindArguments(array $binds, array $args): void
 	{
@@ -338,7 +327,7 @@ class VariadicVal implements Val, HasRefs, Value
 
 
 	/**
-	 * @param array<string, Val> $args
+	 * @param array<string, FinalVal | VariadicVal> $args
 	 */
 	private static function assertArguments(array $args): void
 	{
@@ -349,16 +338,15 @@ class VariadicVal implements Val, HasRefs, Value
 
 
 
-	private static function assertArgument(string $key, Val $val): void
+	/**
+	 * @param FinalVal | VariadicVal $val
+	 */
+	private static function assertArgument(string $key, $val): void // @phpstan-ignore void.pure
 	{
-		/*
-		if ( ! is_string($key)) { // phpstan-ignore function.alreadyNarrowedType
-			throw new InvalidArgumentException("Argument must be with name.");
+		if ( ! $val instanceof FinalVal
+				&& ! $val instanceof self) { // @phpstan-ignore instanceof.alwaysTrue, booleanAnd.alwaysFalse
+			throw new InvalidArgumentException("Argument '{$key}' must be package into FinalVal or VariadicVal.");
 		}
-		if ( ! $val instanceof Val) { // phpstan-ignore instanceof.alwaysTrue
-			throw new InvalidArgumentException("Argument '{$key}' must be package into Val.");
-		}
-		*/
 	}
 
 

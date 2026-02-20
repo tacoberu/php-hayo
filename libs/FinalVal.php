@@ -18,7 +18,7 @@ use LogicException;
  *
  * @TODO Rename into LiteralVal
  */
-class FinalVal implements Val, Value
+class FinalVal implements Value
 {
 
 	/**

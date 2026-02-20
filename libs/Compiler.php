@@ -48,8 +48,9 @@ class Compiler
 
 	/**
 	 * Vrací konečnou hodnotu, nebo funkci, kterou je třeba naplnit argumenty.
+	 * @return FinalVal | VariadicVal
 	 */
-	function compile(string $source): Val
+	function compile(string $source)
 	{
 		$decoder = new HayoDecoder();
 		$term = $decoder->decode($source);
@@ -240,7 +241,7 @@ class Compiler
 					if ($items[0] instanceof Scalar && $items[1] == Composite::Tuple_([])) {
 						return $items[0];
 					}
-					return self::partialEvaluateApplicable($items[0], $args);
+					return self::partialEvaluateApplicable($items[0], $args); // @phpstan-ignore argument.type, return.type
 				}
 				else {
 					if ($items[0] instanceof Lambda
@@ -285,7 +286,7 @@ class Compiler
 				return self::partialEvaluate($context, $fn->getExpr());
 
 			case $fn instanceof BuildinFunc:
-				return $fn->apply($args);// @phpstan-ignore method.nonObject
+				return $fn->apply($args); // @phpstan-ignore argument.type
 
 			default:
 				throw new LogicException("oops.");
@@ -358,10 +359,10 @@ class Compiler
 						$context2->shadowAnotherSymbol($id, $value);
 					}
 					elseif ( ! $value instanceof HasRefs) {
-						$context2->shadow($id, self::partialEvaluate($context, $value));
+						$context2->shadow($id, self::partialEvaluate($context, $value)); // @phpstan-ignore argument.type
 					}
 					elseif ($value->refs() === []) {
-						$context2->shadow($id, self::partialEvaluate($context, $value));
+						$context2->shadow($id, self::partialEvaluate($context, $value)); // @phpstan-ignore argument.type
 					}
 					else {
 						$seconds[$id] = $value;
@@ -371,7 +372,7 @@ class Compiler
 				// 2/ Hodnoty, které šahají do rodičovského scope
 				// @TODO Recurse
 				foreach ($seconds as $id => $value) {
-					$context2->shadow($id, self::partialEvaluate($context2, $value));
+					$context2->shadow($id, self::partialEvaluate($context2, $value)); // @phpstan-ignore argument.type
 				}
 
 				return self::partialEvaluate($context2, $src->getExpr());
@@ -448,11 +449,12 @@ class Compiler
 	 *
 	 * Cílem funkce je vytvořit efektivní a znovupoužitelnou runtime rutinu,
 	 * která představuje konečnou podobu daného výrazu pro provádění v klientovi.
-	 * @param Value | FinalVal $term
+	 *
+	 * @return VariadicVal | FinalVal
 	 */
-	private static function compileRuntimeValue(Value $term): Val
+	private static function compileRuntimeValue(Value $src)
 	{
-		list($val, $binds) = self::castAny($term, True);
+		list($val, $binds) = self::castAny($src, True);
 		switch (True) {
 			case $val instanceof FinalVal:
 				return $val;
@@ -480,7 +482,7 @@ class Compiler
 
 
 	/**
-	 * @param Value | Val $term
+	 * @param string | Value $src
 	 * @param bool $packref Když narazíme na symbol závislosti, tak nědy se nám nehodí, že se zabalí do BindVal
 	 * @return array{0: Value, 1: array<string, BindVal>}
 	 */
@@ -636,7 +638,7 @@ class Compiler
 
 	/**
 	 * @param array<string|int, string | Value> $src
-	 * @return array{0: array<Val>, 1: array<string, BindVal>}
+	 * @return array{0: array<Value>, 1: array<string, BindVal>}
 	 */
 	private static function castCompositeItems(array $src, bool $packref): array
 	{

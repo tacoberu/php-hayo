@@ -764,12 +764,12 @@ content = [
 			. "b = 13\n"
 			. "inc = (a) -> a + 1 * b\n"
 			. "inc 29",
-				new FinalVal(42, 'Int')
+				new FinalVal(42, 'Int'),
 				],
 
 			["inc = (a) -> a + 1\n"
 			."inc 41",
-				new FinalVal(42, 'Int')
+				new FinalVal(42, 'Int'),
 				],
 
 			[""
@@ -779,14 +779,14 @@ content = [
 				VariadicVal::Expr_(Expr::Bin_(
 					new FinalVal(41, 'Int'),
 					new MathOperator('+'),
-					new BindVal("b", '?'),
+					new BindVal("b", '?')
 				), '?', [
 					new BindVal("b", '?'),
-				])
+				]),
 				],
 
 			["id = () -> 42\nid ()",
-				new FinalVal(42, 'Int')
+				new FinalVal(42, 'Int'),
 				],
 
 			// @TODO

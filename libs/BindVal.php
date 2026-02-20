@@ -12,7 +12,7 @@ namespace Taco\Hayo;
 /**
  * Hodnota vyžaduje nějaké argumenty. Výsledek je tedy třeba vypočítat.
  */
-class BindVal implements Val
+class BindVal
 {
 
 	private string $name;
