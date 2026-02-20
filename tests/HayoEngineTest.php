@@ -177,6 +177,15 @@ class HayoEngineTest extends TestCase
 				ValidationException::class,
 				'Expected string, got integer'],
 
+			// DateTime.fromDate with non-int year → TypeError from DateTime::setDate()
+			['DateTime.fromDate y m d', ['y' => 'not-a-year', 'm' => 1, 'd' => 1],
+				ValidationException::class,
+				'Invalid arguments of DateTime.fromDate: Expected int, got string'],
+			// DateTime.fromTimestamp with invalid string → Exception from DateTime constructor
+			['DateTime.fromTimestamp src', ['src' => 'abc'],
+				ValidationException::class,
+				'Invalid arguments of DateTime.fromTimestamp: Expected int, got string'],
+
 		];
 	}
 

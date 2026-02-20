@@ -67,7 +67,7 @@ class FinalValue implements Value
 		if (is_null($this->value)) {
 			return $this->value;
 		}
-		if (is_object($this->value) && $this->value instanceof stdClass) {
+		if ($this->value instanceof stdClass) {
 			$xs = [];
 			foreach ((array) $this->value as $i => $x) {
 				$xs[$i] = $x instanceof self
@@ -84,6 +84,9 @@ class FinalValue implements Value
 					: $x;
 			}
 			return $xs;
+		}
+		if (is_object($this->value) && self::allowedBaseObject($this->value)) {
+			return $this->value;
 		}
 		throw new LogicException("Comming soon...: '" . print_r($this->value, true) . "'.");
 	}
