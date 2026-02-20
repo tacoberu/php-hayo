@@ -40,6 +40,7 @@ final class HayoEngine
 			'Str' => new StringsProvider(),
 			'List' => new ListsProvider(),
 			'Dict' => new DictsProvider(),
+			'DateTime' => new DateTimeProvider(),
 		]);
 	}
 
