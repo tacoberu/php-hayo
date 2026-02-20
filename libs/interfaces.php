@@ -18,6 +18,21 @@ interface SymbolProvider
 
 
 
+/**
+ * Provider, který poskytuje toto rozhraní bude použit symbol bez namespace.
+ */
+interface ShortSymbolProvider
+{
+
+	/**
+	 * @retrun list<string>
+	 */
+	function getShortSymbolTable(): array;
+
+}
+
+
+
 interface BuildinFunc extends Applicable
 {
 

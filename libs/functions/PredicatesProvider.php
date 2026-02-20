@@ -12,17 +12,30 @@ namespace Taco\Hayo;
 use LogicException;
 
 
-class PredicatesProvider implements SymbolProvider
+class PredicatesProvider implements SymbolProvider, ShortSymbolProvider
 {
 
 	function lookup(string $symbol): ?BuildinFunc
 	{
-		$symbol = strtoupper($symbol);
-		if (! in_array($symbol, ['==', '!=', '<', '>', '<=', '>=', 'AND', 'OR', '&&', '||', 'IN', 'HAS', 'SUPERSET', 'SUBSET', 'INTERSECTS',], True)) {
+		$symbol = strtolower($symbol);
+		if (! in_array($symbol, ['==', '!=', '<', '>', '<=', '>=', 'and', 'or', '&&', '||', 'not', 'in', 'has', 'superset', 'subset', 'intersects',], True)) {
 			return Null;
 		}
 
 		return new PredicateFunction($symbol);
+	}
+
+
+
+	/**
+	 * @retrun list<string>
+	 */
+	function getShortSymbolTable(): array
+	{
+		return ['==', '!=', '<', '>', '<=', '>=',
+			'and', 'or', '&&', '||', 'not',
+			'in', 'has', 'superset', 'subset', 'intersects',
+			];
 	}
 
 }
@@ -45,11 +58,11 @@ class PredicatesProvider implements SymbolProvider
 class PredicateFunction implements BuildinFunc
 {
 
-	private string $name;
+    private string $name;
 
 	function __construct(string $name)
 	{
-		$this->name = $name;
+		$this->name = strtolower($name);
 	}
 
 
@@ -63,19 +76,19 @@ class PredicateFunction implements BuildinFunc
 			case '>':
 			case '<=':
 			case '>=':
-			case 'AND':
-			case 'OR':
+			case 'and':
+			case 'or':
 			case '&&':
 			case '||':
-			case 'IN': // prvek left je ve množině right
-			case 'HAS': // v množině left je prvek right
-			case 'SUPERSET': // Existuje alespoň jeden prvek v left, který je také v right. @TODO Ta definice je divná
-			case 'SUBSET': // Existuje alespoň jeden prvek v right, který je také v left @TODO Ta definice je divná
-			case 'INTERSECTS': // Množiny left a right mají alespon jeden společný prvek.
+			case 'in': // prvek left je ve množině right
+			case 'has': // v množině left je prvek right
+			case 'superset': // existuje alespoň jeden prvek v left, který je také v right. @todo ta definice je divná
+			case 'subset': // existuje alespoň jeden prvek v right, který je také v left @todo ta definice je divná
+			case 'intersects': // množiny left a right mají alespon jeden společný prvek.
 				return 'Bool';
 
 			default:
-				throw new LogicException("Unsupported operator: {$this->name}.");
+				throw new LogicException("Unsupported predicate: {$this->name}.");
 		}
 	}
 
@@ -94,8 +107,8 @@ class PredicateFunction implements BuildinFunc
 			case '>':
 			case '<=':
 			case '>=':
-			case 'AND':
-			case 'OR':
+			case 'and':
+			case 'or':
 			case '&&':
 			case '||':
 				return [
@@ -103,28 +116,28 @@ class PredicateFunction implements BuildinFunc
 					new BindVal('b', '?'),
 				];
 
-			case 'IN': // prvek left je ve množině right
+			case 'in': // prvek left je ve množině right
 				return [
 					new BindVal('a', 'a'),
 					new BindVal('b', 'List<a>'),
 				];
 
-			case 'HAS': // v množině left je prvek right
+			case 'has': // v množině left je prvek right
 				return [
 					new BindVal('a', 'List<a>'),
 					new BindVal('b', 'a'),
 				];
 
-			case 'SUPERSET': // Existuje alespoň jeden prvek v left, který je také v right.
-			case 'SUBSET': // Existuje alespoň jeden prvek v right, který je také v left
-			case 'INTERSECTS': // Množiny left a right mají alespon jeden společný prvek.
+			case 'superset': // existuje alespoň jeden prvek v left, který je také v right.
+			case 'subset': // existuje alespoň jeden prvek v right, který je také v left
+			case 'intersects': // množiny left a right mají alespon jeden společný prvek.
 				return [
 					new BindVal('a', 'List<a>'),
 					new BindVal('b', 'List<a>'),
 				];
 
 			default:
-				throw new LogicException("Unsupported operator: {$this->op}.");
+				throw new LogicException("Unsupported predicate: {$this->name}.");
 		}
 	}
 
@@ -175,36 +188,39 @@ class PredicateFunction implements BuildinFunc
 			case '>=':
 				return new FinalVal($args[0] >= $args[1], 'Symbol');
 
-			case 'AND':
+			case 'and':
 			case '&&':
 				return new FinalVal($args[0] && $args[1], 'Symbol');
 
-			case 'OR':
+			case 'or':
 			case '||':
 				return new FinalVal($args[0] || $args[1], 'Symbol');
 
+			case 'not':
+				return new FinalVal( ! $args[0], 'Symbol');
+
 			// prvek left je ve množině right
-			case 'IN':
+			case 'in':
 				return new FinalVal(in_array($args[0], $args[1], True), 'Symbol');
 
 			// v množině left je prvek right
-			case 'HAS':
+			case 'has':
 				return new FinalVal(in_array($args[1], $args[0], True), 'Symbol');
 
 			// Existuje alespoň jeden prvek v left, který je také v right.
-			case 'SUPERSET':
+			case 'superset':
 				throw new LogicException("Comming soon... (2026.02.18 23:58:07 CET)");
 
 			// Existuje alespoň jeden prvek v right, který je také v left
-			case 'SUBSET':
+			case 'subset':
 				throw new LogicException("Comming soon... (2026.02.18 23:58:07 CET)");
 
 			// Množiny left a right mají alespon jeden společný prvek.
-			case 'INTERSECTS':
+			case 'intersects':
 				throw new LogicException("Comming soon... (2026.02.18 23:58:07 CET)");
 
 			default:
-				throw new LogicException("Unsupported operator: {$this->name}.");
+				throw new LogicException("Unsupported predicate: {$this->name}.");
 		}
 	}
 

@@ -18,11 +18,7 @@ class ListsProvider implements SymbolProvider
 
 	function lookup(string $symbol): ?BuildinFunc
 	{
-		if (strncmp('list.', $symbol, 5) !== 0) {
-			return Null;
-		}
-
-		if (! in_array($symbol, ['list.len', 'list.first', 'list.at', 'list.exist',], True)) {
+		if (! in_array($symbol, ['len', 'first', 'at', 'exist',], True)) {
 			return Null;
 		}
 
@@ -61,14 +57,17 @@ class ListFunc implements BuildinFunc
 	{
 		switch ($this->name) {
 			case 'list.len':
+			case 'len':
 				return 'Int';
 
 			case 'list.first':
-
 			case 'list.at':
+			case 'first':
+			case 'at':
 				return 'a';
 
 			case 'list.exist':
+			case 'exist':
 				return 'Bool';
 
 			default:
@@ -86,17 +85,20 @@ class ListFunc implements BuildinFunc
 	{
 		switch ($this->name) {
 			case 'list.len':
+			case 'len':
 				return [
 					new BindVal('src', 'List<a>'),
 				];
 
 			case 'list.first':
+			case 'first':
 				return [
 					new BindVal('src', 'List<a>'),
 					new BindVal('default', 'a'),
 				];
 
 			case 'list.at':
+			case 'at':
 				return [
 					new BindVal('index', 'Int'),
 					new BindVal('src', 'List<a>'),
@@ -104,6 +106,7 @@ class ListFunc implements BuildinFunc
 				];
 
 			case 'list.exist':
+			case 'exist':
 				return [
 					new BindVal('index', 'Int'),
 					new BindVal('src', 'List<a>'),
@@ -143,10 +146,12 @@ class ListFunc implements BuildinFunc
 		}, $args);
 		switch ($this->name) {
 			case 'list.len':
+			case 'len':
 				self::assertArgumentExist($args, 0, 'src: List<a>');
 				return new FinalVal(count($args[0]), 'Int');
 
 			case 'list.first':
+			case 'first':
 				self::assertArgumentExist($args, 0, 'src: List<a>');
 				self::assertArgumentExist($args, 1, 'default: a');
 				$xs = $args[0];
@@ -156,6 +161,7 @@ class ListFunc implements BuildinFunc
 				return new FinalVal($args[1], 'a');
 
 			case 'list.at':
+			case 'at':
 				self::assertArgumentExist($args, 0, 'index: Int');
 				self::assertArgumentExist($args, 1, 'src: List<a>');
 				self::assertArgumentExist($args, 2, 'default: a');
@@ -166,6 +172,7 @@ class ListFunc implements BuildinFunc
 					: new FinalVal($args[2], 'a');
 
 			case 'list.exist':
+			case 'exist':
 				self::assertArgumentExist($args, 0, 'index: Int');
 				self::assertArgumentExist($args, 1, 'src: List<a>');
 				$index = $args[0];

@@ -10,6 +10,7 @@
 namespace Taco\Hayo;
 
 use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 
 class MathOperatorTest extends TestCase
@@ -96,6 +97,92 @@ class MathOperatorTest extends TestCase
 			new FinalVal(5, 'Int'),
 			new FinalVal(2, 'Int'),
 		]));
+	}
+
+
+
+	#[DataProvider('dataCeilApply')]
+	function testCeilApply(float $val, $expected)
+	{
+		$inst = new MathOperator('ceil');
+		$this->assertEquals($expected, $inst->apply([
+			new FinalVal($val, 'Real'),
+		])->unpack());
+	}
+
+
+
+	/**
+	 * @return array<mixed>
+	 */
+	static function dataCeilApply(): array
+	{
+		return [
+			[12.0, 12, ],
+			[12.1, 13, ],
+			[12.3, 13, ],
+			[12.5, 13, ],
+			[12.9, 13, ],
+		];
+	}
+
+
+
+	#[DataProvider('dataFloorApply')]
+	function testFloorApply(float $val, $expected)
+	{
+		$inst = new MathOperator('floor');
+		$this->assertEquals($expected, $inst->apply([
+			new FinalVal($val, 'Real'),
+		])->unpack());
+	}
+
+
+
+	/**
+	 * @return array<mixed>
+	 */
+	static function dataFloorApply(): array
+	{
+		return [
+			[12.0, 12, ],
+			[12.1, 12, ],
+			[12.3, 12, ],
+			[12.5, 12, ],
+			[12.9, 12, ],
+		];
+	}
+
+
+
+	#[DataProvider('dataRoundApply')]
+	function testRoundApply(float $val, int $precision, $expected)
+	{
+		$inst = new MathOperator('round');
+		$this->assertEquals($expected, $inst->apply([
+			new FinalVal($val, 'Real'),
+			new FinalVal($precision, 'Int'),
+		])->unpack());
+	}
+
+
+
+	/**
+	 * @return array<mixed>
+	 */
+	static function dataRoundApply(): array
+	{
+		return [
+			[12.0, 0, 12.0,	],
+			[12.3, 0, 12.0,	],
+			[12.49, 0, 12.0,	],
+			[12.499, 0, 12.0,	],
+			[12.499, 1, 12.5,	],
+			[12.4499, 2, 12.45,	],
+			[12.5, 0, 13.0,	],
+			[12.6, 0, 13.0,	],
+			[12.9, 0, 13.0,	],
+		];
 	}
 
 }

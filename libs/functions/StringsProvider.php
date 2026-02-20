@@ -10,6 +10,7 @@
 namespace Taco\Hayo;
 
 use InvalidArgumentException;
+use LogicException;
 
 
 class StringsProvider implements SymbolProvider
@@ -17,11 +18,7 @@ class StringsProvider implements SymbolProvider
 
 	function lookup(string $symbol): ?BuildinFunc
 	{
-		if (strncmp('strings.', $symbol, 8) !== 0) {
-			return Null;
-		}
-
-		if (! in_array($symbol, ['strings.len', 'strings.split', 'strings.concat',], True)) {
+		if (! in_array($symbol, ['len', 'split', 'concat',], True)) {
 			return Null;
 		}
 
@@ -59,12 +56,15 @@ class StringFunc implements BuildinFunc
 	{
 		switch ($this->name) {
 			case 'strings.len':
+			case 'len':
 				return 'Int';
 
 			case 'strings.split':
+			case 'split':
 				return 'List<Str>';
 
 			case 'strings.concat':
+			case 'concat':
 				return 'Str';
 
 			default:
@@ -94,17 +94,20 @@ class StringFunc implements BuildinFunc
 	{
 		switch ($this->name) {
 			case 'strings.len':
+			case 'len':
 				return [
 					new BindVal('src', 'Str'),
 				];
 
 			case 'strings.split':
+			case 'split':
 				return [
 					new BindVal('sep', 'Str'),
 					new BindVal('src', 'Str'),
 				];
 
 			case 'strings.concat':
+			case 'concat':
 				return [
 					new BindVal('sep', 'Str'),
 					new BindVal('src', 'List<Str>'),
@@ -132,15 +135,18 @@ class StringFunc implements BuildinFunc
 		}, $args);
 
 		switch ($this->name) {
+			case 'strings.len':
+			case 'len':
+				return new FinalVal(self::applyLen($args), 'Int'); // @phpstan-ignore argument.type
+
 			case 'strings.split':
+			case 'split':
 				return new FinalVal(array_map(static function (string $x): FinalVal {
 					return new FinalVal($x, 'Str');
 				}, self::applySplit($args)), 'List'); // @phpstan-ignore argument.type
 
-			case 'strings.len':
-				return new FinalVal(self::applyLen($args), 'Int'); // @phpstan-ignore argument.type
-
 			case 'strings.concat':
+			case 'concat':
 				return new FinalVal(self::applyConcat($args), 'Str'); // @phpstan-ignore argument.type
 
 			default:

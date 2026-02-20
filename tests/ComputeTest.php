@@ -284,6 +284,31 @@ class ComputeTest extends TestCase
 					]
 				, new FinalVal(False, 'Symbol'),
 				],
+			["not a"
+				, [ 'a' => new FinalVal(41, 'Int'),
+					]
+				, new FinalVal(False, 'Symbol'),
+				],
+			["not (not a)"
+				, [ 'a' => new FinalVal(41, 'Int'),
+					]
+				, new FinalVal(True, 'Symbol'),
+				],
+			["not a"
+				, [ 'a' => new FinalVal(False, 'Bool'),
+					]
+				, new FinalVal(True, 'Symbol'),
+				],
+			["not (1 or a)"
+				, [ 'a' => new FinalVal(False, 'Bool'),
+					]
+				, new FinalVal(False, 'Symbol'),
+				],
+			["(not 1) or a"
+				, [ 'a' => new FinalVal(True, 'Bool'),
+					]
+				, new FinalVal(True, 'Symbol'),
+				],
 		];
 	}
 
@@ -291,7 +316,13 @@ class ComputeTest extends TestCase
 
 	private function compile($src)
 	{
-		return Compiler::WithDefaultLibraries()
+		return (new Compiler([
+			'predicate' => new PredicatesProvider(),
+			'math' => new MathsProvider(),
+			'str' => new StringsProvider(),
+			'strings' => new StringsProvider(),
+			'list' => new ListsProvider(),
+			]))
 			->compile($src);
 	}
 

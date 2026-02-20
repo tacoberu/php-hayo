@@ -9,16 +9,31 @@
 
 namespace Taco\Hayo;
 
-class MathsProvider implements SymbolProvider
+use LogicException;
+
+
+class MathsProvider implements SymbolProvider, ShortSymbolProvider
 {
 
 	function lookup(string $symbol): ?BuildinFunc
 	{
-		if ( ! in_array($symbol, ['+', '-', '*', 'div', 'mod'], True)) {
+		if ( ! in_array($symbol, ['+', '-', '*', 'div', 'mod',
+				'ceil', 'floor', 'round'
+				], True)) {
 			return Null;
 		}
 
 		return new MathOperator($symbol);
+	}
+
+
+
+	/**
+	 * @retrun list<string>
+	 */
+	function getShortSymbolTable(): array
+	{
+		return ['+', '-', '*', 'div', 'mod'];
 	}
 
 }
@@ -115,6 +130,15 @@ class MathOperator implements BuildinFunc
 
 			case 'mod':
 				return new FinalVal($args[0] % $args[1], $this->type());
+
+			case 'ceil':
+				return new FinalVal((int) ceil($args[0]), $this->type());
+
+			case 'floor':
+				return new FinalVal((int) floor($args[0]), $this->type());
+
+			case 'round':
+				return new FinalVal(round($args[0], $args[1]), $this->type());
 
 			default:
 				throw new LogicException("Unsupported operator: {$this->op}.");

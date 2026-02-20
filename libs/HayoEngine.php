@@ -48,7 +48,7 @@ final class HayoEngine
 
 	function registerLibrary(string $ns, SymbolProvider $lib): self
 	{
-		$this->libs[] = $lib;
+		$this->libs[$ns] = $lib;
 		return $this;
 	}
 

@@ -111,7 +111,7 @@ xs = (strings.split "," "une, deux, trois")
 	function testStringLen()
 	{
 		$result = HayoEngine::WithDefaultLibraries()
-			->evaluate('(strings.len "hi")');
+			->evaluate('(str.len "hi")');
 		$this->assertEquals(2, $result);
 	}
 
@@ -121,7 +121,7 @@ xs = (strings.split "," "une, deux, trois")
 	{
 		$result = HayoEngine::WithDefaultLibraries()
 			->evaluate('
-a = (strings.len "hi")
+a = (str.len "hi")
 a
 ');
 		$this->assertEquals(2, $result);
@@ -735,7 +735,7 @@ content = [
 					new BindVal('b', '?'),
 					])],
 
-			["list.at 2 [\"une\", a, \"trois\"]", VariadicVal::Expr_(Expr::Func_(new ListFunc('list.at'), [
+			["list.at 2 [\"une\", a, \"trois\"]", VariadicVal::Expr_(Expr::Func_(new ListFunc('at'), [
 					new FinalVal(2, 'Int'),
 					Composite::List_([
 						new FinalVal("une", 'Str'),
@@ -875,7 +875,13 @@ content = [
 
 	private function compile($src)
 	{
-		return Compiler::WithDefaultLibraries()
+		return (new Compiler([
+			'predicate' => new PredicatesProvider(),
+			'math' => new MathsProvider(),
+			'str' => new StringsProvider(),
+			'strings' => new StringsProvider(),
+			'list' => new ListsProvider(),
+			]))
 			->compile($src);
 	}
 

@@ -20,28 +20,29 @@ class Compiler
 {
 
 	/**
-	 * @var list<SymbolProvider>
+	 * @var array<string, SymbolProvider>
 	 */
 	private array $libs = [];
 
 	/**
-	 * @param list<SymbolProvider> $libs
+	 * Tabulka krátkých názvů, jako `+`, `div`, `and`, etc.
+	 * @var array<string, string>
+	 */
+	private array $short = [];
+
+	/**
+	 * @param array<string, SymbolProvider> $libs
 	 */
 	function __construct(array $libs)
 	{
 		$this->libs = $libs;
-	}
-
-
-
-	static function WithDefaultLibraries(): self
-	{
-		return new self([
-			'predicate' => new PredicatesProvider(),
-			'math' => new MathsProvider(),
-			'str' => new StringsProvider(),
-			'list' => new ListsProvider(),
-		]);
+		foreach ($libs as $ns => $prov) {
+			if ($prov instanceof ShortSymbolProvider) {
+				foreach ($prov->getShortSymbolTable() as $x) {
+					$this->short[$x] = "{$ns}.{$x}";
+				}
+			}
+		}
 	}
 
 
@@ -98,17 +99,45 @@ class Compiler
 	 * s textem, poly, a uživatelsky definované funkce.
 	 *
 	 * @TODO Možnost lokálního importu.
+	 *
 	 * @return array{0: string, 1: Value}
 	 */
 	private function lookupGlobalSymbol(string $x): ?array
 	{
-		foreach ($this->libs as $provider) {
-			if ($fn = $provider->lookup($x)) {
+		// Ve zdroji je `+`, my hledáme `math.+`, ale vrátit musíme opět jen `+`.
+		// Ve zdroji je `str.len`, my hledáme `str.len`, ale vrátit musíme `str.len`.
+		$nx = $this->normalizeShortSymbols($x);
+
+		if ( ! strpos($nx, '.')) {
+			return Null;
+		}
+
+		// Symbol se skládá z namespace a názvu funkce.
+		// Předpokládáme právě jednu tečku. Nebudeme namespace zanořovat. Pokud
+		// ano, tak at si to udělá na úrovni provideru.
+		list($ns, $symbol) = explode('.', $nx, 2);
+		if (isset($this->libs[$ns])) {
+			if ($fn = $this->libs[$ns]->lookup($symbol)) {
 				return [$x, $fn];
 			}
 		}
 
 		return Null;
+	}
+
+
+
+	private function normalizeShortSymbols(string $x): string
+	{
+		if (strpos($x, '.')) {
+			return $x;
+		}
+
+		if (isset($this->short[strtolower($x)])) {
+			return $this->short[strtolower($x)];
+		}
+
+		return $x;
 	}
 
 
