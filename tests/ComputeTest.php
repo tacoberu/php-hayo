@@ -23,6 +23,7 @@ class ComputeTest extends TestCase
 	#[DataProvider('dataStrings')]
 	#[DataProvider('dataExpressions')]
 	#[DataProvider('dataPredicators')]
+	#[DataProvider('dataPaths')]
 	function testCompute(string $code, array $args, $expected)
 	{
 		$this->assertEquals($expected, $this->compile($code)->apply($args));
@@ -210,14 +211,13 @@ class ComputeTest extends TestCase
 					]
 				, new FinalVal(82, 'Int'),
 				],
-/*			["b = c\n"		// @FIXME
+			["b = c\n"
 			."c = a\n"
 			."b + b"
 				, [ 'a' => new FinalVal(41, 'Int'),
 					]
 				, new FinalVal(82, 'Int'),
 				],
-				*/
 
 			["x = y \n"
 			."(strings.len src) + x"
@@ -308,6 +308,82 @@ class ComputeTest extends TestCase
 				, [ 'a' => new FinalVal(True, 'Bool'),
 					]
 				, new FinalValue(True, 'Bool'),
+				],
+		];
+	}
+
+
+
+	/**
+	 * @return array<array<mixed>>
+	 */
+	static function dataPaths(): array
+	{
+		return [
+			["1 + x.foo.doo",
+				[ 'x' => new FinalVal((object) [
+					'foo' => (object) [
+						'doo' => 41,
+						],
+					], 'Dict'),
+					],
+				new FinalVal(42, 'Int'),
+				],
+			["str.len x.foo.doo",
+				[ 'x' => new FinalVal((object) [
+					'foo' => (object) [
+						'doo' => "Lorem ipsum doler ist",
+						],
+					], 'Dict'),
+					],
+				new FinalVal(21, 'Int'),
+				],
+			["x.foo.doo",
+				[ 'x' => new FinalVal((object) [
+					'foo' => (object) [
+						'doo' => "Lorem ipsum doler ist",
+						],
+					], 'Dict'),
+					],
+				new FinalVal('Lorem ipsum doler ist', '?'),
+				],
+			["x.foo.nothing",
+				[ 'x' => new FinalVal((object) [
+					'foo' => (object) [
+						'doo' => "Lorem ipsum doler ist",
+						],
+					], 'Dict'),
+					],
+				new FinalVal(Null, '?'),
+				],
+			["x.nothing",
+				[ 'x' => new FinalVal((object) [
+					'foo' => (object) [
+						'doo' => "Lorem ipsum doler ist",
+						],
+					], 'Dict'),
+					],
+				new FinalVal(Null, '?'),
+				],
+			["x.pravda",
+				[ 'x' => new FinalVal((object) [
+					'foo' => (object) [
+						'doo' => "Lorem ipsum doler ist",
+						],
+					'pravda' => True,
+					], 'Dict'),
+					],
+				new FinalVal(true, '?'),
+				],
+			["x.nepravda",
+				[ 'x' => new FinalVal((object) [
+					'foo' => (object) [
+						'doo' => "Lorem ipsum doler ist",
+						],
+					'nepravda' => False,
+					], 'Dict'),
+					],
+				new FinalVal(False, '?'),
 				],
 		];
 	}

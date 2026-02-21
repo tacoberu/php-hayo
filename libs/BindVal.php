@@ -27,6 +27,14 @@ class BindVal
 
 
 
+	function getName(): string
+	{
+		list($x, ) = explode('.', $this->name, 2);
+		return $x;
+	}
+
+
+
 	function getBindName(): string
 	{
 		return $this->name;
@@ -37,6 +45,13 @@ class BindVal
 	function getTypeName(): string
 	{
 		return $this->type;
+	}
+
+
+
+	function isPath(): bool
+	{
+		return (bool) strpos($this->name, '.');
 	}
 
 

@@ -179,9 +179,8 @@ class Compiler
 	private static function partialEvaluate(Context $context, $term)
 	{
 		switch (True) {
-			// Symboly musí zpracovat rodič, zde s tím nic neudělám.
 			case is_string($term):
-				return $context->trySelectSymbol($term);
+				return self::partialEvaluateSymbol($context, $term);
 
 			// Numbers, final values, and builtin functions have nothing to process
 			case $term instanceof Scalar:
@@ -218,6 +217,28 @@ class Compiler
 			default:
 				throw CompileException::UnsupportedException('partial evaluate', $term);
 		}
+	}
+
+
+
+	private static function partialEvaluateSymbol(Context $context, string $term)
+	{
+		// Check whether we have a Dict stored in the context; select by the first key in the path x.foo.doo
+		$id = new BindValue($term, '?');
+		if ($value = $context->selectSymbol($id->getName())) {
+			if ($id->isPath()) {
+				list($value, ) = self::castAny($value, False);
+				return self::selectByPath($id, $value);
+			}
+			return $value;
+		}
+
+		// Builtin functions such as `str.len` also contain a dot
+		if ($value = $context->selectSymbol($term)) {
+			return $value;
+		}
+
+		return $term;
 	}
 
 
@@ -283,8 +304,7 @@ class Compiler
 					return $expr;
 				}
 				else {
-					if ($items[0] instanceof Lambda
-							&& count($items[0]->getArgs()) === (count($items) - 1)) {
+					if ($items[0] instanceof Lambda && count($items[0]->getArgs()) === count($items) - 1) {
 
 						// @TODO Toto píšu poněkud unaven. Myslím, že by se to mělo řešit poněkud jinak.
 						$term = self::optimalizeLambdaCalling($items[0], array_slice($items, 1));
@@ -304,8 +324,7 @@ class Compiler
 	private static function optimalizeLambdaCalling(Lambda $fn, array $args)
 	{
 		$context = new Context(array_combine($fn->getArgs(), $args));
-		$term = self::partialEvaluateExpr($context, $fn->getExpr());
-		return $term;
+		return self::partialEvaluateExpr($context, $fn->getExpr());
 	}
 
 
@@ -382,9 +401,7 @@ class Compiler
 				}
 
 				$term = self::partialEvaluate($context2, $src->getExpr());
-				$term2 = self::partialEvaluate($context2, $term);
-
-				return $term2;
+				return self::partialEvaluate($context2, $term);
 
 			// `a = 5; (a, 5)`
 			// `a = 5; [1, a]`
@@ -394,7 +411,10 @@ class Compiler
 				$seconds = [];
 				// 1/ First process safe values
 				foreach ($src->getLets() as $id => $value) {
-					if (is_string($value)) {
+					if (is_string($value) && strpos($value, '.')) {
+						$seconds[$id] = $value;
+					}
+					elseif (is_string($value)) {
 						$context2->shadowAnotherSymbol($id, $value);
 					}
 					elseif ( ! $value instanceof HasRefs) {
@@ -733,9 +753,27 @@ class Compiler
 
 
 
+	/**
+	 * If the bound value is a path: `x.foo`, we expect
+	 * $src to be a dictionary and extract the correct value from it.
+	 */
+	private static function selectByPath(BindValue $id, FinalValue $src): FinalValue
+	{
+		//~ self::assertDict($src);
+		$curr = (object)[
+			$id->getName() => $src->unpack(),
+		];
+		foreach (explode('.', $id->getBindName()) as $x) {
+			$curr = $curr->{$x};
+		}
+		return new FinalValue($curr, '?');
+	}
+
+
+
 	private static function assertMissingSymbols($term): void
 	{
-		if ($term instanceof FinalValue) {
+		if ($term instanceof FinalVal) {
 			return;
 		}
 		$missing = [];
@@ -746,7 +784,7 @@ class Compiler
 		}
 		if (count($missing)) {
 			$missing = implode(',', $missing);
-			throw new SymbolNotFound("Unable to find symbols: $missing.");
+			throw new LogicException("Unable to find symbols: $missing.");
 		}
 	}
 

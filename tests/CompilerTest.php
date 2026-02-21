@@ -40,6 +40,7 @@ xs = (strings.split "," "une, deux, trois")
 	#[DataProvider('dataParametricValue')]
 	#[DataProvider('dataPredicators')]
 	#[DataProvider('dataShortLinkBind')]
+	#[DataProvider('dataPaths')]
 	function testCompile(string $code, $expected)
 	{
 		$this->assertEquals($expected, $this->compile($code));
@@ -872,6 +873,27 @@ content = [
 				],
 		];
 	}
+
+
+
+	/**
+	 * @return array<array<mixed>>
+	 */
+	static function dataPaths(): array
+	{
+		return [
+			["x = { foo: { doo: 41 } }\n1 + x.foo.doo",
+				new FinalVal(42, 'Int'),
+				],
+			["x = { foo: { doo: 41 } }\ny = x.foo.doo\n1 + y",
+				new FinalVal(42, 'Int'),
+				],
+			["x = { foo: { doo: 41 } }\ny = x.foo\n1 + y.doo",
+				new FinalVal(42, 'Int'),
+				],
+		];
+	}
+
 
 
 

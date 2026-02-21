@@ -188,11 +188,14 @@ class ParametricValue implements HasRefs, Value
 
 			case $src instanceof BindVal:
 				self::assertBindInArguments($src, $lets);
-				$src = $lets[$src->getBindName()];
-				if ( ! $src instanceof FinalVal) {
+				$value = $lets[$src->getName()];
+				if ( ! $value instanceof FinalVal) {
 					throw new LogicException("Comming soon...");
 				}
-				return $src;
+				if ($src->isPath()) {
+					$value = self::selectByPath($src, $value);
+				}
+				return $value;
 
 			case $src instanceof self:
 				// @TODO nějaké omezení, aby se neposílaly všeechny lets, ale jen ty, co jsou v getBindNames()
@@ -287,10 +290,32 @@ class ParametricValue implements HasRefs, Value
 
 	/**
 	 * @param array<string, FinalVal | ParametricValue> $xs
+	 * V případě, že nabindovaná hodnota je cesta: `x.foo`, tak očekáváme, že
+	 * $src bude slovník, a vytáhneme z něj správnou hodnotu.
+	 */
+	private static function selectByPath(BindVal $id, FinalVal $src): FinalVal
+	{
+		//~ self::assertDict($src);
+		$curr = (object)[
+			$id->getName() => $src->unpack(),
+		];
+		foreach (explode('.', $id->getBindName()) as $x) {
+			if (!isset($curr->{$x})) {
+				return new FinalVal(Null, '?');
+			}
+			$curr = $curr->{$x};
+		}
+		return new FinalVal($curr, '?');
+	}
+
+
+
+	/**
+	 * @param array<string, FinalVal | VariadicVal> $xs
 	 */
 	private static function assertBindInArguments(BindVal $bind, array $xs): void
 	{
-		if ( ! array_key_exists($bind->getBindName(), $xs)) {
+		if ( ! array_key_exists($bind->getName(), $xs)) {
 			throw new InvalidArgumentException("Missing args: '{$bind->getBindName()}'.");
 		}
 	}
@@ -305,7 +330,9 @@ class ParametricValue implements HasRefs, Value
 	 */
 	private static function assertBindArguments(array $binds, array $args): void
 	{
-		$binds = array_map(static function(BindVal $x): string { return $x->getBindName(); }, $binds);
+		$binds = array_map(static function(BindVal $x): string {
+			return $x->getName();
+		}, $binds);
 		$args = array_keys($args);
 		if (count($binds) !== count($args)) {
 			$binds = implode(', ', array_map(static function(string $x): string { return "'{$x}'";}, $binds));
