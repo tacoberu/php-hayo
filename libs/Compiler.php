@@ -784,7 +784,7 @@ class Compiler
 		}
 		if (count($missing)) {
 			$missing = implode(',', $missing);
-			throw new LogicException("Unable to find symbols: $missing.");
+			throw new SymbolNotFound("Unable to find symbols: $missing.");
 		}
 	}
 

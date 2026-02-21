@@ -11,6 +11,7 @@ namespace Taco\Hayo;
 
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
+use LogicException;
 
 
 class CompilerTest extends TestCase
@@ -546,6 +547,19 @@ content = [
 
 
 	/**
+	 * @param class-string<\Throwable> $exception
+	 */
+	#[DataProvider('dataErrors')]
+	function testCompileWithErrors(string $code, string $exception, string $message): void
+	{
+		$this->expectException($exception);
+		$this->expectExceptionMessage($message);
+		$this->compile($code);
+	}
+
+
+
+	/**
 	 * @return array<array<mixed>>
 	 */
 	static function dataFunctions(): array
@@ -894,6 +908,20 @@ content = [
 		];
 	}
 
+
+
+
+	/**
+	 * @return array<array<mixed>>
+	 */
+	static function dataErrors(): array
+	{
+		return [
+			['List.noth (a b -> a + b) xs',
+				SymbolNotFound::class,
+				'Unable to find symbols: List.noth.'],
+		];
+	}
 
 
 

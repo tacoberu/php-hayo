@@ -56,6 +56,13 @@ class BindVal
 
 
 
+	function isLibrarySymbol(): bool
+	{
+		return (bool) (strpos($this->name, '.') && ctype_upper($this->name[0]));
+	}
+
+
+
 	function unpack(): string
 	{
 		return "<?{$this->name}> :: {$this->type}";
