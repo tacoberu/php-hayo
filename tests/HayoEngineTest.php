@@ -33,6 +33,7 @@ class HayoEngineTest extends TestCase
 	#[DataProvider('dataSymbolNotFoundErrors')]
 	#[DataProvider('dataCompileErrors')]
 	#[DataProvider('dataInvalidArgumentErrors')]
+	#[DataProvider('dataValidationErrors')]
 	function testCompileWithErrors(string $code, array $args, string $exception, string $message): void
 	{
 		$this->expectException($exception);

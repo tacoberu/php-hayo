@@ -174,4 +174,30 @@ a + x', [10]);
 		], $result);
 	}
 
+
+
+	function testIfThenElse()
+	{
+		$result = HayoEngine::WithDefaultLibraries()
+			->evaluate('
+if (List.len xs) < 2 then "A"
+elif (List.len xs) < 4 then "B"
+elif (List.len xs) < 8 then "C"
+else "D"
+', [[1, 2, 3, 4]]);
+		$this->assertEquals("C", $result);
+	}
+
+
+
+	function testMapWithLambda()
+	{
+		$result = HayoEngine::WithDefaultLibraries()
+			->evaluate('
+List.map xs (x -> x * x)
+', [[1, 2, 3, 4]]);
+		$this->assertEquals([1, 4, 9, 16,],
+			$result);
+	}
+
 }

@@ -22,6 +22,7 @@ class ComputeTest extends TestCase
 	#[DataProvider('dataOperations')]
 	#[DataProvider('dataStrings')]
 	#[DataProvider('dataExpressions')]
+	#[DataProvider('dataLists')]
 	#[DataProvider('dataPredicators')]
 	#[DataProvider('dataPaths')]
 	#[DataProvider('dataPipeOperator')]
@@ -159,7 +160,22 @@ class ComputeTest extends TestCase
 				new FinalValue("Hello World!", 'Str'),
 				],
 
-			// @TODO
+			['List.len a'
+				, [ 'a' => new FinalValue([], 'List<Int>')]
+				, new FinalValue(0, 'Int'),
+				],
+			['List.len a'
+				, [ 'a' => new FinalValue([1,2,3,], 'List<Int>')]
+				, new FinalValue(3, 'Int'),
+				],
+			['List.first xs ""'
+				, [ 'xs' => new FinalValue(["1","2","3",], 'List<Int>')]
+				, new FinalValue("1", 'a'),
+				],
+			['List.first xs 0'
+				, [ 'xs' => new FinalValue([1,2,3,], 'List<Int>')]
+				, new FinalValue(1, 'a'),
+				],
 		];
 	}
 
@@ -259,6 +275,101 @@ class ComputeTest extends TestCase
 				, new FinalValue(10, 'Int'),
 				],
 		];
+	}
+
+
+
+	/**
+	 * @return array<array<mixed>>
+	 */
+	static function dataLists(): array
+	{
+		return [
+			["a * 2",
+				[ 'a' => new FinalValue(41, 'Int'),
+					],
+				new FinalValue(82, 'Int'),
+				],
+
+			// `List.slice`
+			["List.slice xs 1 2",
+				[ 'xs' => new FinalValue([
+					new FinalValue(1, 'Int'),
+					new FinalValue(2, 'Int'),
+					new FinalValue(3, 'Int'),
+					new FinalValue(4, 'Int'),
+					], 'List'),
+					],
+				new FinalValue([
+					new FinalValue(2, 'Int'),
+					new FinalValue(3, 'Int'),
+					], 'List<a>'),
+				],
+
+			// List.map
+			["List.map xs (x -> x * x)",
+				[ 'xs' => new FinalValue([
+					new FinalValue(1, 'Int'),
+					new FinalValue(2, 'Int'),
+					new FinalValue(3, 'Int'),
+					new FinalValue(4, 'Int'),
+					], 'List'),
+					],
+				new FinalValue([
+					new FinalValue(1, 'Int'),
+					new FinalValue(4, 'Int'),
+					new FinalValue(9, 'Int'),
+					new FinalValue(16, 'Int'),
+					], 'List'),
+				],
+
+			// List.sort
+			["List.sort xs (a b -> if a == 4 then -1 elif a == b then 0 elif a < b then -1 else 1)",
+				[ 'xs' => new FinalValue([
+					new FinalValue(1, 'Int'),
+					new FinalValue(2, 'Int'),
+					new FinalValue(3, 'Int'),
+					new FinalValue(4, 'Int'),
+					], 'List'),
+					],
+				new FinalValue([
+					new FinalValue(1, 'Int'),
+					new FinalValue(2, 'Int'),
+					new FinalValue(3, 'Int'),
+					new FinalValue(4, 'Int'),
+					], 'List'),
+				],
+			["List.sort xs (a b -> if b == 4 then 1 elif a == b then 0 elif a < b then -1 else 1)",
+				[ 'xs' => new FinalValue([
+					new FinalValue(1, 'Int'),
+					new FinalValue(2, 'Int'),
+					new FinalValue(3, 'Int'),
+					new FinalValue(4, 'Int'),
+					], 'List'),
+					],
+				new FinalValue([
+					new FinalValue(4, 'Int'),
+					new FinalValue(1, 'Int'),
+					new FinalValue(2, 'Int'),
+					new FinalValue(3, 'Int'),
+					], 'List'),
+				],
+			["List.sort xs (a b -> if b == 4 then 1 \nelif a == b then 0\nelif a < b then -1\nelse 1)",
+				[ 'xs' => new FinalValue([
+					new FinalValue(1, 'Int'),
+					new FinalValue(2, 'Int'),
+					new FinalValue(3, 'Int'),
+					new FinalValue(4, 'Int'),
+					], 'List'),
+					],
+				new FinalValue([
+					new FinalValue(4, 'Int'),
+					new FinalValue(1, 'Int'),
+					new FinalValue(2, 'Int'),
+					new FinalValue(3, 'Int'),
+					], 'List'),
+				],
+			];
 	}
 
 
@@ -529,14 +640,14 @@ else "D"
 	{
 		$msg = 'Lambda arguments must be simple names, not expressions. Use `(a b -> ...)` instead of `((a b) -> ...)` or `((a) -> ...)`.';
 		return [
-			['List.sort ((a b) -> a + b) xs',
-				LogicException::class,
+			['List.sort xs ((a b) -> a + b)',
+				CompileException::class,
 				$msg],
-			['List.sort ((a b c) -> a + b) xs',
-				LogicException::class,
+			['List.sort xs ((a b c) -> a + b)',
+				CompileException::class,
 				$msg],
-			['List.sort ((a) -> a + 1) xs',
-				LogicException::class,
+			['List.sort xs ((a) -> a + 1)',
+				CompileException::class,
 				$msg],
 		];
 	}
@@ -549,7 +660,7 @@ else "D"
 			'predicate' => new PredicatesProvider(),
 			'Math' => new MathsProvider(),
 			'Str' => new StringsProvider(),
-			'list' => new ListsProvider(),
+			'List' => new ListsProvider(),
 			]))
 			->compile($src);
 	}
