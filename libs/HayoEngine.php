@@ -38,7 +38,7 @@ final class HayoEngine
 			'predicate' => new PredicatesProvider(),
 			'Math' => new MathsProvider(),
 			'Str' => new StringsProvider(),
-			'list' => new ListsProvider(),
+			'List' => new ListsProvider(),
 		]);
 	}
 

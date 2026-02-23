@@ -23,6 +23,7 @@ class CompilerTest extends TestCase
 	#[DataProvider('dataLambdas')]
 	#[DataProvider('dataFinalValueWithSymbol')]
 	#[DataProvider('dataParametricValue')]
+	#[DataProvider('dataLists')]
 	#[DataProvider('dataPredicators')]
 	#[DataProvider('dataShortLinkBind')]
 	#[DataProvider('dataPaths')]
@@ -153,7 +154,7 @@ xs = []
 	{
 		$this->assertEquals(new FinalValue(true, 'Bool'), $this->compile('
 xs = (Str.split "une, deux, trois" ",")
-(List.exist 0 xs)')
+(List.exist xs 0)')
 		);
 	}
 
@@ -179,8 +180,8 @@ xs = (Str.split "une, deux, trois" ",")
 xs = (Str.split "une, deux, trois" ",")
 {
 	une: (List.first xs "")
-	deux: (List.at 1 xs "")
-	trois: (List.at 2 xs "")
+	deux: (List.at xs 1 "")
+	trois: (List.at xs 2 "")
 }')
 		);
 	}
@@ -197,8 +198,8 @@ xs = (Str.split "une, deux, trois" ",")
 xs = (Str.split "une, deux, trois" ",")
 [
 	(List.first xs "")
-	(List.at 1 xs "")
-	(List.at 2 xs "")
+	(List.at xs 1 "")
+	(List.at xs 2 "")
 ]')
 		);
 	}
@@ -215,8 +216,8 @@ xs = (Str.split "une, deux, trois" ",")
 xs = (Str.split "une, deux, trois" ",")
 (
 	(List.first xs "")
-	(List.at 1 xs "")
-	(List.at 2 xs "")
+	(List.at xs 1 "")
+	(List.at xs 2 "")
 )')
 		);
 	}
@@ -229,8 +230,8 @@ xs = (Str.split "une, deux, trois" ",")
 xs = (Str.split src ",")
 {
 	une: (List.first xs "")
-	deux: (List.at 1 xs "")
-	trois: (List.at 2 xs "")
+	deux: (List.at xs 1 "")
+	trois: (List.at xs 2 "")
 }');
 //~ dump($call);
 		$this->assertSame("Dict", $call->type());
@@ -739,7 +740,7 @@ content = [
 					new BindValue('b', '?'),
 					])],
 
-			["list.at 2 [\"une\", a, \"trois\"]", ParametricValue::Expr_(Expr::Func_(new ListFunc('at'), [
+			["List.at 2 [\"une\", a, \"trois\"]", ParametricValue::Expr_(Expr::Func_(new ListFunc('at'), [
 					new FinalValue(2, 'Int'),
 					Composite::List_([
 						new FinalValue("une", 'Str'),
@@ -818,6 +819,299 @@ content = [
 				, '?'
 				, [ new BindValue('a', '?'),
 					])],
+		];
+	}
+
+
+
+	/**
+	 * @return array<array<mixed>>
+	 */
+	static function dataLists(): array
+	{
+		return [
+			[""
+			. "a = 5\n"
+			. "b = 13\n"
+			. "xs = [1, 2, 3, 4]\n"
+			. "xs",
+				new FinalValue([
+					new FinalValue(1, 'Int'),
+					new FinalValue(2, 'Int'),
+					new FinalValue(3, 'Int'),
+					new FinalValue(4, 'Int'),
+					], 'List'),
+				],
+
+			// List.len
+			[""
+			. "xs = [1, 2, 3, 4]\n"
+			. "List.len xs",
+				new FinalValue(4, 'Int'),
+				],
+			[""
+			. "xs = []\n"
+			. "List.len xs",
+				new FinalValue(0, 'Int'),
+				],
+
+			// List.first
+			[""
+			. "xs = [1, 2, 3, 4]\n"
+			. "List.first xs Null",
+				new FinalValue(1, 'a'),
+				],
+			[""
+			. "xs = []\n"
+			. "List.first xs Null",
+				new FinalValue(Null, 'a'),
+				],
+			[""
+			. "xs = []\n"
+			. "List.first xs 0",
+				new FinalValue(0, 'a'),
+				],
+
+			// List.at
+			[""
+			. "xs = []\n"
+			. "List.at xs 0 0",
+				new FinalValue(0, 'a'),
+				],
+			[""
+			. "xs = []\n"
+			. "List.at xs 0 Null",
+				new FinalValue(Null, 'a'),
+				],
+			[""
+			. "xs = []\n"
+			. "List.at xs 999 Null",
+				new FinalValue(Null, 'a'),
+				],
+			[""
+			. "xs = [1, 2, 3, 4]\n"
+			. "List.at xs 999 Null",
+				new FinalValue(Null, 'a'),
+				],
+			[""
+			. "xs = [1, 2, 3, 4]\n"
+			. "List.at xs 0 Null",
+				new FinalValue(1, 'a'),
+				],
+			[""
+			. "xs = [1, 2, 3, 4]\n"
+			. "List.at xs 3 Null",
+				new FinalValue(4, 'a'),
+				],
+			[""
+			. "xs = [1, 2, 3, 4]\n"
+			. "List.at xs 4 Null",
+				new FinalValue(Null, 'a'),
+				],
+
+			// List.exists
+			[""
+			. "xs = [1, 2, 3, 4]\n"
+			. "List.exist xs 0",
+				new FinalValue(True, 'Bool'),
+				],
+			[""
+			. "xs = [1, 2, 3, 4]\n"
+			. "List.exist xs 3",
+				new FinalValue(True, 'Bool'),
+				],
+			[""
+			. "xs = [1, 2, 3, 4]\n"
+			. "List.exist xs 4",
+				new FinalValue(False, 'Bool'),
+				],
+			[""
+			. "xs = [1, 2, 3, 4]\n"
+			. "List.exist xs -4",
+				new FinalValue(False, 'Bool'),
+				],
+
+			// `List.slice`
+			[""
+			. "xs = [1, 2, 3, 4]\n"
+			. "List.slice xs 1 2",
+				new FinalValue([
+					new FinalValue(2, 'Int'),
+					new FinalValue(3, 'Int'),
+					], 'List<a>'),
+				],
+			[""
+			. "xs = [1, 2, 3, 4]\n"
+			. "List.slice xs 10 2",
+				new FinalValue([], 'List<a>'),
+				],
+			[""
+			. "xs = [1, 2, 3, 4]\n"
+			. "List.slice xs 0 2",
+				new FinalValue([
+					new FinalValue(1, 'Int'),
+					new FinalValue(2, 'Int'),
+					], 'List<a>'),
+				],
+			[""
+			. "xs = [1, 2, 3, 4]\n"
+			. "List.slice xs 2 0",
+				new FinalValue([], 'List<a>'),
+				],
+			[""
+			. "xs = [1, 2, 3, 4]\n"
+			. "List.slice xs 2 9999",
+				new FinalValue([
+					new FinalValue(3, 'Int'),
+					new FinalValue(4, 'Int'),
+					], 'List<a>'),
+				],
+
+			// `List.concat`
+			[""
+			. "xs = [1, 2, 3, 4]\n"
+			. "xs = [1, 2, 3, 4]\n"
+			. "List.concat xs xs",
+				new FinalValue([
+					new FinalValue(1, 'Int'),
+					new FinalValue(2, 'Int'),
+					new FinalValue(3, 'Int'),
+					new FinalValue(4, 'Int'),
+					new FinalValue(1, 'Int'),
+					new FinalValue(2, 'Int'),
+					new FinalValue(3, 'Int'),
+					new FinalValue(4, 'Int'),
+					], 'List<a>'),
+				],
+
+			// List.map
+			[""
+			. "xs = [1, 2, 3, 4]\n"
+			. "List.map xs (x -> x * x)",
+				new FinalValue([
+					new FinalValue(1, 'Int'),
+					new FinalValue(4, 'Int'),
+					new FinalValue(9, 'Int'),
+					new FinalValue(16, 'Int'),
+					], 'List'),
+				],
+
+			// List.filter
+			[""
+			. "xs = [1, 2, 3, 4]\n"
+			. "List.filter xs (x -> x > 2)",
+				new FinalValue([
+					new FinalValue(3, 'Int'),
+					new FinalValue(4, 'Int'),
+					], 'List'),
+				],
+
+			// List.fold
+			[""
+			. "xs = [1, 2, 3, 4]\n"
+			. "List.fold xs 0 (prev x -> prev + x)",
+				new FinalValue(10, 'Int'),
+				],
+
+			// `List.split`
+			[""
+			. "xs = [1, 2, 0, 3, 4, 0, 5, 8]\n"
+			. "List.split xs (x -> x == 0) 0",
+				new FinalValue([], 'List'),
+				],
+			[""
+			. "xs = [1, 2, 0, 3, 4, 0, 5, 8]\n"
+			. "List.split xs (x -> x == 0) 1",
+				new FinalValue([
+					new FinalValue([
+						new FinalValue(1, 'Int'),
+						new FinalValue(2, 'Int'),
+						new FinalValue(0, 'Int'),
+						new FinalValue(3, 'Int'),
+						new FinalValue(4, 'Int'),
+						new FinalValue(0, 'Int'),
+						new FinalValue(5, 'Int'),
+						new FinalValue(8, 'Int'),
+						], 'List'),
+					], 'List'),
+				],
+			[""
+			. "xs = [1, 2, 0, 3, 4, 0, 5, 8]\n"
+			. "List.split xs (x -> x == 0) 2",
+				new FinalValue([
+					new FinalValue([
+						new FinalValue(1, 'Int'),
+						new FinalValue(2, 'Int'),
+						], 'List'),
+					new FinalValue([
+						new FinalValue(3, 'Int'),
+						new FinalValue(4, 'Int'),
+						new FinalValue(0, 'Int'),
+						new FinalValue(5, 'Int'),
+						new FinalValue(8, 'Int'),
+						], 'List'),
+					], 'List'),
+				],
+			[""
+			. "xs = [1, 2, 0, 3, 4, 0, 5, 8]\n"
+			. "List.split xs (x -> x == 0) 5",
+				new FinalValue([
+					new FinalValue([
+						new FinalValue(1, 'Int'),
+						new FinalValue(2, 'Int'),
+						], 'List'),
+					new FinalValue([
+						new FinalValue(3, 'Int'),
+						new FinalValue(4, 'Int'),
+						], 'List'),
+					new FinalValue([
+						new FinalValue(5, 'Int'),
+						new FinalValue(8, 'Int'),
+						], 'List'),
+					], 'List'),
+				],
+
+			// `List.indexOf`
+			[""
+			. "xs = [1, 2, 0, 3, 4, 0, 5, 8]\n"
+			. "List.indexOf xs (x -> x == 9) 0",
+				new FinalValue(-1, 'Int'),
+				],
+			[""
+			. "xs = [1, 2, 0, 3, 4, 0, 5, 8]\n"
+			. "List.indexOf xs (x -> x == 1) 0",
+				new FinalValue(0, 'Int'),
+				],
+			[""
+			. "xs = [1, 2, 0, 3, 4, 0, 5, 8]\n"
+			. "List.indexOf xs (x -> x == 2) 0",
+				new FinalValue(1, 'Int'),
+				],
+			[""
+			. "xs = [1, 2, 0, 3, 4, 0, 5, 8]\n"
+			. "List.indexOf xs (x -> x == 0) 0",
+				new FinalValue(2, 'Int'),
+				],
+			[""
+			. "xs = [1, 2, 0, 3, 4, 0, 5, 8]\n"
+			. "List.indexOf xs (x -> x == 4) 0",
+				new FinalValue(4, 'Int'),
+				],
+			[""
+			. "xs = [1, 2, 0, 3, 4, 0, 5, 8]\n"
+			. "List.indexOf xs (x -> x == 8) 0",
+				new FinalValue(7, 'Int'),
+				],
+			[""
+			. "xs = [1, 2, 0, 3, 4, 0, 5, 8]\n"
+			. "List.indexOf xs (x -> x == 0) 2",
+				new FinalValue(2, 'Int'),
+				],
+			[""
+			. "xs = [1, 2, 0, 3, 4, 0, 5, 8]\n"
+			. "List.indexOf xs (x -> x == 0) 3",
+				new FinalValue(5, 'Int'),
+				],
 		];
 	}
 
