@@ -36,7 +36,7 @@ class FileBaseCache implements Cache
 
 	/**
 	 * @param callable $cb
-	 * @return FinalVal | VariadicVal
+	 * @return FinalVal | ParametricValue
 	 */
 	function load(string $key, $cb)
 	{

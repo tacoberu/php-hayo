@@ -18,14 +18,14 @@ final class HayoEngine
 {
 
 	/**
-	 * @var array<array<string, SymbolProvider>>
+	 * @var array<string, SymbolProvider>
 	 */
 	private array $libs;
 
 	private ?Cache $cache = Null;
 
 	/**
-	 * @param array<array<string, SymbolProvider>> $libs
+	 * @param array<string, SymbolProvider> $libs
 	 */
 	function __construct(array $libs)
 	{
@@ -64,7 +64,7 @@ final class HayoEngine
 
 	/**
 	 * Zpracová do "bytecode" a případně uloží.
-	 * @return FinalVal | VariadicVal
+	 * @return FinalVal | ParametricValue
 	 */
 	function compile(string $code)
 	{
@@ -90,19 +90,21 @@ final class HayoEngine
 		switch (True) {
 			case $expr instanceof FinalVal:
 				return $expr->unpack();
-			case $expr instanceof VariadicVal:
+
+			case $expr instanceof ParametricValue: // @phpstan-ignore instanceof.alwaysTrue
 				return $expr
 					->apply(self::buildAppliableArguments($expr, $args))
 					->unpack();
+
 			default:
-				throw new LogicException("oops: {$expr}");
+				throw new LogicException("Unexpected compiled result: {$expr}");
 		}
 	}
 
 
 
 	/**
-	 * @return FinalVal | VariadicVal
+	 * @return FinalVal | ParametricValue
 	 */
 	private function compileInner(string $code)
 	{
@@ -124,7 +126,7 @@ final class HayoEngine
 	 * @param list<mixed> $values
 	 * @return array<string, mixed>
 	 */
-	private static function combineBindWithValues(VariadicVal $fn, array $values): array
+	private static function combineBindWithValues(ParametricValue $fn, array $values): array
 	{
 		$refs = array_map(static function (BindVal $x): string {
 			return $x->getBindName();
@@ -147,15 +149,13 @@ final class HayoEngine
 	 * @param list<mixed> | array<string, mixed> $args
 	 * @return array<string, FinalVal>
 	 */
-	private static function buildAppliableArguments(VariadicVal $expr, array $args): array
+	private static function buildAppliableArguments(ParametricValue $expr, array $args): array
 	{
 		if ( ! is_string(key($args))) {
-			$args = self::combineBindWithValues($expr, $args);
+			$args = self::combineBindWithValues($expr, $args); // @phpstan-ignore argument.type
 		}
-		return array_map(static function ($x): FinalVal {
-			return $x instanceof FinalVal
-				? $x
-				: new FinalVal($x, self::gauseType($x));
+		return array_map(static function ($x): FinalVal { // @phpstan-ignore return.type
+			return self::pack($x);
 		}, $args);
 	}
 

@@ -49,7 +49,7 @@ class Compiler
 
 	/**
 	 * Vrací konečnou hodnotu, nebo funkci, kterou je třeba naplnit argumenty.
-	 * @return FinalVal | VariadicVal
+	 * @return FinalVal | ParametricValue
 	 */
 	function compile(string $source)
 	{
@@ -58,7 +58,7 @@ class Compiler
 		if ( ! $term instanceof Value) {
 			// `a` -- vracíme argument
 			if (is_string($term)) {
-				return VariadicVal::ShortLinkBind(new BindVal($term, '?'));
+				return ParametricValue::ShortLinkBind(new BindVal($term, '?'));
 			}
 			throw new LogicException("Invalid source code.");
 		}
@@ -479,7 +479,7 @@ class Compiler
 	 * Cílem funkce je vytvořit efektivní a znovupoužitelnou runtime rutinu,
 	 * která představuje konečnou podobu daného výrazu pro provádění v klientovi.
 	 *
-	 * @return VariadicVal | FinalVal
+	 * @return ParametricValue | FinalVal
 	 */
 	private static function compileRuntimeValue(Value $src)
 	{
@@ -489,19 +489,19 @@ class Compiler
 				return $val;
 
 			case $val instanceof BindVal:
-				return VariadicVal::ShortLinkBind($val);
+				return ParametricValue::ShortLinkBind($val);
 
 			case $val instanceof Expr:
-				return VariadicVal::Expr_($val, '?', array_values($binds));
+				return ParametricValue::Expr_($val, '?', array_values($binds));
 
 			case $val instanceof Composite && $val->type() === Composite::TypeDict:
-				return VariadicVal::Dict_($val, array_values($binds));
+				return ParametricValue::Dict_($val, array_values($binds));
 
 			case $val instanceof Composite && $val->type() === Composite::TypeList:
-				return VariadicVal::List_($val, array_values($binds));
+				return ParametricValue::List_($val, array_values($binds));
 
 			case $val instanceof Composite && $val->type() === Composite::TypeTuple:
-				return VariadicVal::Tuple_($val, array_values($binds));
+				return ParametricValue::Tuple_($val, array_values($binds));
 
 			default:
 				throw self::UnsupportedException('compile value', $val);
@@ -576,7 +576,7 @@ class Compiler
 
 
 	/**
-	 * @return array{0: VariadicVal, 1: array<string, BindVal>}
+	 * @return array{0: ParametricValue, 1: array<string, BindVal>}
 	 */
 	private static function castLambda(Lambda $val): array
     {
@@ -587,7 +587,7 @@ class Compiler
 		foreach ($val->refs() as $x) {
 			$binds[$x] = new BindVal($x, '?');
 		}
-		return [VariadicVal::Expr_($val->getExpr(), '?', array_values($binds)), $binds];
+		return [ParametricValue::Expr_($val->getExpr(), '?', array_values($binds)), $binds];
     }
 
 

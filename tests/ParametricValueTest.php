@@ -12,12 +12,12 @@ namespace Taco\Hayo;
 use PHPUnit\Framework\TestCase;
 
 
-class VariadicValTest extends TestCase
+class ParametricValueTest extends TestCase
 {
 
 	function testVariadic3()
 	{
-		$inst = VariadicVal::Expr_(Expr::Bin_(
+		$inst = ParametricValue::Expr_(Expr::Bin_(
 			'a',
 			new MathOperator('+'),
 			'b'
@@ -39,7 +39,7 @@ class VariadicValTest extends TestCase
 
 	function testVariadic1()
 	{
-		$inst = VariadicVal::Expr_(Expr::Bin_(
+		$inst = ParametricValue::Expr_(Expr::Bin_(
 			new FinalVal(41, 'Int'),
 			new MathOperator('+'),
 			'a'
@@ -57,7 +57,7 @@ class VariadicValTest extends TestCase
 
 	function testVariadic2()
 	{
-		$inst = VariadicVal::Expr_(Expr::Bin_(
+		$inst = ParametricValue::Expr_(Expr::Bin_(
 			new FinalVal(41, 'Int'),
 			new MathOperator('+'),
 			new FinalVal(11, 'Int')
@@ -73,14 +73,14 @@ class VariadicValTest extends TestCase
 
 	function testCompositeDict()
 	{
-		$inst = VariadicVal::Dict_(Composite::Dict_([
+		$inst = ParametricValue::Dict_(Composite::Dict_([
 			'a' => Composite::Dict_([
 				'b' => new BindVal('content', '?'),
 			]),
 		]), [new BindVal('content', 'Str')]);
 		$this->assertSame('Dict', $inst->getTypeName());
-		// Protože VariadicVal má nabindován content, tak nejsou žádné další závislosti.
-		// A navíc má převedený nejasný symbol reprezontovaný stringem na jendoznačně bindovaný symbol.
+		// Because ParametricValue has content bound, there are no further dependencies.
+		// It also converts the ambiguous symbol represented as a string into an unambiguously bound symbol.
 		$this->assertSame([], $inst->refs());
 		$this->assertEquals([
 			new BindVal('content', 'Str'),
@@ -96,8 +96,8 @@ class VariadicValTest extends TestCase
 
 	function ____testCompositeDictTerm()
 	{
-		$inst = VariadicVal::Dict_(Composite::Dict_([
-			'a' => VariadicVal::Dict_(Composite::Dict_([
+		$inst = ParametricValue::Dict_(Composite::Dict_([
+			'a' => ParametricValue::Dict_(Composite::Dict_([
 				'b' => 'content',
 			])),
 		]));

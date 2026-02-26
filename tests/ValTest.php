@@ -19,14 +19,14 @@ class ValTest extends TestCase
 	{
 		$val = new FinalVal('Lorem ispum colder.', 'Str');
 		$this->assertSame('Lorem ispum colder.', $val->unpack());
-		$this->assertSame('Str', $val->getTypeName());
+		$this->assertSame('Str', $val->type());
 	}
 
 
 
 	function testVariadic3()
 	{
-		$inst = VariadicVal::Expr_(Expr::Bin_('a',
+		$inst = ParametricValue::Expr_(Expr::Bin_('a',
 			new MathOperator('+'),
 			'b'
 		), 'Int', [new BindVal('a', 'Int'), new BindVal('b', 'Int')]);
@@ -47,7 +47,7 @@ class ValTest extends TestCase
 
 	function testVariadic1()
 	{
-		$inst = VariadicVal::Expr_(Expr::Bin_(
+		$inst = ParametricValue::Expr_(Expr::Bin_(
 			new FinalVal(41, 'Int'),
 			new MathOperator('+'),
 			'a'
@@ -65,7 +65,7 @@ class ValTest extends TestCase
 
 	function testVariadic2()
 	{
-		$inst = VariadicVal::Expr_(Expr::Bin_(
+		$inst = ParametricValue::Expr_(Expr::Bin_(
 			new FinalVal(41, 'Int'),
 			new MathOperator('+'),
 			new FinalVal(11, 'Int')

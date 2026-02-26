@@ -37,7 +37,7 @@ xs = (strings.split "," "une, deux, trois")
 	#[DataProvider('dataFunctions')]
 	#[DataProvider('dataLambdas')]
 	#[DataProvider('dataFinalValWithSymbol')]
-	#[DataProvider('dataVariadicVal')]
+	#[DataProvider('dataParametricValue')]
 	#[DataProvider('dataPredicators')]
 	#[DataProvider('dataShortLinkBind')]
 	function testCompile(string $code, $expected)
@@ -688,10 +688,10 @@ content = [
 	/**
 	 * @return array<array<mixed>>
 	 */
-	static function dataVariadicVal(): array
+	static function dataParametricValue(): array
 	{
 		return [
-			['40 + a', VariadicVal::Expr_(Expr::Bin_(
+			['40 + a', ParametricValue::Expr_(Expr::Bin_(
 					new FinalVal(40, 'Int'),
 					new MathOperator('+'),
 					new BindVal('a', '?')
@@ -700,7 +700,7 @@ content = [
 				, [ new BindVal('a', '?'),
 					])],
 
-			["b = 13\ncalc = a + 1 * b\ncalc", VariadicVal::Expr_(Expr::Bin_(
+			["b = 13\ncalc = a + 1 * b\ncalc", ParametricValue::Expr_(Expr::Bin_(
 				new BindVal('a', '?'),
 				new MathOperator('+'),
 				new FinalVal(13, 'Int')
@@ -708,7 +708,7 @@ content = [
 					new BindVal('a', '?'),
 				])],
 
-			['40 + (a + a)', VariadicVal::Expr_(Expr::Bin_(
+			['40 + (a + a)', ParametricValue::Expr_(Expr::Bin_(
 					new FinalVal(40, 'Int'),
 					new MathOperator('+'),
 					Expr::Bin_(
@@ -721,7 +721,7 @@ content = [
 				, [ new BindVal('a', '?'),
 				])],
 
-			['40 + (a + b)', VariadicVal::Expr_(Expr::Bin_(
+			['40 + (a + b)', ParametricValue::Expr_(Expr::Bin_(
 					new FinalVal(40, 'Int'),
 					new MathOperator('+'),
 					Expr::Bin_(
@@ -735,7 +735,7 @@ content = [
 					new BindVal('b', '?'),
 					])],
 
-			["list.at 2 [\"une\", a, \"trois\"]", VariadicVal::Expr_(Expr::Func_(new ListFunc('at'), [
+			["list.at 2 [\"une\", a, \"trois\"]", ParametricValue::Expr_(Expr::Func_(new ListFunc('at'), [
 					new FinalVal(2, 'Int'),
 					Composite::List_([
 						new FinalVal("une", 'Str'),
@@ -776,7 +776,7 @@ content = [
 			."a = 5\n"
 			."inc = (a) -> a + b\n"
 			."inc 41",
-				VariadicVal::Expr_(Expr::Bin_(
+				ParametricValue::Expr_(Expr::Bin_(
 					new FinalVal(41, 'Int'),
 					new MathOperator('+'),
 					new BindVal("b", '?')
@@ -801,15 +801,15 @@ content = [
 	static function dataShortLinkBind(): array
 	{
 		return [
-			['a', VariadicVal::ShortLinkBind(new BindVal('a', '?')
+			['a', ParametricValue::ShortLinkBind(new BindVal('a', '?')
 				, '?'
 				, [ new BindVal('a', '?'),
 					])],
-			["b = 1\na", VariadicVal::ShortLinkBind(new BindVal('a', '?')
+			["b = 1\na", ParametricValue::ShortLinkBind(new BindVal('a', '?')
 				, '?'
 				, [ new BindVal('a', '?'),
 					])],
-			["b = c\na", VariadicVal::ShortLinkBind(new BindVal('a', '?')
+			["b = c\na", ParametricValue::ShortLinkBind(new BindVal('a', '?')
 				, '?'
 				, [ new BindVal('a', '?'),
 					])],
@@ -857,7 +857,7 @@ content = [
 				],
 
 			["6 == a && (2 + 1) == 3",
-				VariadicVal::Expr_(Expr::Bin_(Expr::Bin_(
+				ParametricValue::Expr_(Expr::Bin_(Expr::Bin_(
 						new FinalVal(6, 'Int'),
 						new PredicateFunction('=='),
 						new BindVal('a', '?')

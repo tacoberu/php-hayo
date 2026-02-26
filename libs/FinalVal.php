@@ -15,8 +15,6 @@ use LogicException;
 /**
  * Výsledná hodnota, zabalená s typem. Může se jednat o skalar, ale i o různě
  * zanořenou strukturu. Nevyžaduje žádné parametry, je tedy statická.
- *
- * @TODO Rename into LiteralVal
  */
 class FinalVal implements Value
 {
@@ -24,16 +22,16 @@ class FinalVal implements Value
 	/**
 	 * @var mixed
 	 */
-	private $val;
+	private $value;
 
 	private string $type;
 
 	/**
-	 * @param mixed $val
+	 * @param mixed $value
 	 */
-	function __construct($val, string $type)
+	function __construct($value, string $type)
 	{
-		$this->val = $val;
+		$this->value = $value;
 		$this->type = $type;
 	}
 
@@ -46,16 +44,12 @@ class FinalVal implements Value
 
 
 
-	function getTypeName(): string
-	{
-		return $this->type;
-	}
-
-
-
+	/**
+	 * @return mixed
+	 */
 	function getValue()
 	{
-		return $this->val;
+		return $this->value;
 	}
 
 
@@ -65,31 +59,31 @@ class FinalVal implements Value
 	 */
 	function unpack()
 	{
-		if (is_scalar($this->val)) {
-			return $this->val;
+		if (is_scalar($this->value)) {
+			return $this->value;
 		}
-		if (is_null($this->val)) {
-			return $this->val;
+		if (is_null($this->value)) {
+			return $this->value;
 		}
-		if (is_object($this->val)) {
+		if (is_object($this->value)) {
 			$xs = [];
-			foreach ((array) $this->val as $i => $x) {
+			foreach ((array) $this->value as $i => $x) {
 				$xs[$i] = $x instanceof self
 					? $x->unpack()
 					: $x;
 			}
 			return (object) $xs;
 		}
-		if (is_array($this->val)) {
+		if (is_array($this->value)) {
 			$xs = [];
-			foreach ($this->val as $i => $x) {
+			foreach ($this->value as $i => $x) {
 				$xs[$i] = $x instanceof self
 					? $x->unpack()
 					: $x;
 			}
 			return $xs;
 		}
-		throw new LogicException("Comming soon...: '" . print_r($this->val, true) . "'.");
+		throw new LogicException("Comming soon...: '" . print_r($this->value, true) . "'.");
 	}
 
 

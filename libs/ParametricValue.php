@@ -14,15 +14,13 @@ use InvalidArgumentException;
 
 
 /**
- * Hodnota vyžaduje nějaké argumenty. Výsledek je tedy třeba vypočítat.
- * Při volání této funkce už musí být všechny závislosti vyřešeny, nejpozději
- * předanými argumenty.
+ * The value requires some arguments. The result must therefore be computed.
+ * When this function is called, all dependencies must already be resolved,
+ * at the latest by the passed arguments.
  *
- * V $binds jsou uloženy jak vyřešené, tak nevyřešené závislosti.
- *
- * @TODO rename CallableValue
+ * $binds stores both resolved and unresolved dependencies.
  */
-class VariadicVal implements HasRefs, Value
+class ParametricValue implements HasRefs, Value
 {
 
 	/**
@@ -51,7 +49,7 @@ class VariadicVal implements HasRefs, Value
 
 
 	/**
-	 * Všechny nevyřešené závislosti $expr musí být podchyceny v $binds.
+	 * All unresolved dependencies of $expr must be captured in $binds.
 	 *
 	 * @param list<BindVal> $binds
 	 */
@@ -114,8 +112,8 @@ class VariadicVal implements HasRefs, Value
 
 
 	/**
-	 * Které argumenty to vyžaduje.
-	 * @return list<BindVal>
+	 * Which arguments are required.
+	 * @return list<BindValue>
 	 */
 	function getBinds(): array
 	{
@@ -125,7 +123,7 @@ class VariadicVal implements HasRefs, Value
 
 
 	/**
-	 * Závisí na nějakých symbolech, které se nám nepodařilo získat.
+	 * Depends on some symbols that we were unable to resolve.
 	 * @return list<string>
 	 */
 	function refs(): array
@@ -158,8 +156,8 @@ class VariadicVal implements HasRefs, Value
 
 
 	/**
-	 * @param array<string, FinalVal | VariadicVal> $args
-	 * @return FinalVal | VariadicVal
+	 * @param array<string, FinalVal | ParametricValue> $args
+	 * @return FinalVal | ParametricValue
 	 */
 	function apply(array $args)
 	{
@@ -179,8 +177,8 @@ class VariadicVal implements HasRefs, Value
 
 	/**
 	 * @param string|FinalVal|self|BindVal| Value $src
-	 * @param array<string, FinalVal | VariadicVal> $lets
-	 * @return FinalVal | VariadicVal
+	 * @param array<string, FinalVal | ParametricValue> $lets
+	 * @return FinalVal | ParametricValue
 	 */
 	private static function applyAny($src, array $lets)
 	{
@@ -227,7 +225,7 @@ class VariadicVal implements HasRefs, Value
 
 
 	/**
-	 * @param array<string, FinalVal | VariadicVal> $lets
+	 * @param array<string, FinalVal | ParametricValue> $lets
 	 * @return FinalVal | self
 	 */
 	private static function applyExpr(Expr $expr, array $lets)
@@ -260,7 +258,7 @@ class VariadicVal implements HasRefs, Value
 
 
 	/**
-	 * @param array<string, FinalVal | VariadicVal> $lets
+	 * @param array<string, FinalVal | ParametricValue> $lets
 	 */
 	private static function applyStructList(Composite $expr, array $lets): FinalVal
 	{
@@ -274,7 +272,7 @@ class VariadicVal implements HasRefs, Value
 
 
 	/**
-	 * @param array<string, FinalVal | VariadicVal> $lets
+	 * @param array<string, FinalVal | ParametricValue> $lets
 	 */
 	private static function applyStructDict(Composite $expr, array $lets): FinalVal
 	{
@@ -289,7 +287,7 @@ class VariadicVal implements HasRefs, Value
 
 
 	/**
-	 * @param array<string, FinalVal | VariadicVal> $xs
+	 * @param array<string, FinalVal | ParametricValue> $xs
 	 */
 	private static function assertBindInArguments(BindVal $bind, array $xs): void
 	{
@@ -301,10 +299,10 @@ class VariadicVal implements HasRefs, Value
 
 
 	/**
-	 * Validaci, zda jsem předal správný počet prvků.
+	 * Validates that the correct number of elements was passed.
 	 *
 	 * @param array<BindVal> $binds
-	 * @param array<string, FinalVal | VariadicVal> $args
+	 * @param array<string, FinalVal | ParametricValue> $args
 	 */
 	private static function assertBindArguments(array $binds, array $args): void
 	{
@@ -327,7 +325,7 @@ class VariadicVal implements HasRefs, Value
 
 
 	/**
-	 * @param array<string, FinalVal | VariadicVal> $args
+	 * @param array<string, FinalVal | ParametricValue> $args
 	 */
 	private static function assertArguments(array $args): void
 	{
@@ -339,13 +337,13 @@ class VariadicVal implements HasRefs, Value
 
 
 	/**
-	 * @param FinalVal | VariadicVal $val
+	 * @param FinalVal | ParametricValue $val
 	 */
 	private static function assertArgument(string $key, $val): void // @phpstan-ignore void.pure
 	{
 		if ( ! $val instanceof FinalVal
 				&& ! $val instanceof self) { // @phpstan-ignore instanceof.alwaysTrue, booleanAnd.alwaysFalse
-			throw new InvalidArgumentException("Argument '{$key}' must be package into FinalVal or VariadicVal.");
+			throw new InvalidArgumentException("Argument '{$key}' must be package into FinalVal or ParametricValue.");
 		}
 	}
 
