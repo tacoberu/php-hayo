@@ -9,16 +9,21 @@
 
 namespace Taco\Hayo;
 
-use InvalidArgumentException;
-use LogicException;
-
-
 class StringsProvider implements SymbolProvider
 {
 
+	/**
+	 * @var list<string>
+	 */
+	private static array $functionMap = [];
+
 	function lookup(string $symbol): ?BuildinFunc
 	{
-		if (! in_array($symbol, ['len', 'split', 'concat',], True)) {
+		if (self::$functionMap === []) {
+			self::$functionMap = Utils::getFunctionsFrom(StringFunc::class);
+		}
+
+		if (! in_array($symbol, self::$functionMap, True)) {
 			return Null;
 		}
 
@@ -29,225 +34,271 @@ class StringsProvider implements SymbolProvider
 
 
 
-/**
- * `strings.len src: Str :: Int` - Délka řetězce.
- * `strings.split sep: Str, src: Str :: List<Str>` - Rozdělení řetězce podle separátoru.
- * `strings.concat sep: Str, src: List<Str> :: Str` - Spojení seznamu řetězců se separátorem.
- * `strings.join` - ...
- * `strings.find` - ...
- * `strings.sub` - ...
- * `strings.toupper` - ...
- * `strings.tolower` - ...
- * `strings.format` - ...
- */
 class StringFunc implements BuildinFunc
 {
 
+	const Name = 'Str';
+
 	private string $name;
+
+	/**
+	 * @var array<string, array{0: list<BindValue>, 1: string}>
+	 */
+	private static array $functionMap = [];
 
 	function __construct(string $name)
 	{
 		$this->name = $name;
+		if (self::$functionMap === []) {
+			self::$functionMap = Utils::getApplyMethodFrom(self::class);
+		}
+	}
+
+
+
+	function getQualifiedName(): string
+	{
+		return self::Name . '.' . $this->name;
 	}
 
 
 
 	function type(): string
 	{
-		switch ($this->name) {
-			case 'strings.len':
-			case 'len':
-				return 'Int';
-
-			case 'strings.split':
-			case 'split':
-				return 'List<Str>';
-
-			case 'strings.concat':
-			case 'concat':
-				return 'Str';
-
-			default:
-				throw new LogicException("Unsupported function: {$this->name}.");
-		}
+		return Utils::selectReturnType(self::$functionMap, $this->name);
 	}
 
 
 
 	/**
-	 * @return list<string>
-	 */
-	function refs(): array
-	{
-		return array_map(static function (BindVal $x): string {
-			return $x->getBindName();
-		}, $this->getBinds());
-	}
-
-
-
-	/**
-	 * Které argumenty to vyžaduje.
-	 * @return list<BindVal>
+	 * Which arguments are required.
+	 * @return list<BindValue>
 	 */
 	function getBinds(): array
 	{
-		switch ($this->name) {
-			case 'strings.len':
-			case 'len':
-				return [
-					new BindVal('src', 'Str'),
-				];
-
-			case 'strings.split':
-			case 'split':
-				return [
-					new BindVal('sep', 'Str'),
-					new BindVal('src', 'Str'),
-				];
-
-			case 'strings.concat':
-			case 'concat':
-				return [
-					new BindVal('sep', 'Str'),
-					new BindVal('src', 'List<Str>'),
-				];
-
-			default:
-				throw new LogicException("Unsupported operator: {$this->name}.");
-		}
+		return Utils::selectArgumentsSignature(self::$functionMap, $this->name);
 	}
 
 
 
 	/**
-	 * Předáme požadované argumenty a vypočítáme výsledek. Argumenty už musí
-	 * být finální hodnoty.
-	 * @param array<string, Term> $args
+	 * Pass the required arguments and compute the result. Arguments must already
+	 * be final values.
+	 * @param array<string, FinalValue> $args
 	 */
 	function apply(array $args): Value
 	{
-		$args = array_values($args);
-		$args = array_map(static function (Value $x) {
-			return $x instanceof FinalVal
-				? $x->unpack()
-				: $x;
-		}, $args);
-
-		switch ($this->name) {
-			case 'strings.len':
-			case 'len':
-				return new FinalValue(self::applyLen($args), 'Int'); // @phpstan-ignore argument.type
-
-			case 'strings.split':
-			case 'split':
-				return new FinalValue(array_map(static function (string $x): FinalVal {
-					return new FinalValue($x, 'Str');
-				}, self::applySplit($args)), 'List'); // @phpstan-ignore argument.type
-
-			case 'strings.concat':
-			case 'concat':
-				return new FinalValue(self::applyConcat($args), 'Str'); // @phpstan-ignore argument.type
-
-			default:
-				throw new LogicException("Comming soon: {$this->name}");
+		$func = "apply" . ucfirst($this->name);
+		if (method_exists(self::class, $func)) {
+			TypeValidator::assertArguments(self::Name . '.' . $this->name, $this->getBinds(), $args);
+			return call_user_func_array([self::class, $func], $args); // @phpstan-ignore argument.type
 		}
+		throw SymbolNotFound::UnsupportedFunc(self::Name, $this->name);
 	}
 
 
 
 	/**
-	 * @param array{0: non-empty-string, 1: non-empty-string} $args
-	 * @return list<string>
+	 * String length.
+	 * @signature "src: Str -> Int"
+	 * @phpstan-ignore method.unused
 	 */
-	private static function applySplit(array $args): array
+	private static function applyLen(FinalValue $src): FinalValue
 	{
-		self::assertArgumentExist($args, 0, 'sep: Str');
-		self::assertArgumentExist($args, 1, 'src: Str');
-		self::assertStr($args[0]);
-		self::assertStr($args[1]);
-		if ($args[1] === "") {
-			return [];
-		}
-		return explode($args[0], $args[1]);
+		$src = $src->unpack();
+		TypeValidator::assertStr($src);
+		return new FinalValue(mb_strlen($src), 'Int');
 	}
 
 
 
 	/**
-	 * @param array{0: string} $args
+	 * Split string by separator.
+	 * @signature "src: Str, sep: Str -> List<Str>"
+	 * @phpstan-ignore method.unused
 	 */
-	private static function applyLen(array $args): int
+	private static function applySplit(FinalValue $src, FinalValue $sep): FinalValue
 	{
-		self::assertArgumentExist($args, 0, 'src: Str');
-		self::assertStr($args[0]);
-		return mb_strlen($args[0]);
+		$src = $src->unpack();
+		$sep = $sep->unpack();
+		TypeValidator::assertStr($src);
+		TypeValidator::assertStr($sep);
+		if ($src === '') {
+			return new FinalValue([], 'List<Str>');
+		}
+		if ($sep === '') {
+			return new FinalValue([new FinalValue($src, 'Str')], 'List<Str>');
+		}
+		return new FinalValue(array_map(static function (string $x): FinalValue {
+			return new FinalValue($x, 'Str');
+		}, explode($sep, $src)), 'List<Str>');
 	}
 
 
 
 	/**
-	 * @param array{0: string, 1: list<string>} $args
+	 * Join list of strings with separator.
+	 * @signature "src: List<Str>, sep: Str -> Str"
+	 * @phpstan-ignore method.unused
 	 */
-	private static function applyConcat(array $args): string
+	private static function applyConcat(FinalValue $src, FinalValue $sep): FinalValue
 	{
-		self::assertArgumentExist($args, 0, 'sep: Str');
-		self::assertArgumentExist($args, 1, 'src: List<Str>');
-		self::assertStr($args[0]);
-		self::assertListOfStr($args[1]);
-		return implode($args[0], $args[1]);
+		$sep = $sep->unpack();
+		$src = $src->unpack();
+		TypeValidator::assertStr($sep);
+		TypeValidator::assertListOfStr($src);
+		return new FinalValue(implode($sep, $src), 'Str');
 	}
 
 
 
 	/**
-	 * @param array<int, mixed> $src
+	 * Find a substring.
+	 * @signature "src: Str, fragment: Str -> Int"
+	 * @phpstan-ignore method.unused
 	 */
-	private static function assertArgumentExist(array $src, int $index, string $label): void
+	private static function applyIndexOf(FinalValue $src, FinalValue $fragment): FinalValue
 	{
-		if ( ! array_key_exists($index, $src)) {
-			throw new InvalidArgumentException("Missing {$index}'th argument '{$label}'.");
-		}
+		$src = $src->unpack();
+		$fragment = $fragment->unpack();
+		TypeValidator::assertStr($src);
+		TypeValidator::assertStr($fragment);
+		$index = mb_strpos($src, $fragment);
+		return new FinalValue($index === False ? -1 : $index, 'Int');
 	}
 
 
 
 	/**
-	 * @param mixed $val
+	 * Determines whether the first Str contains the second.
+	 * @signature "src: Str, fragment: Str -> Bool"
+	 * @phpstan-ignore method.unused
 	 */
-	private static function assertStr($val): void
+	private static function applyContains(FinalValue $src, FinalValue $fragment): FinalValue
 	{
-		if (!is_string($val)) {
-			throw new InvalidArgumentException('Expected string, got ' . gettype($val));
-		}
+		$src = $src->unpack();
+		$fragment = $fragment->unpack();
+		TypeValidator::assertStr($src);
+		TypeValidator::assertStr($fragment);
+		return new FinalValue(mb_strpos($src, $fragment) !== False, 'Bool');
 	}
 
 
 
 	/**
-	 * @param mixed $value
+	 * Check if the given Str starts with a value.
+	 * @signature "src: Str, fragment: Str -> Bool"
+	 * @phpstan-ignore method.unused
 	 */
-	private static function assertListOfStr($value): void
+	private static function applyStartsWith(FinalValue $src, FinalValue $fragment): FinalValue
 	{
-		if ( ! is_array($value)) {
-			throw new InvalidArgumentException('Expected array, got ' . gettype($value));
-		}
+		$src = $src->unpack();
+		$fragment = $fragment->unpack();
+		TypeValidator::assertStr($src);
+		TypeValidator::assertStr($fragment);
+		return new FinalValue(strncmp($src, $fragment, strlen($fragment)) === 0, 'Bool');
+	}
 
-		foreach ($value as $key => $item) {
-			if (!is_string($item)) {
-				$item = is_object($item)
-					? get_class($item)
-					: gettype($item);
-				throw new InvalidArgumentException("Expected string at index $key, got '$item'.");
-			}
+
+
+	/**
+	 * Check if the given Str ends with a value.
+	 * @signature "src: Str, fragment: Str -> Bool"
+	 * @phpstan-ignore method.unused
+	 */
+	private static function applyEndsWith(FinalValue $src, FinalValue $fragment): FinalValue
+	{
+		$src = $src->unpack();
+		$fragment = $fragment->unpack();
+		TypeValidator::assertStr($src);
+		TypeValidator::assertStr($fragment);
+		return new FinalValue(substr_compare($src, $fragment, -strlen($fragment)) === 0, 'Bool');
+	}
+
+
+
+	/**
+	 * Substring based on start and len.
+	 * @signature "src: Str, start: Int, len: Int -> Str"
+	 * @phpstan-ignore method.unused
+	 */
+	private static function applySub(FinalValue $src, FinalValue $start, FinalValue $len): FinalValue
+	{
+		$src = $src->unpack();
+		$start = $start->unpack();
+		$len = $len->unpack();
+		TypeValidator::assertStr($src);
+		TypeValidator::assertInt($start);
+		TypeValidator::assertInt($len);
+		return new FinalValue(mb_substr($src, $start, $len), 'Str');
+	}
+
+
+
+	/**
+	 * Convert to lowercase.
+	 * @signature "src: Str -> Str"
+	 * @phpstan-ignore method.unused
+	 */
+	private static function applyToLower(FinalValue $src): FinalValue
+	{
+		$src = $src->unpack();
+		TypeValidator::assertStr($src);
+		return new FinalValue(mb_strtolower($src), 'Str');
+	}
+
+
+
+	/**
+	 * Convert to uppercase.
+	 * @signature "src: Str -> Str"
+	 * @phpstan-ignore method.unused
+	 */
+	private static function applyToUpper(FinalValue $src): FinalValue
+	{
+		$src = $src->unpack();
+		TypeValidator::assertStr($src);
+		return new FinalValue(mb_strtoupper($src), 'Str');
+	}
+
+
+
+	/**
+	 * Format text into a template.
+	 * @signature "src: Str, args: Dict<Str> -> Str"
+	 * @phpstan-ignore method.unused
+	 */
+	private static function applyFormat(FinalValue $src, FinalValue $args): FinalValue
+	{
+		$src = $src->unpack();
+		$args = (array) $args->unpack();
+		TypeValidator::assertStr($src);
+		$map = [];
+		foreach ($args as $key => $value) {
+			$map["\${{$key}}"] = (string) $value;
 		}
+		return new FinalValue(strtr($src, $map), 'Str');
+	}
+
+
+
+	/**
+	 * Trim whitespace from both sides.
+	 * @signature "src: Str -> Str"
+	 * @phpstan-ignore method.unused
+	 */
+	private static function applyTrim(FinalValue $src): FinalValue
+	{
+		$src = $src->unpack();
+		TypeValidator::assertStr($src);
+		return new FinalValue(trim($src), 'Str');
 	}
 
 
 
 	function __toString(): string
 	{
-		return '<' . $this->name . ' ' . implode(' ', $this->refs()) . '>';
+		return '<Str.' . $this->name . '>';
 	}
 
 }

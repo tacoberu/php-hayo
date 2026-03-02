@@ -11,26 +11,10 @@ namespace Taco\Hayo;
 
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
-use LogicException;
 
 
 class CompilerTest extends TestCase
 {
-
-	function _testDevelopX()
-	{
-		$code = "a = 100 + 454\n{a: 42, b: a + 1}";
-		$code = '
-xs = (strings.split "," "une, deux, trois")
-(list.exist 10 xs)';
-		$code = "a = b\nb = c\na + 1";
-		$code = "1 IN xs";
-
-		dump($this->compile($code));
-		dump($this->compile($code)->apply(['xs' => new FinalValue([1], "List")]));
-	}
-
-
 
 	#[DataProvider('dataScalar')]
 	#[DataProvider('dataCompositeFinal')]
@@ -113,7 +97,7 @@ xs = (strings.split "," "une, deux, trois")
 	function testStringLen()
 	{
 		$result = HayoEngine::WithDefaultLibraries()
-			->evaluate('(str.len "hi")');
+			->evaluate('(Str.len "hi")');
 		$this->assertEquals(2, $result);
 	}
 
@@ -123,7 +107,7 @@ xs = (strings.split "," "une, deux, trois")
 	{
 		$result = HayoEngine::WithDefaultLibraries()
 			->evaluate('
-a = (str.len "hi")
+a = (Str.len "hi")
 a
 ');
 		$this->assertEquals(2, $result);
@@ -137,8 +121,8 @@ a
 			new FinalValue('une', 'Str'),
 			new FinalValue(' deux', 'Str'),
 			new FinalValue(' trois', 'Str'),
-		], 'List'), $this->compile('
-(strings.split "," "une, deux, trois")')
+		], 'List<Str>'), $this->compile('
+(Str.split "une, deux, trois" ",")')
 		);
 	}
 
@@ -149,7 +133,7 @@ a
 		$this->assertEquals(new FinalValue("une", 'a'), $this->compile('
 xs = (Str.split "une, deux, trois" ",")
 -- xs = []
-(list.first xs "")')
+(List.first xs "")')
 		);
 	}
 
@@ -159,7 +143,7 @@ xs = (Str.split "une, deux, trois" ",")
 	{
 		$this->assertEquals(new FinalValue('', 'a'), $this->compile('
 xs = []
-(list.first xs "")')
+(List.first xs "")')
 		);
 	}
 
@@ -192,11 +176,11 @@ xs = (Str.split "une, deux, trois" ",")
 			'deux' => new FinalValue(' deux', 'a'),
 			'trois' => new FinalValue(' trois', 'a'),
 		], 'Dict'), $this->compile('
-xs = (strings.split "," "une, deux, trois")
+xs = (Str.split "une, deux, trois" ",")
 {
-	une: (list.first xs "")
-	deux: (list.at 1 xs "")
-	trois: (list.at 2 xs "")
+	une: (List.first xs "")
+	deux: (List.at 1 xs "")
+	trois: (List.at 2 xs "")
 }')
 		);
 	}
@@ -210,11 +194,11 @@ xs = (strings.split "," "une, deux, trois")
 			new FinalValue(' deux', 'a'),
 			new FinalValue(' trois', 'a'),
 		], 'List'), $this->compile('
-xs = (strings.split "," "une, deux, trois")
+xs = (Str.split "une, deux, trois" ",")
 [
-	(list.first xs "")
-	(list.at 1 xs "")
-	(list.at 2 xs "")
+	(List.first xs "")
+	(List.at 1 xs "")
+	(List.at 2 xs "")
 ]')
 		);
 	}
@@ -228,11 +212,11 @@ xs = (strings.split "," "une, deux, trois")
 			new FinalValue(' deux', 'a'),
 			new FinalValue(' trois', 'a'),
 		], 'Tuple'), $this->compile('
-xs = (strings.split "," "une, deux, trois")
+xs = (Str.split "une, deux, trois" ",")
 (
-	(list.first xs "")
-	(list.at 1 xs "")
-	(list.at 2 xs "")
+	(List.first xs "")
+	(List.at 1 xs "")
+	(List.at 2 xs "")
 )')
 		);
 	}
@@ -242,11 +226,11 @@ xs = (strings.split "," "une, deux, trois")
 	function testComposeDict()
 	{
 		$call = $this->compile('
-xs = (strings.split "," src)
+xs = (Str.split src ",")
 {
-	une: (list.first xs "")
-	deux: (list.at 1 xs "")
-	trois: (list.at 2 xs "")
+	une: (List.first xs "")
+	deux: (List.at 1 xs "")
+	trois: (List.at 2 xs "")
 }');
 //~ dump($call);
 		$this->assertSame("Dict", $call->type());
@@ -566,13 +550,13 @@ content = [
 	{
 		return [
 			['Str.split "" " "',
-				new FinalValue([], 'List'),
+				new FinalValue([], 'List<Str>'),
 				],
 			['Str.split " " ""',
-				new FinalValue([" "], 'List'),
+				new FinalValue([" "], 'List<Str>'),
 				],
 			['Str.split " " " "',
-				new FinalValue(['', ''], 'List'),
+				new FinalValue(['', ''], 'List<Str>'),
 				],
 		];
 	}
@@ -933,9 +917,8 @@ content = [
 		return (new Compiler([
 			'predicate' => new PredicatesProvider(),
 			'Math' => new MathsProvider(),
-			'str' => new StringsProvider(),
-			'strings' => new StringsProvider(),
-			'list' => new ListsProvider(),
+			'Str' => new StringsProvider(),
+			'List' => new ListsProvider(),
 			]))
 			->compile($src);
 	}
