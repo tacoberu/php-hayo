@@ -932,7 +932,7 @@ content = [
 	{
 		return (new Compiler([
 			'predicate' => new PredicatesProvider(),
-			'math' => new MathsProvider(),
+			'Math' => new MathsProvider(),
 			'str' => new StringsProvider(),
 			'strings' => new StringsProvider(),
 			'list' => new ListsProvider(),

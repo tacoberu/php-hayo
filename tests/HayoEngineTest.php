@@ -155,6 +155,12 @@ class HayoEngineTest extends TestCase
 	static function dataValidationErrors(): array
 	{
 		return [
+
+			// Math operator on wrong types → TypeError from PHP runtime
+			['a + b', ['a' => 'hello', 'b' => 2],
+				ValidationException::class,
+				'Invalid arguments of Math.+: Expected int, got string'],
+
 			// IN predicate on non-array → TypeError from PHP built-in in_array()
 			['1 IN xs', ['xs' => 'hello'],
 				ValidationException::class,

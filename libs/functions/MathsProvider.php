@@ -9,17 +9,12 @@
 
 namespace Taco\Hayo;
 
-use LogicException;
-
-
 class MathsProvider implements SymbolProvider, ShortSymbolProvider
 {
 
 	function lookup(string $symbol): ?BuildinFunc
 	{
-		if ( ! in_array($symbol, ['+', '-', '*', 'div', 'mod',
-				'ceil', 'floor', 'round'
-				], True)) {
+		if (! in_array($symbol, ['+', '-', '*', 'div', 'mod', 'ceil', 'floor', 'round'], True)) {
 			return Null;
 		}
 
@@ -29,7 +24,7 @@ class MathsProvider implements SymbolProvider, ShortSymbolProvider
 
 
 	/**
-	 * @retrun list<string>
+	 * @return list<string>
 	 */
 	function getShortSymbolTable(): array
 	{
@@ -40,116 +35,178 @@ class MathsProvider implements SymbolProvider, ShortSymbolProvider
 
 
 
-/**
- * `a: Int + b :: Int` - Sčítání
- * `a: Int - b :: Int` - Odčítání
- * `a: Int * b :: Int` - Násobení
- * `a: Int div b :: Int` - Celočíselné dělení
- * `a: Int mod b :: Int` - Zbytek po celočíselném dělení.
- */
 class MathOperator implements BuildinFunc
 {
 
+	const Name = "Math";
+
+	/** Mapping of operator symbol to PHP method name */
+	private const OP_MAP = [
+		'+' => 'plus',
+		'-' => 'minus',
+		'*' => 'multiply',
+		'div' => 'div',
+		'mod' => 'mod',
+		'ceil' => 'ceil',
+		'floor' => 'floor',
+		'round' => 'round',
+	];
+
 	private string $op;
+
+	/**
+	 * @var array<string, array{0: list<BindValue>, 1: string}>
+	 */
+	private static array $functionMap = [];
 
 	function __construct(string $op)
 	{
 		$this->op = $op;
+		if (self::$functionMap === []) {
+			self::$functionMap = Utils::getApplyMethodFrom(self::class);
+		}
+	}
+
+
+
+	function getQualifiedName(): string
+	{
+		return self::Name . '.' . $this->op;
 	}
 
 
 
 	function type(): string
 	{
-		return 'Int';
+		return Utils::selectReturnType(self::$functionMap, self::OP_MAP[$this->op]);
 	}
 
 
 
 	/**
-	 * @return list<string>
-	 */
-	function refs(): array
-	{
-		return array_map(static function (BindVal $x): string {
-			return $x->getBindName();
-		}, $this->getBinds());
-	}
-
-
-
-	/**
-	 * Které argumenty to vyžaduje.
-	 * @return list<BindVal>
+	 * Which arguments are required.
+	 * @return list<BindValue>
 	 */
 	function getBinds(): array
 	{
-		switch ($this->op) {
-			case '+':
-			case '-':
-			case '*':
-			case 'div':
-			case 'mod':
-				return [
-					new BindVal('a', 'Int'),
-					new BindVal('b', 'Int'),
-				];
-
-			default:
-				throw new LogicException("Unsupported operator: {$this->op}.");
-		}
+		return Utils::selectArgumentsSignature(self::$functionMap, self::OP_MAP[$this->op]);
 	}
 
 
 
 	/**
-	 * Předáme požadované argumenty a vypočítáme výsledek. Argumenty už musí
-	 * být finální hodnoty.
-	 * @param array<string, Term> $args
+	 * Pass the required arguments and compute the result. Arguments must already
+	 * be final values.
+	 * @param array<string, FinalValue> $args
 	 */
 	function apply(array $args): Value
 	{
-		$args = array_values($args);
-		$args = array_map(static function (Value $x) {
-			return $x instanceof FinalVal
-				? $x->unpack()
-				: $x;
-		}, $args);
-		switch ($this->op) {
-			case '+':
-				return new FinalVal($args[0] + $args[1], $this->type());
-
-			case '-':
-				return new FinalVal($args[0] - $args[1], $this->type());
-
-			case '*':
-				return new FinalVal($args[0] * $args[1], $this->type());
-
-			case 'div':
-				return new FinalVal(intdiv($args[0], $args[1]), $this->type());
-
-			case 'mod':
-				return new FinalVal($args[0] % $args[1], $this->type());
-
-			case 'ceil':
-				return new FinalVal((int) ceil($args[0]), $this->type());
-
-			case 'floor':
-				return new FinalVal((int) floor($args[0]), $this->type());
-
-			case 'round':
-				return new FinalVal(round($args[0], $args[1]), $this->type());
-
-			default:
-				throw new LogicException("Unsupported operator: {$this->op}.");
+		$func = 'apply' . ucfirst(self::OP_MAP[$this->op]);
+		if (method_exists(self::class, $func)) {
+			TypeValidator::assertArguments(self::Name . '.' . $this->op, $this->getBinds(), $args);
+			return call_user_func_array([self::class, $func], $args);
 		}
+		throw SymbolNotFound::UnsupportedFunc(self::Name, $this->op);
+	}
+
+
+
+	/**
+	 * Addition
+	 * @signature "a: Num, b: Num -> Num"
+	 */
+	private static function applyPlus(FinalValue $a, FinalValue $b): FinalValue
+	{
+		return new FinalValue($a->unpack() + $b->unpack(), 'Num');
+	}
+
+
+
+	/**
+	 * Subtraction
+	 * @signature "a: Num, b: Num -> Num"
+	 */
+	private static function applyMinus(FinalValue $a, FinalValue $b): FinalValue
+	{
+		return new FinalValue($a->unpack() - $b->unpack(), 'Num');
+	}
+
+
+
+	/**
+	 * Multiplication
+	 * @signature "a: Num, b: Num -> Num"
+	 */
+	private static function applyMultiply(FinalValue $a, FinalValue $b): FinalValue
+	{
+		return new FinalValue($a->unpack() * $b->unpack(), 'Num');
+	}
+
+
+
+	/**
+	 * Integer division
+	 * @signature "a: Num, b: Num -> Num"
+	 */
+	private static function applyDiv(FinalValue $a, FinalValue $b): FinalValue
+	{
+		$a = $a->unpack();
+		$b = $b->unpack();
+		if (is_int($a) && is_int($b)) {
+			return new FinalValue(intdiv($a, $b), 'Num');
+		}
+		return new FinalValue($a / $b, 'Num');
+	}
+
+
+
+	/**
+	 * Remainder of integer division
+	 * @signature "a: Int, b: Int -> Int"
+	 */
+	private static function applyMod(FinalValue $a, FinalValue $b): FinalValue
+	{
+		return new FinalValue($a->unpack() % $b->unpack(), 'Int');
+	}
+
+
+
+	/**
+	 * Round up
+	 * @signature "a: Real -> Int"
+	 */
+	private static function applyCeil(FinalValue $a): FinalValue
+	{
+		return new FinalValue((int) ceil($a->unpack()), 'Int');
+	}
+
+
+
+	/**
+	 * Round down
+	 * @signature "a: Real -> Int"
+	 */
+	private static function applyFloor(FinalValue $a): FinalValue
+	{
+		return new FinalValue((int) floor($a->unpack()), 'Int');
+	}
+
+
+
+	/**
+	 * Round to a number of decimal places
+	 * @signature "a: Real, precision: Int -> Real"
+	 */
+	private static function applyRound(FinalValue $a, FinalValue $precision): FinalValue
+	{
+		return new FinalValue(round($a->unpack(), $precision->unpack()), 'Real');
 	}
 
 
 
 	function __toString(): string
 	{
-		return '<' . $this->op . ' ' . implode(' ', $this->refs()) . '>';
+		return '<Math.' . $this->op . '>';
 	}
 
 }
