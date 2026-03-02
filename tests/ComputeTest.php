@@ -11,7 +11,6 @@ namespace Taco\Hayo;
 
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
-use LogicException;
 
 
 class ComputeTest extends TestCase
@@ -111,11 +110,11 @@ class ComputeTest extends TestCase
 
 			['Str.split a ""'
 				, [ 'a' => new FinalValue("", 'Str')]
-				, new FinalValue([], 'List'),
+				, new FinalValue([], 'List<Str>'),
 				],
 			['Str.split a " "'
 				, [ 'a' => new FinalValue("", 'Str')]
-				, new FinalValue([], 'List'),
+				, new FinalValue([], 'List<Str>'),
 				],
 			['Str.split a " "'
 				, [ 'a' => new FinalValue("Une deux trois", 'Str')]
@@ -123,37 +122,37 @@ class ComputeTest extends TestCase
 					new FinalValue("Une", 'Str'),
 					new FinalValue("deux", 'Str'),
 					new FinalValue("trois", 'Str'),
-					], 'List'),
+					], 'List<Str>'),
 				],
 
-			['Str.concat sep ["Hello", "World"]',
+			['Str.concat ["Hello", "World"] sep',
 				[ 'sep' => new FinalValue(" ", 'Str'),
 					],
 				new FinalValue("Hello World", 'Str'),
 				],
-			['Str.concat " " [a, b]',
+			['Str.concat [a, b] " "',
 				[ 'a' => new FinalValue("Hello", 'Str'),
 					'b' => new FinalValue("World!", 'Str'),
 					],
 				new FinalValue("Hello World!", 'Str'),
 				],
-			['Str.concat "" [a, b]',
+			['Str.concat [a, b] ""',
 				[ 'a' => new FinalValue("Hello", 'Str'),
 					'b' => new FinalValue("World!", 'Str'),
 					],
 				new FinalValue("HelloWorld!", 'Str'),
 				],
-			['Str.concat "" [a]',
+			['Str.concat [a] ""',
 				[ 'a' => new FinalValue("Hello", 'Str'),
 					],
 				new FinalValue("Hello", 'Str'),
 				],
-			['Str.concat sep []',
+			['Str.concat [] sep',
 				[ 'sep' => new FinalValue("", 'Str'),
 					],
 				new FinalValue("", 'Str'),
 				],
-			['Str.concat " " [a, (Str.concat "" [ b, "!"])]',
+			['Str.concat [a, (Str.concat [ b, "!"] "")] " "',
 				[ 'a' => new FinalValue("Hello", 'Str'),
 					'b' => new FinalValue("World", 'Str'),
 					],
@@ -503,7 +502,7 @@ else "D"
 					new FinalValue("Majakovskeho 13", 'Str'),
 					new FinalValue(" Karlovy Vary", 'Str'),
 					new FinalValue(" Czech republic", 'Str'),
-					], 'List'),
+					], 'List<Str>'),
 				],
 
 			["src\n" // @TODO
@@ -549,8 +548,7 @@ else "D"
 		return (new Compiler([
 			'predicate' => new PredicatesProvider(),
 			'Math' => new MathsProvider(),
-			'str' => new StringsProvider(),
-			'strings' => new StringsProvider(),
+			'Str' => new StringsProvider(),
 			'list' => new ListsProvider(),
 			]))
 			->compile($src);

@@ -140,10 +140,6 @@ class HayoEngineTest extends TestCase
 			['1 + a', ['a' => 10, 'b' => 20],
 				InvalidArgumentException::class,
 				"Invalid count of arguments. Expected 'a'; given 'a', 'b'."],
-			// Wrong argument type for builtin → global \InvalidArgumentException from StringsProvider::assertStr
-			['Str.len xs', ['xs' => 42],
-				InvalidArgumentException::class,
-				'Expected string, got integer'],
 		];
 	}
 
@@ -165,6 +161,20 @@ class HayoEngineTest extends TestCase
 			['1 IN xs', ['xs' => 'hello'],
 				ValidationException::class,
 				'Invalid arguments of Predicate.in: Expected array, got string'],
+
+			// List.len on non-array → TypeError from PHP built-in count()
+			['List.len xs', ['xs' => 'hello'],
+				ValidationException::class,
+				'Invalid arguments of List.len: Expected array, got string'],
+			// List.map on non-array → TypeError from PHP built-in array_map()
+			['List.map xs (x -> x + 1)', ['xs' => 42],
+				ValidationException::class,
+				'Invalid arguments of List.map: Expected array, got integer'],
+
+			// Wrong argument type for builtin → global \InvalidArgumentException from StringsProvider::assertStr
+			['Str.len xs', ['xs' => 42],
+				ValidationException::class,
+				'Expected string, got integer'],
 
 		];
 	}
