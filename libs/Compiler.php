@@ -305,9 +305,10 @@ class Compiler
 				}
 				else {
 					if ($items[0] instanceof Lambda && count($items[0]->getArgs()) === count($items) - 1) {
-
-						// @TODO Toto píšu poněkud unaven. Myslím, že by se to mělo řešit poněkud jinak.
-						$term = self::optimalizeLambdaCalling($items[0], array_slice($items, 1));
+						$args = array_slice($items, 1);
+						$fn = $items[0];
+						$context = new Context(array_combine($fn->getArgs(), $args));
+						return self::partialEvaluateExpr($context, $fn->getExpr());
 					}
 				}
 
@@ -317,14 +318,6 @@ class Compiler
 			default:
 				throw CompileException::UnsupportedException('partial evaluate expr of term', $term);
 		}
-	}
-
-
-
-	private static function optimalizeLambdaCalling(Lambda $fn, array $args)
-	{
-		$context = new Context(array_combine($fn->getArgs(), $args));
-		return self::partialEvaluateExpr($context, $fn->getExpr());
 	}
 
 

@@ -23,7 +23,7 @@ class ParametricValue implements HasRefs, Value
 {
 
 	/**
-	 * @var Expr | Composite
+	 * @var Expr | Form | Composite | BindVal
 	 */
 	private $expr;
 
@@ -35,7 +35,7 @@ class ParametricValue implements HasRefs, Value
 	private array $binds;
 
 	/**
-	 * @param Expr | Composite $expr
+	 * @param Expr | Form | Composite | BindVal $expr
 	 * @param list<BindVal> $binds
 	 */
 	private function __construct($expr, string $type, array $binds)
@@ -127,8 +127,6 @@ class ParametricValue implements HasRefs, Value
 	 */
 	function refs(): array
 	{
-		return array_merge([], $this->expr->refs());
-		/*
 		$xs = [];
 		switch (True) {
 			case $this->expr instanceof HasRefs:
@@ -140,11 +138,13 @@ class ParametricValue implements HasRefs, Value
 		}
 
 		return $xs;
-		*/
 	}
 
 
 
+	/**
+	 * @return list<string>
+	 */
 	function getArgs(): array
 	{
 		return array_map(static function($x) {
@@ -162,12 +162,12 @@ class ParametricValue implements HasRefs, Value
 	{
 		self::assertArguments($args);
 		self::assertBindArguments($this->getBinds(), $args);
-		return self::applyAny($this->expr, $args);
+		return Interpret::applyAny($this->expr, $args);
 	}
 
 
 
-	static function ShortLinkBind(BindVal $expr)
+	static function ShortLinkBind(BindVal $expr): self
 	{
 		return new self($expr, '?', [$expr]);
 	}
@@ -175,145 +175,9 @@ class ParametricValue implements HasRefs, Value
 
 
 	/**
-	 * @param string|FinalVal|self|BindVal| Value $src
-	 * @param array<string, FinalVal | ParametricValue> $lets
-	 * @return FinalVal | ParametricValue
-	 */
-	private static function applyAny($src, array $lets)
-	{
-		switch (True) {
-			case is_string($src):
-				// @TODO validace
-				return $lets[$src];
-
-			case $src instanceof BindVal:
-				self::assertBindInArguments($src, $lets);
-				$value = $lets[$src->getName()];
-				if ( ! $value instanceof FinalVal) {
-					throw new LogicException("Comming soon...");
-				}
-				if ($src->isPath()) {
-					$value = self::selectByPath($src, $value);
-				}
-				return $value;
-
-			case $src instanceof self:
-				// @TODO nějaké omezení, aby se neposílaly všeechny lets, ale jen ty, co jsou v getBindNames()
-				return $src->apply($lets);
-
-			case $src instanceof Expr:
-				return self::applyExpr($src, $lets);
-
-			case $src instanceof Composite && $src->type() === Composite::TypeDict:
-				return self::applyStructDict($src, $lets);
-
-			case $src instanceof Composite && $src->type() === Composite::TypeList:
-				return self::applyStructList($src, $lets);
-
-			case $src instanceof Composite && $src->type() === Composite::TypeTuple:
-				return self::applyStructTuple($src, $lets);
-
-			case $src instanceof Scalar:
-				return new FinalVal($src->getValue(), '?');
-
-			case $src instanceof FinalVal:
-				return $src;
-
-			default:
-				throw new LogicException("oops.");
-		}
-	}
-
-
-
-	/**
-	 * @param array<string, FinalVal | ParametricValue> $lets
-	 * @return FinalVal | self
-	 */
-	private static function applyExpr(Expr $expr, array $lets)
-	{
-		$items = $expr->getItems();
-		foreach ($items as $i => $x) {
-			// funkce na úrovni expression, bude pravděpobodně to ta první. Ta nemá žádné závislosti.
-			// naopak, nejdříve se musí vyřešit závislosti ze stejné úrovně - což právě děláme.
-			if ($x instanceof BuildinFunc) {
-				continue;
-			}
-			$items[$i] = self::applyAny($x, $lets);
-		}
-
-		// volání funkce
-		if ($items[0] instanceof BuildinFunc) {
-			$fn = array_shift($items);
-			return $fn->apply($items); // @phpstan-ignore method.nonObject
-		}
-		// volání operátoru
-		if (isset($items[1]) && $items[1] instanceof BuildinFunc) {
-			$fn1 = array_shift($items);
-			$fn = array_shift($items);
-			return $fn->apply(array_merge([$fn1], $items)); // @phpstan-ignore method.nonObject
-		}
-		// Výsledkem může být expresion, ale také hodnota
-		return $items[0]; // @phpstan-ignore return.type
-	}
-
-
-
-	/**
-	 * @param array<string, FinalVal | ParametricValue> $lets
-	 */
-	private static function applyStructList(Composite $expr, array $lets): FinalVal
-	{
-		$items = [];
-		foreach ($expr->getItems() as $k => $x) {
-			$items[$k] = self::applyAny($x, $lets);
-		}
-		return new FinalVal($items, 'List');
-	}
-
-
-
-	/**
-	 * @param array<string, FinalVal | ParametricValue> $lets
-	 */
-	private static function applyStructDict(Composite $expr, array $lets): FinalVal
-	{
-		$items = [];
-		foreach ($expr->getItems() as $k => $x) {
-			$items[$k] = self::applyAny($x, $lets);
-		}
-
-		return new FinalVal((object) $items, 'Dict');
-	}
-
-
-
-	/**
 	 * @param array<string, FinalVal | ParametricValue> $xs
-	 * V případě, že nabindovaná hodnota je cesta: `x.foo`, tak očekáváme, že
-	 * $src bude slovník, a vytáhneme z něj správnou hodnotu.
 	 */
-	private static function selectByPath(BindVal $id, FinalVal $src): FinalVal
-	{
-		//~ self::assertDict($src);
-		$curr = (object)[
-			$id->getName() => $src->unpack(),
-		];
-		foreach (explode('.', $id->getBindName()) as $x) {
-			if (!isset($curr->{$x})) {
-				return new FinalVal(Null, '?');
-			}
-			$curr = $curr->{$x};
-		}
-		return new FinalVal($curr, '?');
-	}
-
-
-
-	/**
-	 * @param array<string, FinalVal | VariadicVal> $xs
-	 */
-	private static function assertBindInArguments(BindVal $bind, array $xs): void
+	private static function assertBindInArguments(BindVal $bind, array $xs): void // @phpstan-ignore method.unused
 	{
 		if ( ! array_key_exists($bind->getName(), $xs)) {
 			throw new InvalidArgumentException("Missing args: '{$bind->getBindName()}'.");
@@ -367,9 +231,9 @@ class ParametricValue implements HasRefs, Value
 	 */
 	private static function assertArgument(string $key, $val): void // @phpstan-ignore void.pure
 	{
-		if ( ! $val instanceof FinalVal
-				&& ! $val instanceof self) { // @phpstan-ignore instanceof.alwaysTrue, booleanAnd.alwaysFalse
-			throw new InvalidArgumentException("Argument '{$key}' must be package into FinalVal or ParametricValue.");
+		if ( ! $val instanceof FinalVal // @phpstan-ignore booleanAnd.alwaysFalse
+				&& ! $val instanceof self) { // @phpstan-ignore instanceof.alwaysTrue
+			throw new InvalidArgumentException("Argument '{$key}' must be package into FinalVal or ParametricValue; " . (is_object($val) ? get_class($val) : gettype($val)) . " given."); // @phpstan-ignore function.alreadyNarrowedType
 		}
 	}
 

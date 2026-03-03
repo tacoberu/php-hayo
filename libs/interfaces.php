@@ -19,13 +19,13 @@ interface SymbolProvider
 
 
 /**
- * Provider, který poskytuje toto rozhraní bude použit symbol bez namespace.
+ * Provider implementing this interface will use a symbol without a namespace.
  */
 interface ShortSymbolProvider
 {
 
 	/**
-	 * @retrun list<string>
+	 * @return list<string>
 	 */
 	function getShortSymbolTable(): array;
 
@@ -37,17 +37,17 @@ interface BuildinFunc extends Applicable
 {
 
 	/**
-	 * Které argumenty to vyžaduje.
-	 * @return list<BindVal>
+	 * Which arguments are required.
+	 * @return list<BindValue>
 	 */
 	function getBinds(): array;
 
 
 
 	/**
-	 * Předáme požadované argumenty a vypočítáme výsledek. Argumenty už musí
-	 * být finální hodnoty.
-	 * @param array<string, FinalVal> $args
+	 * Pass the required arguments and compute the result. Arguments must already
+	 * be final values.
+	 * @param array<string, FinalValue> $args
 	 */
 	function apply(array $args): Value;
 
