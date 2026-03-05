@@ -9,7 +9,6 @@
 
 namespace Taco\Hayo;
 
-use ArrayIterator;
 use LogicException;
 
 
@@ -46,6 +45,9 @@ final class Interpret
 			case $src instanceof Expr:
 				return self::applyExpr($src, $lets);
 
+			case $src instanceof Form && $src->getName() === 'if-then-else':
+				return self::applyFormIfThenElse($src, $lets);
+
 			case $src instanceof Composite && $src->type() === Composite::TypeDict:
 				return self::applyStructDict($src, $lets);
 
@@ -62,7 +64,7 @@ final class Interpret
 				return $src;
 
 			default:
-				throw new LogicException("oops.");
+				throw new LogicException("Unsupported applicable token: '$src'.");
 		}
 	}
 
@@ -70,7 +72,7 @@ final class Interpret
 
 	/**
 	 * @param array<string, FinalVal | ParametricValue> $lets
-	 * @return FinalVal | self
+	 * @return FinalVal | ParametricValue
 	 */
 	private static function applyExpr(Expr $expr, array $lets)
 	{
@@ -103,13 +105,27 @@ final class Interpret
 		}
 
 		throw new LogicException("oops.");
-<<<<<<< HEAD
-		// Výsledkem může být expresion, ale také hodnota
-		//~ return $items[0]; // @phpstan-ignore return.type
-=======
 		// The result can be an expression, but also a value
 		//~ return $items[0];
->>>>>>> e449eab (fixup! Vytknutí kódu z ParametricValue do Interpret)
+	}
+
+
+
+	/**
+	 * @param array<string, FinalVal | ParametricValue> $lets
+	 * @return FinalVal | ParametricValue
+	 */
+	private static function applyFormIfThenElse(Form $src, array $lets)
+	{
+		foreach ($src->getItems() as $block) {
+			if ($block->cond === Null) {
+				return self::applyAny($block->expr, $lets);
+			}
+			if (($cond = self::applyAny($block->cond, $lets)) && $cond->unpack()) {
+				return self::applyAny($block->expr, $lets);
+			}
+		}
+		throw new LogicException("oops.");
 	}
 
 

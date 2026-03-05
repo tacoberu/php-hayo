@@ -93,6 +93,22 @@ class HayoEngineTest extends TestCase
 			["foo \x01 bar", [],
 				CompileException::class,
 				"Couldn't tokenise:"],
+			// Lambda whose body is an undefined symbol, applied with all args resolved
+			["f = x -> z\nf 1", ['z' => 1],
+				CompileException::class,
+				'Unresolved expression \'(x) -> z 1 : Int\''],
+			// Lambda with a non-string argument (list pattern) → CompileException from partialEvaluateLambda
+			["f = [a b] -> a + b\nf 5", [],
+				CompileException::class,
+				'Lambda arguments must be simple names, not expressions.'],
+			// Incomplete if-then-else → HayoParserException from Parser (vendor)
+			['if a > 0 then', [],
+				CompileException::class,
+				'Required closing bracked: EOF.'],
+			// Lambda with parenthesised arg → global \LogicException from Parser (vendor)
+			['((a b) -> a + b)', [],
+				CompileException::class,
+				'Lambda arguments must be simple names, not expressions.'],
 		];
 	}
 

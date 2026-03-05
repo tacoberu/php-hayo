@@ -62,9 +62,29 @@ class ParametricValue implements HasRefs, Value
 	/**
 	 * @param list<BindVal> $binds
 	 */
+	static function Form_(Form $expr, string $type, array $binds): self
+	{
+		return new self($expr, $type, $binds);
+	}
+
+
+
+	/**
+	 * @param list<BindVal> $binds
+	 */
 	static function Dict_(Composite $expr, array $binds): self
 	{
 		return new self($expr, Composite::TypeDict, $binds);
+	}
+
+
+
+	/**
+	 * @param list<BindVal> $binds
+	 */
+	static function Record_(Composite $expr, array $binds): self
+	{
+		return new self($expr, 'Record', $binds);
 	}
 
 

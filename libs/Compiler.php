@@ -214,6 +214,9 @@ class Compiler
 			case $term instanceof Expr && $term->refs() !== []:
 				return self::partialEvaluateExpr($context, $term);
 
+			case $term instanceof Form && $term->getName() === 'if-then-else':
+				return self::partialEvaluateFormIfThenElse($context, $term);
+
 			default:
 				throw CompileException::UnsupportedException('partial evaluate', $term);
 		}
@@ -318,6 +321,26 @@ class Compiler
 			default:
 				throw CompileException::UnsupportedException('partial evaluate expr of term', $term);
 		}
+	}
+
+
+
+	/**
+	 * 1/ Condition is final and true -> only branch A is processed
+	 * 2/ Condition is final and false -> only branch B is processed
+	 * 3/ Condition is not final -> ....? both branches are processed, relying on absence of side-effects.
+	 */
+	private static function partialEvaluateFormIfThenElse(Context $context, Form $term): Value
+	{
+		$chains = [];
+		foreach ($term->getItems() as $usecase) {
+			$chains[] = (object) [
+				'cond' => $usecase->cond ? self::partialEvaluate($context, $usecase->cond) : Null,
+				'expr' => self::partialEvaluate($context, $usecase->expr),
+			];
+		}
+		$else = array_pop($chains);
+		return Form::IfThenElse_($chains, $else->expr);
 	}
 
 
@@ -518,6 +541,9 @@ class Compiler
 			case $val instanceof Expr:
 				return ParametricValue::Expr_($val, '?', array_values($binds));
 
+			case $val instanceof Form:
+				return ParametricValue::Form_($val, '?', array_values($binds));
+
 			case $val instanceof Composite && $val->type() === Composite::TypeDict:
 				return ParametricValue::Dict_($val, array_values($binds));
 
@@ -556,6 +582,9 @@ class Compiler
 
 			case $src instanceof Expr:
 				return self::castExpr($src, $packref);
+
+			case $src instanceof Form && $src->getName() === 'if-then-else':
+				return self::castFormIfThenElse($src, $packref);
 
 			case is_string($src):
 				if ($packref) {
@@ -611,7 +640,11 @@ class Compiler
 		foreach ($val->refs() as $x) {
 			$binds[$x] = new BindVal($x, '?');
 		}
-		return [ParametricValue::Expr_($val->getExpr(), '?', array_values($binds)), $binds];
+		$expr = $val->getExpr();
+		if ($expr instanceof Form) {
+			return [ParametricValue::Form_($expr, '?', array_values($binds)), $binds];
+		}
+		return [ParametricValue::Expr_($expr, '?', array_values($binds)), $binds];
     }
 
 
@@ -685,6 +718,30 @@ class Compiler
 			default:
 				throw CompileException::Unexpected();
 		}
+	}
+
+
+
+	/**
+	 * @return array{0: Value, 1: array<string, BindVal>}
+	 */
+	private static function castFormIfThenElse(Form $src, bool $packref): array
+	{
+		$chains = [];
+		$depends = [];
+		foreach ($src->getItems() as $block) {
+			if ($block->cond === Null) {
+				list($elseexpr, $depends1) = self::castAny($block->expr, True);
+				$depends = array_merge($depends, $depends1);
+				return [Form::IfThenElse_($chains, $elseexpr), $depends];
+			}
+			list($block->cond, $depends1) = self::castAny($block->cond, True);
+			$depends = array_merge($depends, $depends1);
+			list($block->expr, $depends1) = self::castAny($block->expr, True);
+			$depends = array_merge($depends, $depends1);
+			$chains[] = $block;
+		}
+		throw CompileException::Unexpected();
 	}
 
 

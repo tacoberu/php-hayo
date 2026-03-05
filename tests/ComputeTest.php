@@ -25,6 +25,7 @@ class ComputeTest extends TestCase
 	#[DataProvider('dataExpressions')]
 	#[DataProvider('dataPredicators')]
 	#[DataProvider('dataPaths')]
+	#[DataProvider('dataForms')]
 	function testCompute(string $code, array $args, $expected)
 	{
 		$this->assertEquals($expected, $this->compile($code)->apply($args));
@@ -398,6 +399,76 @@ class ComputeTest extends TestCase
 					], 'Dict'),
 					],
 				new FinalVal(False, '?'),
+				],
+		];
+	}
+
+
+
+	/**
+	 * @return array<array<mixed>>
+	 */
+	static function dataForms(): array
+	{
+		$code = '
+if (List.len xs) < 2 then "A"
+elif (List.len xs) < 4 then "B"
+elif (List.len xs) < 8 then "C"
+else "D"
+';
+		return [
+			[$code,
+				[ 'xs' => new FinalVal([], 'List'),
+					],
+				new FinalVal('A', 'Str'),
+				],
+			[$code,
+				[ 'xs' => new FinalVal([
+						new FinalVal(1, 'Int'),
+						new FinalVal(2, 'Int'),
+						], 'List'),
+					],
+				new FinalVal('B', 'Str'),
+				],
+			[$code,
+				[ 'xs' => new FinalVal([
+						new FinalVal(1, 'Int'),
+						new FinalVal(2, 'Int'),
+						new FinalVal(3, 'Int'),
+						new FinalVal(4, 'Int'),
+						], 'List'),
+					],
+				new FinalVal('C', 'Str'),
+				],
+			[$code,
+				[ 'xs' => new FinalVal([
+						new FinalVal(1, 'Int'),
+						new FinalVal(2, 'Int'),
+						new FinalVal(3, 'Int'),
+						new FinalVal(4, 'Int'),
+						new FinalVal(5, 'Int'),
+						new FinalVal(6, 'Int'),
+						new FinalVal(7, 'Int'),
+						new FinalVal(8, 'Int'),
+						], 'List'),
+					],
+				new FinalVal('D', 'Str'),
+				],
+			[$code,
+				[ 'xs' => new FinalVal([
+						new FinalVal(1, 'Int'),
+						new FinalVal(2, 'Int'),
+						new FinalVal(3, 'Int'),
+						new FinalVal(4, 'Int'),
+						new FinalVal(5, 'Int'),
+						new FinalVal(6, 'Int'),
+						new FinalVal(7, 'Int'),
+						new FinalVal(8, 'Int'),
+						new FinalVal(9, 'Int'),
+						new FinalVal(10, 'Int'),
+						], 'List'),
+					],
+				new FinalVal('D', 'Str'),
 				],
 		];
 	}
