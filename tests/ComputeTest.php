@@ -25,6 +25,7 @@ class ComputeTest extends TestCase
 	#[DataProvider('dataExpressions')]
 	#[DataProvider('dataPredicators')]
 	#[DataProvider('dataPaths')]
+	#[DataProvider('dataPipeOperator')]
 	#[DataProvider('dataForms')]
 	function testCompute(string $code, array $args, $expected)
 	{
@@ -476,6 +477,39 @@ else "D"
 						], 'List'),
 					],
 				new FinalVal('D', 'Str'),
+				],
+		];
+	}
+
+
+
+	/**
+	 * @return array<array<mixed>>
+	 */
+	static function dataPipeOperator(): array
+	{
+		return [
+			["List.fold (List.map xs (x -> x * x)) 0 (prev curr -> prev + curr)",
+				[ 'xs' => new FinalVal([
+					new FinalVal(1, 'Int'),
+					new FinalVal(2, 'Int'),
+					new FinalVal(3, 'Int'),
+					new FinalVal(4, 'Int'),
+					], 'List'),
+					],
+				new FinalVal(30, 'Int'),
+				],
+
+			["xs\n"
+			."	|> List.map (x -> x * x)\n"
+			."	|> List.fold 0 (prev curr -> prev + curr)",
+				[ 'xs' => new FinalVal([
+					new FinalVal(1, 'Int'),
+					new FinalVal(2, 'Int'),
+					new FinalVal(3, 'Int'),
+					new FinalVal(4, 'Int'),
+					], 'List<Int>')],
+				new FinalVal(30, 'Int'),
 				],
 		];
 	}

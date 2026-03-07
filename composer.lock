@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "54882d27c3490ae9305db520ac7616d9",
+    "content-hash": "372fbc2c7bb4a8afb256f1143cb4dba3",
     "packages": [
         {
             "name": "nette/utils",
@@ -159,16 +159,16 @@
         },
         {
             "name": "tacoberu/hayo-decoder",
-            "version": "v0.3.5",
+            "version": "v0.3.8",
             "source": {
                 "type": "git",
                 "url": "git@gitlab.com:tacoberu/php-hayo-decoder.git",
-                "reference": "85ac8192406b3072bb9d84beb73c185c4f2995dd"
+                "reference": "88ba51dc9768fe1a795dc4bdad9a3422d67bbf13"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://gitlab.com/api/v4/projects/tacoberu%2Fphp-hayo-decoder/repository/archive.zip?sha=85ac8192406b3072bb9d84beb73c185c4f2995dd",
-                "reference": "85ac8192406b3072bb9d84beb73c185c4f2995dd",
+                "url": "https://gitlab.com/api/v4/projects/tacoberu%2Fphp-hayo-decoder/repository/archive.zip?sha=88ba51dc9768fe1a795dc4bdad9a3422d67bbf13",
+                "reference": "88ba51dc9768fe1a795dc4bdad9a3422d67bbf13",
                 "shasum": ""
             },
             "require": {
@@ -215,10 +215,10 @@
             ],
             "description": "...",
             "support": {
-                "source": "https://gitlab.com/tacoberu/php-hayo-decoder/-/tree/v0.3.5",
+                "source": "https://gitlab.com/tacoberu/php-hayo-decoder/-/tree/v0.3.8",
                 "issues": "https://gitlab.com/tacoberu/php-hayo-decoder/-/issues"
             },
-            "time": "2026-03-07T23:19:57+01:00"
+            "time": "2026-05-27T23:02:03+02:00"
         }
     ],
     "packages-dev": [
@@ -2541,5 +2541,5 @@
     "prefer-lowest": false,
     "platform": {},
     "platform-dev": {},
-    "plugin-api-version": "2.6.0"
+    "plugin-api-version": "2.9.0"
 }
