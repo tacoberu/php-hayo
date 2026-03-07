@@ -268,6 +268,13 @@ class ComputeTest extends TestCase
 					]
 				, new FinalVal(85, 'Int'),
 				],
+			// separator ;
+			["inc = x -> y = 1; x + y \n"
+			."inc x"
+				, [ 'x' => new FinalVal(9, 'Int'),
+					]
+				, new FinalVal(10, 'Int'),
+				],
 		];
 	}
 
