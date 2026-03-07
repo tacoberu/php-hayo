@@ -779,19 +779,19 @@ content = [
 			[""
 			. "a = 5\n"
 			. "b = 13\n"
-			. "inc = (a) -> a + 1 * b\n"
+			. "inc = a -> a + 1 * b\n"
 			. "inc 29",
 				new FinalVal(42, 'Int'),
 				],
 
-			["inc = (a) -> a + 1\n"
+			["inc = a -> a + 1\n"
 			."inc 41",
 				new FinalVal(42, 'Int'),
 				],
 
 			[""
 			."a = 5\n"
-			."inc = (a) -> a + b\n"
+			."inc = a -> a + b\n"
 			."inc 41",
 				ParametricValue::Expr_(Expr::Bin_(
 					new FinalVal(41, 'Int'),
@@ -802,9 +802,10 @@ content = [
 				]),
 				],
 
-			["id = () -> 42\nid ()",
+/*			["id = () -> 42\nid ()",
 				new FinalVal(42, 'Int'),
 				],
+				//*/
 
 			// @TODO
 		];

@@ -445,6 +445,9 @@ class Compiler
 	{
 		$context2 = clone $context;
 		foreach ($src->getArgs() as $id) {
+			if ( ! is_string($id)) {
+				throw new CompileException("Lambda arguments must be simple names, not expressions. Use `(a b -> ...)` instead of `((a b) -> ...)`.");
+			}
 			$context2->shadowByArg($id);
 		}
 		return new Lambda($src->getArgs(), self::partialEvaluate($context2, $src->getExpr()));

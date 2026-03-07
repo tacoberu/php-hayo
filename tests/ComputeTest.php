@@ -11,6 +11,7 @@ namespace Taco\Hayo;
 
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
+use LogicException;
 
 
 class ComputeTest extends TestCase
@@ -27,6 +28,19 @@ class ComputeTest extends TestCase
 	function testCompute(string $code, array $args, $expected)
 	{
 		$this->assertEquals($expected, $this->compile($code)->apply($args));
+	}
+
+
+
+	/**
+	 * @param class-string<\Throwable> $exception
+	 */
+	#[DataProvider('dataErrors')]
+	function testComputeErrors(string $code, string $exception, string $message): void
+	{
+		$this->expectException($exception);
+		$this->expectExceptionMessage($message);
+		$this->compile($code);
 	}
 
 
@@ -385,6 +399,27 @@ class ComputeTest extends TestCase
 					],
 				new FinalVal(False, '?'),
 				],
+		];
+	}
+
+
+
+	/**
+	 * @return array<array<mixed>>
+	 */
+	static function dataErrors(): array
+	{
+		$msg = 'Lambda arguments must be simple names, not expressions. Use `(a b -> ...)` instead of `((a b) -> ...)` or `((a) -> ...)`.';
+		return [
+			['List.sort ((a b) -> a + b) xs',
+				LogicException::class,
+				$msg],
+			['List.sort ((a b c) -> a + b) xs',
+				LogicException::class,
+				$msg],
+			['List.sort ((a) -> a + 1) xs',
+				LogicException::class,
+				$msg],
 		];
 	}
 
