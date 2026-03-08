@@ -126,7 +126,7 @@ final class HayoEngine
 	 */
 	private static function combineBindWithValues(ParametricValue $fn, array $values): array
 	{
-		$refs = array_map(static function (BindVal $x): string {
+		$refs = array_map(static function (BindValue $x): string {
 			return $x->getBindName();
 		}, $fn->getBinds());
 

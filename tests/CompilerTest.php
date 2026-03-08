@@ -72,7 +72,7 @@ xs = (strings.split "," "une, deux, trois")
 ");
 		$this->assertSame("Dict", $call->type());
 		$this->assertEquals([
-			new BindVal('content', '?'),
+			new BindValue('content', '?'),
 		], $call->getBinds());
 		$this->assertEquals(new FinalVal((object) [
 			'content' => new FinalVal('Iem', 'Str'),
@@ -95,7 +95,7 @@ xs = (strings.split "," "une, deux, trois")
 ");
 		$this->assertSame("Dict", $call->type());
 		$this->assertEquals([
-			new BindVal('content', '?'),
+			new BindValue('content', '?'),
 		], $call->getBinds());
 
 		$this->assertEquals(new FinalVal((object) [
@@ -251,7 +251,7 @@ xs = (strings.split "," src)
 //~ dump($call);
 		$this->assertSame("Dict", $call->type());
 		$this->assertEquals([
-			new BindVal('src', '?'),
+			new BindValue('src', '?'),
 		], $call->getBinds());
 		$this->assertEquals(new FinalVal((object) [
 			'une' => new FinalVal('Lorem ipsum', 'a'),
@@ -312,7 +312,7 @@ content = {
 ");
 		$this->assertSame("Dict", $call->type());
 		$this->assertEquals([
-			new BindVal('content', '?'),
+			new BindValue('content', '?'),
 		], $call->getBinds());
 
 		$this->assertEquals(new FinalVal((object) [
@@ -346,9 +346,9 @@ content = {
 ");
 		$this->assertSame("Dict", $call->type());
 		$this->assertEquals([
-			new BindVal('email', '?'),
-			new BindVal('author', '?'),
-			new BindVal('content', '?'),
+			new BindValue('email', '?'),
+			new BindValue('author', '?'),
+			new BindValue('content', '?'),
 		], $call->getBinds());
 		$this->assertEquals(new FinalVal((object) [
 			//~ 'author' => new FinalVal("Iem", 'Str'),
@@ -394,7 +394,7 @@ author = \"John\"
 ");
 		$this->assertSame("Dict", $call->type());
 		$this->assertEquals([
-			new BindVal('address', '?'),
+			new BindValue('address', '?'),
 		], $call->getBinds());
 		$this->assertEquals(new FinalVal((object) [
 			'recipient' => new FinalVal("contact@domain.tld", 'Str'),
@@ -420,7 +420,7 @@ author = address
 ");
 		$this->assertSame("Dict", $call->type());
 		$this->assertEquals([
-			new BindVal('address', '?'),
+			new BindValue('address', '?'),
 		], $call->getBinds());
 		$this->assertEquals(new FinalVal((object) [
 			'recipient' => new FinalVal("contact@domain.tld", 'Str'),
@@ -448,7 +448,7 @@ author = {
 ");
 		$this->assertSame("Dict", $call->type());
 		$this->assertEquals([
-			new BindVal('address', '?'),
+			new BindValue('address', '?'),
 		], $call->getBinds());
 		$this->assertEquals(new FinalVal((object) [
 			'recipient' => new FinalVal("contact@domain.tld", 'Str'),
@@ -480,7 +480,7 @@ name = \"Hi\"
 ");
 		$this->assertSame("Dict", $call->type());
 		$this->assertEquals([
-			new BindVal('address', '?'),
+			new BindValue('address', '?'),
 		], $call->getBinds());
 		$this->assertEquals(new FinalVal((object) [
 			'recipient' => new FinalVal("contact@domain.tld", 'Str'),
@@ -517,8 +517,8 @@ content = [
 ");
 		$this->assertSame("Dict", $call->type());
 		$this->assertEquals([
-			new BindVal('author', '?'),
-			new BindVal('email', '?'),
+			new BindValue('author', '?'),
+			new BindValue('email', '?'),
 		], $call->getBinds());
 		$this->assertEquals(new FinalVal((object) [
 			'name' => new FinalVal('Contact', 'Str'),
@@ -711,57 +711,57 @@ content = [
 			['40 + a', ParametricValue::Expr_(Expr::Bin_(
 					new FinalVal(40, 'Int'),
 					new MathOperator('+'),
-					new BindVal('a', '?')
+					new BindValue('a', '?')
 					)
 				, '?'
-				, [ new BindVal('a', '?'),
+				, [ new BindValue('a', '?'),
 					])],
 
 			["b = 13\ncalc = a + 1 * b\ncalc", ParametricValue::Expr_(Expr::Bin_(
-				new BindVal('a', '?'),
+				new BindValue('a', '?'),
 				new MathOperator('+'),
 				new FinalVal(13, 'Int')
 				), '?', [
-					new BindVal('a', '?'),
+					new BindValue('a', '?'),
 				])],
 
 			['40 + (a + a)', ParametricValue::Expr_(Expr::Bin_(
 					new FinalVal(40, 'Int'),
 					new MathOperator('+'),
 					Expr::Bin_(
-						new BindVal('a', '?'),
+						new BindValue('a', '?'),
 						new MathOperator('+'),
-						new BindVal('a', '?')
+						new BindValue('a', '?')
 						)
 					)
 				, '?'
-				, [ new BindVal('a', '?'),
+				, [ new BindValue('a', '?'),
 				])],
 
 			['40 + (a + b)', ParametricValue::Expr_(Expr::Bin_(
 					new FinalVal(40, 'Int'),
 					new MathOperator('+'),
 					Expr::Bin_(
-						new BindVal('a', '?'),
+						new BindValue('a', '?'),
 						new MathOperator('+'),
-						new BindVal('b', '?')
+						new BindValue('b', '?')
 						)
 					)
 				, '?'
-				, [ new BindVal('a', '?'),
-					new BindVal('b', '?'),
+				, [ new BindValue('a', '?'),
+					new BindValue('b', '?'),
 					])],
 
 			["list.at 2 [\"une\", a, \"trois\"]", ParametricValue::Expr_(Expr::Func_(new ListFunc('at'), [
 					new FinalVal(2, 'Int'),
 					Composite::List_([
 						new FinalVal("une", 'Str'),
-						new BindVal("a", '?'),
+						new BindValue("a", '?'),
 						new FinalVal("trois", 'Str'),
 						]),
 					]),
 				'?',
-				[ new BindVal('a', '?') ]
+				[ new BindValue('a', '?') ]
 				)],
 
 			// @TODO
@@ -796,9 +796,9 @@ content = [
 				ParametricValue::Expr_(Expr::Bin_(
 					new FinalVal(41, 'Int'),
 					new MathOperator('+'),
-					new BindVal("b", '?')
+					new BindValue("b", '?')
 				), '?', [
-					new BindVal("b", '?'),
+					new BindValue("b", '?'),
 				]),
 				],
 
@@ -819,17 +819,17 @@ content = [
 	static function dataShortLinkBind(): array
 	{
 		return [
-			['a', ParametricValue::ShortLinkBind(new BindVal('a', '?')
+			['a', ParametricValue::ShortLinkBind(new BindValue('a', '?')
 				, '?'
-				, [ new BindVal('a', '?'),
+				, [ new BindValue('a', '?'),
 					])],
-			["b = 1\na", ParametricValue::ShortLinkBind(new BindVal('a', '?')
+			["b = 1\na", ParametricValue::ShortLinkBind(new BindValue('a', '?')
 				, '?'
-				, [ new BindVal('a', '?'),
+				, [ new BindValue('a', '?'),
 					])],
-			["b = c\na", ParametricValue::ShortLinkBind(new BindVal('a', '?')
+			["b = c\na", ParametricValue::ShortLinkBind(new BindValue('a', '?')
 				, '?'
-				, [ new BindVal('a', '?'),
+				, [ new BindValue('a', '?'),
 					])],
 		];
 	}
@@ -878,12 +878,12 @@ content = [
 				ParametricValue::Expr_(Expr::Bin_(Expr::Bin_(
 						new FinalVal(6, 'Int'),
 						new PredicateFunction('=='),
-						new BindVal('a', '?')
+						new BindValue('a', '?')
 						),
 					new PredicateFunction('&&'),
 					new FinalVal(True, 'Symbol')
 					), '?', [
-						new BindVal('a', '?'),
+						new BindValue('a', '?'),
 					]),
 				],
 		];

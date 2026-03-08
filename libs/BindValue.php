@@ -9,10 +9,7 @@
 
 namespace Taco\Hayo;
 
-/**
- * Hodnota vyžaduje nějaké argumenty. Výsledek je tedy třeba vypočítat.
- */
-class BindVal
+class BindValue
 {
 
 	private string $name;
@@ -58,7 +55,7 @@ class BindVal
 
 	function isLibrarySymbol(): bool
 	{
-		return (bool) (strpos($this->name, '.') && ctype_upper($this->name[0]));
+		return strpos($this->name, '.') && ctype_upper($this->name[0]);
 	}
 
 

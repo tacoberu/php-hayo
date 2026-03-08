@@ -56,7 +56,7 @@ class Compiler
 		if ( ! $term instanceof Value) {
 			// `a` -- returning argument
 			if (is_string($term)) {
-				return ParametricValue::ShortLinkBind(new BindVal($term, '?'));
+				return ParametricValue::ShortLinkBind(new BindValue($term, '?'));
 			}
 			throw CompileException::InvalidSourceCode("Invalid source code.");
 		}
@@ -535,7 +535,7 @@ class Compiler
 			case $val instanceof FinalVal:
 				return $val;
 
-			case $val instanceof BindVal:
+			case $val instanceof BindValue:
 				return ParametricValue::ShortLinkBind($val);
 
 			case $val instanceof Expr:
@@ -588,7 +588,7 @@ class Compiler
 
 			case is_string($src):
 				if ($packref) {
-					$x = new BindVal($src, "?");
+					$x = new BindValue($src, "?");
 					return [$x, [$x]];
 				}
 				return [$src, []];
@@ -607,7 +607,7 @@ class Compiler
 
 
 	/**
-	 * @return array{0: FinalVal, 1: array<string, BindVal>}
+	 * @return array{0: FinalVal, 1: array<string, BindValue>}
 	 */
 	private static function castScalar(Scalar $val): array
 	{
@@ -629,16 +629,16 @@ class Compiler
 
 
 	/**
-	 * @return array{0: ParametricValue, 1: array<string, BindVal>}
+	 * @return array{0: ParametricValue, 1: array<string, BindValue>}
 	 */
 	private static function castLambda(Lambda $val): array
     {
 		$binds = [];
 		//~ foreach ($val->getArgs() as $x) {
-			//~ $binds[$x] = new BindVal($x, '?');
+			//~ $binds[$x] = new BindValue($x, '?');
 		//~ }
 		foreach ($val->refs() as $x) {
-			$binds[$x] = new BindVal($x, '?');
+			$binds[$x] = new BindValue($x, '?');
 		}
 		$expr = $val->getExpr();
 		if ($expr instanceof Form) {
@@ -654,7 +654,7 @@ class Compiler
 	 * stage all optimization opportunities are exhausted and we simply wrap it
 	 * into a plain value if possible, or into a function if necessary.
 	 *
-	 * @return array{0: FinalVal | Composite, 1: array<string, BindVal>}
+	 * @return array{0: FinalVal | Composite, 1: array<string, BindValue>}
 	 */
 	private static function castComposite(Composite $src, bool $packref): array
 	{
@@ -700,7 +700,7 @@ class Compiler
 
 
 	/**
-	 * @return array{0: Value, 1: array<string, BindVal>}
+	 * @return array{0: Value, 1: array<string, BindValue>}
 	 */
 	private static function castExpr(Expr $src, bool $packref): array
 	{
@@ -723,7 +723,7 @@ class Compiler
 
 
 	/**
-	 * @return array{0: Value, 1: array<string, BindVal>}
+	 * @return array{0: Value, 1: array<string, BindValue>}
 	 */
 	private static function castFormIfThenElse(Form $src, bool $packref): array
 	{
@@ -748,7 +748,7 @@ class Compiler
 
 	/**
 	 * @param array<string|int, string | Value> $src
-	 * @return array{0: array<Value>, 1: array<string, BindVal>}
+	 * @return array{0: array<Value>, 1: array<string, BindValue>}
 	 */
 	private static function castCompositeItems(array $src, bool $packref): array
 	{
@@ -757,7 +757,7 @@ class Compiler
 		foreach ($src as $k => $x) {
 			if (is_string($x)) {
 				$items[$k] = $packref
-					? $lets[$x] = new BindVal($x, '?')
+					? $lets[$x] = new BindValue($x, '?')
 					: $x;
 			}
 			elseif ($x instanceof BuildinFunc) {

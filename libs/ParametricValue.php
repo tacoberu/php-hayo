@@ -23,20 +23,20 @@ class ParametricValue implements HasRefs, Value
 {
 
 	/**
-	 * @var Expr | Form | Composite | BindVal
+	 * @var Expr | Form | Composite | BindValue
 	 */
 	private $expr;
 
 	private string $type;
 
 	/**
-	 * @var list<BindVal>
+	 * @var list<BindValue>
 	 */
 	private array $binds;
 
 	/**
-	 * @param Expr | Form | Composite | BindVal $expr
-	 * @param list<BindVal> $binds
+	 * @param Expr | Form | Composite | BindValue $expr
+	 * @param list<BindValue> $binds
 	 */
 	private function __construct($expr, string $type, array $binds)
 	{
@@ -50,7 +50,7 @@ class ParametricValue implements HasRefs, Value
 	/**
 	 * All unresolved dependencies of $expr must be captured in $binds.
 	 *
-	 * @param list<BindVal> $binds
+	 * @param list<BindValue> $binds
 	 */
 	static function Expr_(Expr $expr, string $type, array $binds): self
 	{
@@ -60,7 +60,7 @@ class ParametricValue implements HasRefs, Value
 
 
 	/**
-	 * @param list<BindVal> $binds
+	 * @param list<BindValue> $binds
 	 */
 	static function Form_(Form $expr, string $type, array $binds): self
 	{
@@ -70,7 +70,7 @@ class ParametricValue implements HasRefs, Value
 
 
 	/**
-	 * @param list<BindVal> $binds
+	 * @param list<BindValue> $binds
 	 */
 	static function Dict_(Composite $expr, array $binds): self
 	{
@@ -80,7 +80,7 @@ class ParametricValue implements HasRefs, Value
 
 
 	/**
-	 * @param list<BindVal> $binds
+	 * @param list<BindValue> $binds
 	 */
 	static function Record_(Composite $expr, array $binds): self
 	{
@@ -90,7 +90,7 @@ class ParametricValue implements HasRefs, Value
 
 
 	/**
-	 * @param list<BindVal> $binds
+	 * @param list<BindValue> $binds
 	 */
 	static function List_(Composite $expr, array $binds): self
 	{
@@ -100,11 +100,18 @@ class ParametricValue implements HasRefs, Value
 
 
 	/**
-	 * @param list<BindVal> $binds
+	 * @param list<BindValue> $binds
 	 */
 	static function Tuple_(Composite $expr, array $binds): self
 	{
 		return new self($expr, Composite::TypeTuple, $binds);
+	}
+
+
+
+	static function ShortLinkBind(BindValue $expr): self
+	{
+		return new self($expr, '?', [$expr]);
 	}
 
 
@@ -187,17 +194,10 @@ class ParametricValue implements HasRefs, Value
 
 
 
-	static function ShortLinkBind(BindVal $expr): self
-	{
-		return new self($expr, '?', [$expr]);
-	}
-
-
-
 	/**
 	 * @param array<string, FinalVal | ParametricValue> $xs
 	 */
-	private static function assertBindInArguments(BindVal $bind, array $xs): void // @phpstan-ignore method.unused
+	private static function assertBindInArguments(BindValue $bind, array $xs): void // @phpstan-ignore method.unused
 	{
 		if ( ! array_key_exists($bind->getName(), $xs)) {
 			throw new InvalidArgumentException("Missing args: '{$bind->getBindName()}'.");
@@ -209,12 +209,12 @@ class ParametricValue implements HasRefs, Value
 	/**
 	 * Validates that the correct number of elements was passed.
 	 *
-	 * @param array<BindVal> $binds
+	 * @param array<BindValue> $binds
 	 * @param array<string, FinalVal | ParametricValue> $args
 	 */
 	private static function assertBindArguments(array $binds, array $args): void
 	{
-		$binds = array_map(static function(BindVal $x): string {
+		$binds = array_map(static function(BindValue $x): string {
 			return $x->getName();
 		}, $binds);
 		$args = array_keys($args);

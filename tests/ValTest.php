@@ -29,12 +29,12 @@ class ValTest extends TestCase
 		$inst = ParametricValue::Expr_(Expr::Bin_('a',
 			new MathOperator('+'),
 			'b'
-		), 'Int', [new BindVal('a', 'Int'), new BindVal('b', 'Int')]);
+		), 'Int', [new BindValue('a', 'Int'), new BindValue('b', 'Int')]);
 		$this->assertSame('Int', $inst->getTypeName());
 		$this->assertSame(['a', 'b'], $inst->refs());
 		$this->assertEquals([
-			new BindVal('a', 'Int'),
-			new BindVal('b', 'Int'),
+			new BindValue('a', 'Int'),
+			new BindValue('b', 'Int'),
 		], $inst->getBinds());
 		$this->assertEquals(new FinalVal(16, 'Int')
 			, $inst->apply([
@@ -51,11 +51,11 @@ class ValTest extends TestCase
 			new FinalVal(41, 'Int'),
 			new MathOperator('+'),
 			'a'
-		), 'Int', [new BindVal('a', 'Int')]);
+		), 'Int', [new BindValue('a', 'Int')]);
 		$this->assertSame('Int', $inst->getTypeName());
 		$this->assertSame(['a'], $inst->refs());
 		$this->assertEquals([
-			new BindVal('a', 'Int'),
+			new BindValue('a', 'Int'),
 		], $inst->getBinds());
 		$this->assertEquals(new FinalVal(49, 'Int')
 			, $inst->apply(['a' => new FinalVal(8, 'Int')]));

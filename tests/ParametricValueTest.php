@@ -21,12 +21,12 @@ class ParametricValueTest extends TestCase
 			'a',
 			new MathOperator('+'),
 			'b'
-		), 'Int', [new BindVal('a', 'Int'), new BindVal('b', 'Int')]);
+		), 'Int', [new BindValue('a', 'Int'), new BindValue('b', 'Int')]);
 		$this->assertSame('Int', $inst->getTypeName());
 		$this->assertSame(['a', 'b'], $inst->refs());
 		$this->assertEquals([
-			new BindVal('a', 'Int'),
-			new BindVal('b', 'Int'),
+			new BindValue('a', 'Int'),
+			new BindValue('b', 'Int'),
 		], $inst->getBinds());
 		$this->assertEquals(new FinalVal(16, 'Int')
 			, $inst->apply([
@@ -43,11 +43,11 @@ class ParametricValueTest extends TestCase
 			new FinalVal(41, 'Int'),
 			new MathOperator('+'),
 			'a'
-		), 'Int', [new BindVal('a', 'Int')]);
+		), 'Int', [new BindValue('a', 'Int')]);
 		$this->assertSame('Int', $inst->getTypeName());
 		$this->assertSame(['a'], $inst->refs());
 		$this->assertEquals([
-			new BindVal('a', 'Int'),
+			new BindValue('a', 'Int'),
 		], $inst->getBinds());
 		$this->assertEquals(new FinalVal(49, 'Int')
 			, $inst->apply(['a' => new FinalVal(8, 'Int')]));
@@ -75,15 +75,15 @@ class ParametricValueTest extends TestCase
 	{
 		$inst = ParametricValue::Dict_(Composite::Dict_([
 			'a' => Composite::Dict_([
-				'b' => new BindVal('content', '?'),
+				'b' => new BindValue('content', '?'),
 			]),
-		]), [new BindVal('content', 'Str')]);
+		]), [new BindValue('content', 'Str')]);
 		$this->assertSame('Dict', $inst->getTypeName());
 		// Because ParametricValue has content bound, there are no further dependencies.
 		// It also converts the ambiguous symbol represented as a string into an unambiguously bound symbol.
 		$this->assertSame([], $inst->refs());
 		$this->assertEquals([
-			new BindVal('content', 'Str'),
+			new BindValue('content', 'Str'),
 		], $inst->getBinds());
 		$this->assertEquals(new FinalVal((object) [
 			'a' => new FinalVal((object) [

@@ -16,7 +16,7 @@ final class Interpret
 {
 
 	/**
-	 * @param string|FinalVal|self|BindVal| Value $src
+	 * @param string|FinalVal|self|BindValue| Value $src
 	 * @param array<string, FinalVal | ParametricValue> $lets
 	 * @return FinalVal | ParametricValue
 	 */
@@ -27,7 +27,7 @@ final class Interpret
 				// @TODO validace
 				return $lets[$src];
 
-			case $src instanceof BindVal:
+			case $src instanceof BindValue:
 				//~ self::assertBindInArguments($src, $lets);
 				$value = $lets[$src->getName()];
 				if ( ! $value instanceof FinalVal) {
@@ -179,7 +179,7 @@ final class Interpret
 	 * $src to be a dictionary and extract the correct value from it.
 	 * @param array<string, FinalValue | ParametricValue> $xs
 	 */
-	private static function selectByPath(BindVal $id, FinalVal $src): FinalVal
+	private static function selectByPath(BindValue $id, FinalVal $src): FinalVal
 	{
 		//~ self::assertDict($src);
 		$curr = (object)[
