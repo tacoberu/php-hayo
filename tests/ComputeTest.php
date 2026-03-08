@@ -27,6 +27,7 @@ class ComputeTest extends TestCase
 	#[DataProvider('dataPaths')]
 	#[DataProvider('dataPipeOperator')]
 	#[DataProvider('dataForms')]
+	#[DataProvider('dataComplex')]
 	function testCompute(string $code, array $args, $expected)
 	{
 		$this->assertEquals($expected, $this->compile($code)->apply($args));
@@ -649,6 +650,34 @@ else "D"
 			['List.sort xs ((a) -> a + 1)',
 				CompileException::class,
 				$msg],
+		];
+	}
+
+
+
+	/**
+	 * @return array<array<mixed>>
+	 */
+	static function dataComplex(): array
+	{
+		return [
+			[trim("
+xs = (Str.split src \",\")
+-- xs = (Str.split \", \" \"Majakovskeho 13, Karlovy Vary, Czech republic\")
+{
+	street: (List.first xs \"\")
+	city: (List.at xs 1 \"\") |> Str.trim
+	country: (List.at xs 2 \"\") |> Str.trim
+}
+
+	"),
+				[ 'src' => new FinalValue("Majakovskeho 13, Karlovy Vary, Czech republic", 'Str')],
+				new FinalValue((object) [
+					'street' => new FinalValue("Majakovskeho 13", 'a'),
+					'city' => new FinalValue("Karlovy Vary", 'Str'),
+					'country' => new FinalValue("Czech republic", 'Str'),
+					], 'Dict'),
+				],
 		];
 	}
 
