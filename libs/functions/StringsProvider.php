@@ -137,17 +137,17 @@ class StringFunc implements BuildinFunc
 		switch ($this->name) {
 			case 'strings.len':
 			case 'len':
-				return new FinalVal(self::applyLen($args), 'Int'); // @phpstan-ignore argument.type
+				return new FinalValue(self::applyLen($args), 'Int'); // @phpstan-ignore argument.type
 
 			case 'strings.split':
 			case 'split':
-				return new FinalVal(array_map(static function (string $x): FinalVal {
-					return new FinalVal($x, 'Str');
+				return new FinalValue(array_map(static function (string $x): FinalVal {
+					return new FinalValue($x, 'Str');
 				}, self::applySplit($args)), 'List'); // @phpstan-ignore argument.type
 
 			case 'strings.concat':
 			case 'concat':
-				return new FinalVal(self::applyConcat($args), 'Str'); // @phpstan-ignore argument.type
+				return new FinalValue(self::applyConcat($args), 'Str'); // @phpstan-ignore argument.type
 
 			default:
 				throw new LogicException("Comming soon: {$this->name}");

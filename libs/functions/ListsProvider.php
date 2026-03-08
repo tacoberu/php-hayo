@@ -148,7 +148,7 @@ class ListFunc implements BuildinFunc
 			case 'list.len':
 			case 'len':
 				self::assertArgumentExist($args, 0, 'src: List<a>');
-				return new FinalVal(count($args[0]), 'Int');
+				return new FinalValue(count($args[0]), 'Int');
 
 			case 'list.first':
 			case 'first':
@@ -156,9 +156,9 @@ class ListFunc implements BuildinFunc
 				self::assertArgumentExist($args, 1, 'default: a');
 				$xs = $args[0];
 				if (count($xs) > 0) {
-					return new FinalVal($xs[0], 'a');
+					return new FinalValue($xs[0], 'a');
 				}
-				return new FinalVal($args[1], 'a');
+				return new FinalValue($args[1], 'a');
 
 			case 'list.at':
 			case 'at':
@@ -168,8 +168,8 @@ class ListFunc implements BuildinFunc
 				$index = $args[0];
 				$xs = $args[1] ?? [];
 				return array_key_exists($index, $xs)
-					? new FinalVal($xs[$index], 'a')
-					: new FinalVal($args[2], 'a');
+					? new FinalValue($xs[$index], 'a')
+					: new FinalValue($args[2], 'a');
 
 			case 'list.exist':
 			case 'exist':
@@ -177,7 +177,7 @@ class ListFunc implements BuildinFunc
 				self::assertArgumentExist($args, 1, 'src: List<a>');
 				$index = $args[0];
 				$xs = $args[1];
-				return new FinalVal(array_key_exists($index, $xs), 'Bool');
+				return new FinalValue(array_key_exists($index, $xs), 'Bool');
 
 			default:
 				throw new LogicException("Unsupported operator: {$this->name}.");

@@ -17,7 +17,7 @@ class ValTest extends TestCase
 
 	function testFinal()
 	{
-		$val = new FinalVal('Lorem ispum colder.', 'Str');
+		$val = new FinalValue('Lorem ispum colder.', 'Str');
 		$this->assertSame('Lorem ispum colder.', $val->unpack());
 		$this->assertSame('Str', $val->type());
 	}
@@ -36,10 +36,10 @@ class ValTest extends TestCase
 			new BindValue('a', 'Int'),
 			new BindValue('b', 'Int'),
 		], $inst->getBinds());
-		$this->assertEquals(new FinalVal(16, 'Int')
+		$this->assertEquals(new FinalValue(16, 'Int')
 			, $inst->apply([
-				'a' => new FinalVal(8, 'Int'),
-				'b' => new FinalVal(8, 'Int'),
+				'a' => new FinalValue(8, 'Int'),
+				'b' => new FinalValue(8, 'Int'),
 				]));
 	}
 
@@ -48,7 +48,7 @@ class ValTest extends TestCase
 	function testVariadic1()
 	{
 		$inst = ParametricValue::Expr_(Expr::Bin_(
-			new FinalVal(41, 'Int'),
+			new FinalValue(41, 'Int'),
 			new MathOperator('+'),
 			'a'
 		), 'Int', [new BindValue('a', 'Int')]);
@@ -57,8 +57,8 @@ class ValTest extends TestCase
 		$this->assertEquals([
 			new BindValue('a', 'Int'),
 		], $inst->getBinds());
-		$this->assertEquals(new FinalVal(49, 'Int')
-			, $inst->apply(['a' => new FinalVal(8, 'Int')]));
+		$this->assertEquals(new FinalValue(49, 'Int')
+			, $inst->apply(['a' => new FinalValue(8, 'Int')]));
 	}
 
 
@@ -66,14 +66,14 @@ class ValTest extends TestCase
 	function testVariadic2()
 	{
 		$inst = ParametricValue::Expr_(Expr::Bin_(
-			new FinalVal(41, 'Int'),
+			new FinalValue(41, 'Int'),
 			new MathOperator('+'),
-			new FinalVal(11, 'Int')
+			new FinalValue(11, 'Int')
 		), 'Int', []);
 		$this->assertSame('Int', $inst->getTypeName());
 		$this->assertSame([], $inst->refs());
 		$this->assertEquals([], $inst->getBinds());
-		$this->assertEquals(new FinalVal(52, 'Int')
+		$this->assertEquals(new FinalValue(52, 'Int')
 			, $inst->apply([]));
 	}
 

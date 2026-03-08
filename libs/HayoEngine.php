@@ -86,7 +86,7 @@ final class HayoEngine
 	{
 		$expr = $this->compile($code);
 		switch (True) {
-			case $expr instanceof FinalVal:
+			case $expr instanceof FinalValue:
 				return $expr->unpack();
 
 			case $expr instanceof ParametricValue: // @phpstan-ignore instanceof.alwaysTrue
@@ -102,7 +102,7 @@ final class HayoEngine
 
 
 	/**
-	 * @return FinalVal | ParametricValue
+	 * @return FinalValue | ParametricValue
 	 */
 	private function compileInner(string $code)
 	{
@@ -145,14 +145,14 @@ final class HayoEngine
 	 * Wrap arguments from plain values into FinalValue
 	 *
 	 * @param list<mixed> | array<string, mixed> $args
-	 * @return array<string, FinalVal>
+	 * @return array<string, FinalValue>
 	 */
 	private static function buildAppliableArguments(ParametricValue $expr, array $args): array
 	{
 		if ( ! is_string(key($args))) {
 			$args = self::combineBindWithValues($expr, $args); // @phpstan-ignore argument.type
 		}
-		return array_map(static function ($x): FinalVal { // @phpstan-ignore return.type
+		return array_map(static function ($x): FinalValue { // @phpstan-ignore return.type
 			return self::pack($x);
 		}, $args);
 	}

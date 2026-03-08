@@ -60,7 +60,7 @@ interface Cache
 
 	/**
 	 * @param callable $cb
-	 * @return FinalVal | ParametricValue
+	 * @return FinalValue | ParametricValue
 	 */
 	function load(string $key, $cb);
 

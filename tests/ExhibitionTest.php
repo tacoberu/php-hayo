@@ -80,8 +80,8 @@ a + x', [10]);
 		$routine = HayoEngine::WithDefaultLibraries()
 			->setCache(new FileBaseCache(__dir__ . '/../temp/cache'))
 			->compile("1 + a");
-		$this->assertEquals(new FinalVal(6, 'Int'),
-			$routine->apply(['a' => new FinalVal(5, 'Int')]));
+		$this->assertEquals(new FinalValue(6, 'Int'),
+			$routine->apply(['a' => new FinalValue(5, 'Int')]));
 	}
 
 
@@ -157,7 +157,7 @@ a + x', [10]);
 				'yes' => True,
 				'no' => False,
 				'nothing' => Null,
-				'tuple' => new FinalVal([], 'Tuple'),
+				'tuple' => new FinalValue([], 'Tuple'),
 				'list' => [1, 2, 3],
 				'dict' => (object) ['a' => 1, 'b' => 2, 'c' => 3],
 			]);

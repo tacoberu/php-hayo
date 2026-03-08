@@ -13,10 +13,10 @@ use LogicException;
 
 
 /**
- * Výsledná hodnota, zabalená s typem. Může se jednat o skalar, ale i o různě
- * zanořenou strukturu. Nevyžaduje žádné parametry, je tedy statická.
+ * Final value, wrapped with a type. Can be a scalar or a variously
+ * nested structure. Requires no parameters, so it is static.
  */
-class FinalVal implements Value
+class FinalValue implements Value
 {
 
 	/**

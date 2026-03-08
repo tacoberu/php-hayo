@@ -27,7 +27,7 @@ xs = (strings.split "," "une, deux, trois")
 		$code = "1 IN xs";
 
 		dump($this->compile($code));
-		dump($this->compile($code)->apply(['xs' => new FinalVal([1], "List")]));
+		dump($this->compile($code)->apply(['xs' => new FinalValue([1], "List")]));
 	}
 
 
@@ -37,7 +37,7 @@ xs = (strings.split "," "une, deux, trois")
 	#[DataProvider('dataOperations')]
 	#[DataProvider('dataFunctions')]
 	#[DataProvider('dataLambdas')]
-	#[DataProvider('dataFinalValWithSymbol')]
+	#[DataProvider('dataFinalValueWithSymbol')]
 	#[DataProvider('dataParametricValue')]
 	#[DataProvider('dataPredicators')]
 	#[DataProvider('dataShortLinkBind')]
@@ -51,13 +51,13 @@ xs = (strings.split "," "une, deux, trois")
 
 	function testReturnStructWithBind()
 	{
-		$this->assertEquals(new FinalVal((object) [
-			'a' => new FinalVal(45, 'Int'),
-			'b' => new FinalVal('abc', 'Str'),
-			'c' => new FinalVal(88, 'Int'),
+		$this->assertEquals(new FinalValue((object) [
+			'a' => new FinalValue(45, 'Int'),
+			'b' => new FinalValue('abc', 'Str'),
+			'c' => new FinalValue(88, 'Int'),
 		], 'Dict'), $this->compile('
 {a: a, b: "abc", c: c}')
-		->apply(['a' => new FinalVal(45, 'Int'), 'c' => new FinalVal(88, 'Int')])
+		->apply(['a' => new FinalValue(45, 'Int'), 'c' => new FinalValue(88, 'Int')])
 		);
 	}
 
@@ -74,11 +74,11 @@ xs = (strings.split "," "une, deux, trois")
 		$this->assertEquals([
 			new BindValue('content', '?'),
 		], $call->getBinds());
-		$this->assertEquals(new FinalVal((object) [
-			'content' => new FinalVal('Iem', 'Str'),
+		$this->assertEquals(new FinalValue((object) [
+			'content' => new FinalValue('Iem', 'Str'),
 			], 'Dict')
 			, $call->apply([
-				'content' => new FinalVal("Iem", 'Str'),
+				'content' => new FinalValue("Iem", 'Str'),
 			]));
 	}
 
@@ -98,13 +98,13 @@ xs = (strings.split "," "une, deux, trois")
 			new BindValue('content', '?'),
 		], $call->getBinds());
 
-		$this->assertEquals(new FinalVal((object) [
-				'a' => new FinalVal((object) [
-					'b' => new FinalVal('Iem', 'Str'),
+		$this->assertEquals(new FinalValue((object) [
+				'a' => new FinalValue((object) [
+					'b' => new FinalValue('Iem', 'Str'),
 				], 'Dict'),
 			], 'Dict')
 			, $call->apply([
-				'content' => new FinalVal("Iem", 'Str'),
+				'content' => new FinalValue("Iem", 'Str'),
 			]));
 	}
 
@@ -133,10 +133,10 @@ a
 
 	function testStringSplit()
 	{
-		$this->assertEquals(new FinalVal([
-			new FinalVal('une', 'Str'),
-			new FinalVal(' deux', 'Str'),
-			new FinalVal(' trois', 'Str'),
+		$this->assertEquals(new FinalValue([
+			new FinalValue('une', 'Str'),
+			new FinalValue(' deux', 'Str'),
+			new FinalValue(' trois', 'Str'),
 		], 'List'), $this->compile('
 (strings.split "," "une, deux, trois")')
 		);
@@ -146,8 +146,8 @@ a
 
 	function testListFirst()
 	{
-		$this->assertEquals(new FinalVal("une", 'a'), $this->compile('
-xs = (strings.split "," "une, deux, trois")
+		$this->assertEquals(new FinalValue("une", 'a'), $this->compile('
+xs = (Str.split "une, deux, trois" ",")
 -- xs = []
 (list.first xs "")')
 		);
@@ -157,7 +157,7 @@ xs = (strings.split "," "une, deux, trois")
 
 	function testListFirstDefault()
 	{
-		$this->assertEquals(new FinalVal('', 'a'), $this->compile('
+		$this->assertEquals(new FinalValue('', 'a'), $this->compile('
 xs = []
 (list.first xs "")')
 		);
@@ -167,9 +167,9 @@ xs = []
 
 	function testListExist()
 	{
-		$this->assertEquals(new FinalVal(true, 'Bool'), $this->compile('
-xs = (strings.split "," "une, deux, trois")
-(list.exist 0 xs)')
+		$this->assertEquals(new FinalValue(true, 'Bool'), $this->compile('
+xs = (Str.split "une, deux, trois" ",")
+(List.exist 0 xs)')
 		);
 	}
 
@@ -177,9 +177,9 @@ xs = (strings.split "," "une, deux, trois")
 
 	function testListAt()
 	{
-		$this->assertEquals(new FinalVal(' deux', 'a'), $this->compile('
-xs = (strings.split "," "une, deux, trois")
-(list.at 1 xs "")')
+		$this->assertEquals(new FinalValue(' deux', 'a'), $this->compile('
+xs = (Str.split "une, deux, trois" ",")
+(List.at xs 1 "")')
 		);
 	}
 
@@ -187,10 +187,10 @@ xs = (strings.split "," "une, deux, trois")
 
 	function testComposeDictStatic()
 	{
-		$this->assertEquals(new FinalVal((object) [
-			'une' => new FinalVal('une', 'a'),
-			'deux' => new FinalVal(' deux', 'a'),
-			'trois' => new FinalVal(' trois', 'a'),
+		$this->assertEquals(new FinalValue((object) [
+			'une' => new FinalValue('une', 'a'),
+			'deux' => new FinalValue(' deux', 'a'),
+			'trois' => new FinalValue(' trois', 'a'),
 		], 'Dict'), $this->compile('
 xs = (strings.split "," "une, deux, trois")
 {
@@ -205,10 +205,10 @@ xs = (strings.split "," "une, deux, trois")
 
 	function testComposeListStatic()
 	{
-		$this->assertEquals(new FinalVal([
-			new FinalVal('une', 'a'),
-			new FinalVal(' deux', 'a'),
-			new FinalVal(' trois', 'a'),
+		$this->assertEquals(new FinalValue([
+			new FinalValue('une', 'a'),
+			new FinalValue(' deux', 'a'),
+			new FinalValue(' trois', 'a'),
 		], 'List'), $this->compile('
 xs = (strings.split "," "une, deux, trois")
 [
@@ -223,10 +223,10 @@ xs = (strings.split "," "une, deux, trois")
 
 	function testComposeTupleStatic()
 	{
-		$this->assertEquals(new FinalVal([
-			new FinalVal('une', 'a'),
-			new FinalVal(' deux', 'a'),
-			new FinalVal(' trois', 'a'),
+		$this->assertEquals(new FinalValue([
+			new FinalValue('une', 'a'),
+			new FinalValue(' deux', 'a'),
+			new FinalValue(' trois', 'a'),
 		], 'Tuple'), $this->compile('
 xs = (strings.split "," "une, deux, trois")
 (
@@ -253,12 +253,12 @@ xs = (strings.split "," src)
 		$this->assertEquals([
 			new BindValue('src', '?'),
 		], $call->getBinds());
-		$this->assertEquals(new FinalVal((object) [
-			'une' => new FinalVal('Lorem ipsum', 'a'),
-			'deux' => new FinalVal(' doler ist', 'a'),
-			'trois' => new FinalVal('', 'a'),
+		$this->assertEquals(new FinalValue((object) [
+			'une' => new FinalValue('Lorem ipsum', 'a'),
+			'deux' => new FinalValue(' doler ist', 'a'),
+			'trois' => new FinalValue('', 'a'),
 			], 'Dict')
-			, $call->apply(['src' => new FinalVal("Lorem ipsum, doler ist", 'Str')]));
+			, $call->apply(['src' => new FinalValue("Lorem ipsum, doler ist", 'Str')]));
 	}
 
 
@@ -315,16 +315,16 @@ content = {
 			new BindValue('content', '?'),
 		], $call->getBinds());
 
-		$this->assertEquals(new FinalVal((object) [
-			'content' => new FinalVal([
-				new FinalVal((object) [
-					'key' => new FinalVal('content', 'Str'),
-					'content' => new FinalVal('Iem', 'Str'),
+		$this->assertEquals(new FinalValue((object) [
+			'content' => new FinalValue([
+				new FinalValue((object) [
+					'key' => new FinalValue('content', 'Str'),
+					'content' => new FinalValue('Iem', 'Str'),
 					], 'Dict'),
 				], 'List'),
 			], 'Dict')
 			, $call->apply([
-				'content' => new FinalVal("Iem", 'Str'),
+				'content' => new FinalValue("Iem", 'Str'),
 			]));
 	}
 
@@ -350,33 +350,33 @@ content = {
 			new BindValue('author', '?'),
 			new BindValue('content', '?'),
 		], $call->getBinds());
-		$this->assertEquals(new FinalVal((object) [
-			//~ 'author' => new FinalVal("Iem", 'Str'),
-			'name' => new FinalVal("contact", 'Str'),
-			'recipient' => new FinalVal("contact@domain.tld", 'Str'),
-			'content' => new FinalVal([
-				new FinalVal((object) [
-					'key' => new FinalVal("youremail", 'Str'),
-					'content' => new FinalVal("iem@domain.tld", 'Str'),
+		$this->assertEquals(new FinalValue((object) [
+			//~ 'author' => new FinalValue("Iem", 'Str'),
+			'name' => new FinalValue("contact", 'Str'),
+			'recipient' => new FinalValue("contact@domain.tld", 'Str'),
+			'content' => new FinalValue([
+				new FinalValue((object) [
+					'key' => new FinalValue("youremail", 'Str'),
+					'content' => new FinalValue("iem@domain.tld", 'Str'),
 					], 'Dict'),
-				new FinalVal((object) [
-					'key' => new FinalVal("yourname", 'Str'),
-					'content' => new FinalVal("Iem", 'Str'),
+				new FinalValue((object) [
+					'key' => new FinalValue("yourname", 'Str'),
+					'content' => new FinalValue("Iem", 'Str'),
 					], 'Dict'),
-				new FinalVal((object) [
-					'key' => new FinalVal("content", 'Str'),
-					'content' => new FinalVal("Lorem ipsum doler ist", 'Str'),
+				new FinalValue((object) [
+					'key' => new FinalValue("content", 'Str'),
+					'content' => new FinalValue("Lorem ipsum doler ist", 'Str'),
 					], 'Dict'),
-				new FinalVal((object) [
-					'key' => new FinalVal("domain", 'Str'),
-					'content' => new FinalVal("domain.tld", 'Str'),
+				new FinalValue((object) [
+					'key' => new FinalValue("domain", 'Str'),
+					'content' => new FinalValue("domain.tld", 'Str'),
 					], 'Dict'),
 				], 'List'),
 			], 'Dict')
 			, $call->apply([
-				'author' => new FinalVal("Iem", 'Str'),
-				'email' => new FinalVal("iem@domain.tld", 'Str'),
-				'content' => new FinalVal("Lorem ipsum doler ist", 'Str'),
+				'author' => new FinalValue("Iem", 'Str'),
+				'email' => new FinalValue("iem@domain.tld", 'Str'),
+				'content' => new FinalValue("Lorem ipsum doler ist", 'Str'),
 			]));
 	}
 
@@ -396,13 +396,13 @@ author = \"John\"
 		$this->assertEquals([
 			new BindValue('address', '?'),
 		], $call->getBinds());
-		$this->assertEquals(new FinalVal((object) [
-			'recipient' => new FinalVal("contact@domain.tld", 'Str'),
-			'content' => new FinalVal("John", 'Str'),
-			'address' => new FinalVal("Iem", 'Str'),
+		$this->assertEquals(new FinalValue((object) [
+			'recipient' => new FinalValue("contact@domain.tld", 'Str'),
+			'content' => new FinalValue("John", 'Str'),
+			'address' => new FinalValue("Iem", 'Str'),
 			], 'Dict')
 			, $call->apply([
-				'address' => new FinalVal("Iem", 'Str'),
+				'address' => new FinalValue("Iem", 'Str'),
 			]));
 	}
 
@@ -422,13 +422,13 @@ author = address
 		$this->assertEquals([
 			new BindValue('address', '?'),
 		], $call->getBinds());
-		$this->assertEquals(new FinalVal((object) [
-			'recipient' => new FinalVal("contact@domain.tld", 'Str'),
-			'content' => new FinalVal("John", 'Str'),
-			'address' => new FinalVal("John", 'Str'),
+		$this->assertEquals(new FinalValue((object) [
+			'recipient' => new FinalValue("contact@domain.tld", 'Str'),
+			'content' => new FinalValue("John", 'Str'),
+			'address' => new FinalValue("John", 'Str'),
 			], 'Dict')
 			, $call->apply([
-				'address' => new FinalVal("John", 'Str'),
+				'address' => new FinalValue("John", 'Str'),
 			]));
 	}
 
@@ -450,15 +450,15 @@ author = {
 		$this->assertEquals([
 			new BindValue('address', '?'),
 		], $call->getBinds());
-		$this->assertEquals(new FinalVal((object) [
-			'recipient' => new FinalVal("contact@domain.tld", 'Str'),
-			'content' => new FinalVal((object) [
-				'foo' => new FinalVal("John", 'Str'),
+		$this->assertEquals(new FinalValue((object) [
+			'recipient' => new FinalValue("contact@domain.tld", 'Str'),
+			'content' => new FinalValue((object) [
+				'foo' => new FinalValue("John", 'Str'),
 			], 'Dict'),
-			'address' => new FinalVal("John", 'Str'),
+			'address' => new FinalValue("John", 'Str'),
 			], 'Dict')
 			, $call->apply([
-				'address' => new FinalVal("John", 'Str'),
+				'address' => new FinalValue("John", 'Str'),
 			]));
 	}
 
@@ -482,16 +482,16 @@ name = \"Hi\"
 		$this->assertEquals([
 			new BindValue('address', '?'),
 		], $call->getBinds());
-		$this->assertEquals(new FinalVal((object) [
-			'recipient' => new FinalVal("contact@domain.tld", 'Str'),
-			'content' => new FinalVal((object) [
-				'foo' => new FinalVal("John", 'Str'),
-				'boo' => new FinalVal("Hi", 'Str'),
+		$this->assertEquals(new FinalValue((object) [
+			'recipient' => new FinalValue("contact@domain.tld", 'Str'),
+			'content' => new FinalValue((object) [
+				'foo' => new FinalValue("John", 'Str'),
+				'boo' => new FinalValue("Hi", 'Str'),
 			], 'Dict'),
-			'address' => new FinalVal("John", 'Str'),
+			'address' => new FinalValue("John", 'Str'),
 			], 'Dict')
 			, $call->apply([
-				'address' => new FinalVal("John", 'Str'),
+				'address' => new FinalValue("John", 'Str'),
 			]));
 	}
 
@@ -520,27 +520,27 @@ content = [
 			new BindValue('author', '?'),
 			new BindValue('email', '?'),
 		], $call->getBinds());
-		$this->assertEquals(new FinalVal((object) [
-			'name' => new FinalVal('Contact', 'Str'),
-			'recipient' => new FinalVal('contact@domain.tld', 'Str'),
-			'content' => new FinalVal([
-				new FinalVal((object) [
-					'key' => new FinalVal('yourname', 'Str'),
-					'content' => new FinalVal('Laura', 'Str'),
+		$this->assertEquals(new FinalValue((object) [
+			'name' => new FinalValue('Contact', 'Str'),
+			'recipient' => new FinalValue('contact@domain.tld', 'Str'),
+			'content' => new FinalValue([
+				new FinalValue((object) [
+					'key' => new FinalValue('yourname', 'Str'),
+					'content' => new FinalValue('Laura', 'Str'),
 					], 'Dict'),
-				new FinalVal((object) [
-					'key' => new FinalVal('youremail', 'Str'),
-					'content' => new FinalVal('contact@domain.tld', 'Str'),
+				new FinalValue((object) [
+					'key' => new FinalValue('youremail', 'Str'),
+					'content' => new FinalValue('contact@domain.tld', 'Str'),
 					], 'Dict'),
-				new FinalVal((object) [
-					'key' => new FinalVal('domain', 'Str'),
-					'content' => new FinalVal('domain.tld', 'Str'),
+				new FinalValue((object) [
+					'key' => new FinalValue('domain', 'Str'),
+					'content' => new FinalValue('domain.tld', 'Str'),
 					], 'Dict'),
 				], 'List'),
 			], 'Dict')
 			, $call->apply([
-				'author' => new FinalVal("Laura", 'Str'),
-				'email' => new FinalVal("contact@domain.tld", 'Str'),
+				'author' => new FinalValue("Laura", 'Str'),
+				'email' => new FinalValue("contact@domain.tld", 'Str'),
 			]));
 	}
 
@@ -565,11 +565,14 @@ content = [
 	static function dataFunctions(): array
 	{
 		return [
-			['strings.split " " ""',
-				new FinalVal([], 'List'),
+			['Str.split "" " "',
+				new FinalValue([], 'List'),
 				],
-			['strings.split " " " "',
-				new FinalVal(['', ''], 'List'),
+			['Str.split " " ""',
+				new FinalValue([" "], 'List'),
+				],
+			['Str.split " " " "',
+				new FinalValue(['', ''], 'List'),
 				],
 		];
 	}
@@ -582,22 +585,22 @@ content = [
 	static function dataScalar(): array
 	{
 		return [
-			['42', new FinalVal(42, 'Int')],
-			['0', new FinalVal(0, 'Int')],
-			['-1', new FinalVal(-1, 'Int')],
+			['42', new FinalValue(42, 'Int')],
+			['0', new FinalValue(0, 'Int')],
+			['-1', new FinalValue(-1, 'Int')],
 
-			['0.0', new FinalVal(0.0, 'Real')],
-			['0.1', new FinalVal(0.1, 'Real')],
-			['3.1415', new FinalVal(3.1415, 'Real')],
-			['-3.1415', new FinalVal(-3.1415, 'Real')],
+			['0.0', new FinalValue(0.0, 'Real')],
+			['0.1', new FinalValue(0.1, 'Real')],
+			['3.1415', new FinalValue(3.1415, 'Real')],
+			['-3.1415', new FinalValue(-3.1415, 'Real')],
 
-			['"Ahoj"', new FinalVal('Ahoj', 'Str')],
-			['"Sinead O\'Connor"', new FinalVal("Sinead O'Connor", 'Str')],
-			['"""Sinead O\'Connor"""', new FinalVal("Sinead O'Connor", 'Str')],
+			['"Ahoj"', new FinalValue('Ahoj', 'Str')],
+			['"Sinead O\'Connor"', new FinalValue("Sinead O'Connor", 'Str')],
+			['"""Sinead O\'Connor"""', new FinalValue("Sinead O'Connor", 'Str')],
 
-			['True', new FinalVal(true, 'Symbol')],
-			['False', new FinalVal(false, 'Symbol')],
-			['Null', new FinalVal(null, 'Symbol')],
+			['True', new FinalValue(true, 'Symbol')],
+			['False', new FinalValue(false, 'Symbol')],
+			['Null', new FinalValue(null, 'Symbol')],
 		];
 	}
 
@@ -609,44 +612,44 @@ content = [
 	static function dataCompositeFinal(): array
 	{
 		return [
-			['()', new FinalVal([], 'Tuple')],
+			['()', new FinalValue([], 'Tuple')],
 
-			['[]', new FinalVal([], 'List')],
-			['[0]', new FinalVal([
-				new FinalVal(0, 'Int'),
+			['[]', new FinalValue([], 'List')],
+			['[0]', new FinalValue([
+				new FinalValue(0, 'Int'),
 				], 'List')],
-			['[1]', new FinalVal([
-				new FinalVal(1, 'Int'),
+			['[1]', new FinalValue([
+				new FinalValue(1, 'Int'),
 				], 'List')],
-			['[42]', new FinalVal([
-				new FinalVal(42, 'Int'),
+			['[42]', new FinalValue([
+				new FinalValue(42, 'Int'),
 				], 'List')],
 
-			['{}', new FinalVal((object) [], 'Dict')],
-			['{a: 42}', new FinalVal((object) ['a' => new FinalVal(42, 'Int')], 'Dict')],
-			['{a: 42, b: 555}', new FinalVal((object) [
-				'a' => new FinalVal(42, 'Int'),
-				'b' => new FinalVal(555, 'Int'),
+			['{}', new FinalValue((object) [], 'Dict')],
+			['{a: 42}', new FinalValue((object) ['a' => new FinalValue(42, 'Int')], 'Dict')],
+			['{a: 42, b: 555}', new FinalValue((object) [
+				'a' => new FinalValue(42, 'Int'),
+				'b' => new FinalValue(555, 'Int'),
 				], 'Dict')],
 
-			["a = 555\n{a: 42, b: a}", new FinalVal((object) [
-				'a' => new FinalVal(42, 'Int'),
-				'b' => new FinalVal(555, 'Int'),
+			["a = 555\n{a: 42, b: a}", new FinalValue((object) [
+				'a' => new FinalValue(42, 'Int'),
+				'b' => new FinalValue(555, 'Int'),
 				], 'Dict')],
 
-			["a = 554\n{a: 42, b: a + 1}", new FinalVal((object) [
-				'a' => new FinalVal(42, 'Int'),
-				'b' => new FinalVal(555, 'Int'),
+			["a = 554\n{a: 42, b: a + 1}", new FinalValue((object) [
+				'a' => new FinalValue(42, 'Int'),
+				'b' => new FinalValue(555, 'Int'),
 				], 'Dict')],
 
-			["a = 554\n{a: 42, b: (a + a) + 1}", new FinalVal((object) [
-				'a' => new FinalVal(42, 'Int'),
-				'b' => new FinalVal(1109, 'Int'),
+			["a = 554\n{a: 42, b: (a + a) + 1}", new FinalValue((object) [
+				'a' => new FinalValue(42, 'Int'),
+				'b' => new FinalValue(1109, 'Int'),
 				], 'Dict')],
 
-			["a = 100 + 454\n{a: 42, b: a + 1}", new FinalVal((object) [
-				'a' => new FinalVal(42, 'Int'),
-				'b' => new FinalVal(555, 'Int'),
+			["a = 100 + 454\n{a: 42, b: a + 1}", new FinalValue((object) [
+				'a' => new FinalValue(42, 'Int'),
+				'b' => new FinalValue(555, 'Int'),
 				], 'Dict')],
 
 			// @TODO
@@ -661,18 +664,18 @@ content = [
 	static function dataOperations(): array
 	{
 		return [
-			['40 + 2', new FinalVal(42, 'Int')],
-			['40 + (1 + 1)', new FinalVal(42, 'Int')],
-			['(10 + 30) + (1 + 1)', new FinalVal(42, 'Int')],
-			['2 * ((10 + 30) + (1 + 1))', new FinalVal(84, 'Int')],
-			['2 * 10 + 30 + 1 + 1', new FinalVal(52, 'Int')],
-			['(2 * 10) + 30 + 1 + 1', new FinalVal(52, 'Int')],
-			['2 * 10 div 30 + 1 + 1', new FinalVal(2, 'Int')],
-			['(2 * 10) div 30 + 1 + 1', new FinalVal(2, 'Int')],
-			['((2 * 10) div 30) + 1 + 1', new FinalVal(2, 'Int')],
-			['2 * 10 mod 30 + 1 + 1', new FinalVal(22, 'Int')],
-			['(2 * 10) mod 30 + 1 + 1', new FinalVal(22, 'Int')],
-			['((2 * 10) mod 30) + 1 + 1', new FinalVal(22, 'Int')],
+			['40 + 2', new FinalValue(42, 'Int')],
+			['40 + (1 + 1)', new FinalValue(42, 'Int')],
+			['(10 + 30) + (1 + 1)', new FinalValue(42, 'Int')],
+			['2 * ((10 + 30) + (1 + 1))', new FinalValue(84, 'Int')],
+			['2 * 10 + 30 + 1 + 1', new FinalValue(52, 'Int')],
+			['(2 * 10) + 30 + 1 + 1', new FinalValue(52, 'Int')],
+			['2 * 10 div 30 + 1 + 1', new FinalValue(2, 'Int')],
+			['(2 * 10) div 30 + 1 + 1', new FinalValue(2, 'Int')],
+			['((2 * 10) div 30) + 1 + 1', new FinalValue(2, 'Int')],
+			['2 * 10 mod 30 + 1 + 1', new FinalValue(22, 'Int')],
+			['(2 * 10) mod 30 + 1 + 1', new FinalValue(22, 'Int')],
+			['((2 * 10) mod 30) + 1 + 1', new FinalValue(22, 'Int')],
 
 			// @TODO
 		];
@@ -683,19 +686,19 @@ content = [
 	/**
 	 * @return array<array<mixed>>
 	 */
-	static function dataFinalValWithSymbol(): array
+	static function dataFinalValueWithSymbol(): array
 	{
 		return [
-			["a = 2\n40 + a", new FinalVal(42, 'Int')],
-			["a = 2\nb = 40\nb + a", new FinalVal(42, 'Int')],
-			["a = 2\nb = 20\n(b + b) + a", new FinalVal(42, 'Int')],
+			["a = 2\n40 + a", new FinalValue(42, 'Int')],
+			["a = 2\nb = 40\nb + a", new FinalValue(42, 'Int')],
+			["a = 2\nb = 20\n(b + b) + a", new FinalValue(42, 'Int')],
 
-			["a = 554\n{a: 42, b: a + 1}", new FinalVal((object) [
-					'a' => new FinalVal(42, 'Int'),
-					'b' => new FinalVal(555, 'Int'),
+			["a = 554\n{a: 42, b: a + 1}", new FinalValue((object) [
+					'a' => new FinalValue(42, 'Int'),
+					'b' => new FinalValue(555, 'Int'),
 				], 'Dict')],
 
-			["a = 5\nb = 13\ncalc = a + 1 * b\ncalc", new FinalVal(18, 'Int')],
+			["a = 5\nb = 13\ncalc = a + 1 * b\ncalc", new FinalValue(18, 'Int')],
 			// @TODO
 		];
 	}
@@ -709,7 +712,7 @@ content = [
 	{
 		return [
 			['40 + a', ParametricValue::Expr_(Expr::Bin_(
-					new FinalVal(40, 'Int'),
+					new FinalValue(40, 'Int'),
 					new MathOperator('+'),
 					new BindValue('a', '?')
 					)
@@ -720,13 +723,13 @@ content = [
 			["b = 13\ncalc = a + 1 * b\ncalc", ParametricValue::Expr_(Expr::Bin_(
 				new BindValue('a', '?'),
 				new MathOperator('+'),
-				new FinalVal(13, 'Int')
+				new FinalValue(13, 'Int')
 				), '?', [
 					new BindValue('a', '?'),
 				])],
 
 			['40 + (a + a)', ParametricValue::Expr_(Expr::Bin_(
-					new FinalVal(40, 'Int'),
+					new FinalValue(40, 'Int'),
 					new MathOperator('+'),
 					Expr::Bin_(
 						new BindValue('a', '?'),
@@ -739,7 +742,7 @@ content = [
 				])],
 
 			['40 + (a + b)', ParametricValue::Expr_(Expr::Bin_(
-					new FinalVal(40, 'Int'),
+					new FinalValue(40, 'Int'),
 					new MathOperator('+'),
 					Expr::Bin_(
 						new BindValue('a', '?'),
@@ -753,11 +756,11 @@ content = [
 					])],
 
 			["list.at 2 [\"une\", a, \"trois\"]", ParametricValue::Expr_(Expr::Func_(new ListFunc('at'), [
-					new FinalVal(2, 'Int'),
+					new FinalValue(2, 'Int'),
 					Composite::List_([
-						new FinalVal("une", 'Str'),
+						new FinalValue("une", 'Str'),
 						new BindValue("a", '?'),
-						new FinalVal("trois", 'Str'),
+						new FinalValue("trois", 'Str'),
 						]),
 					]),
 				'?',
@@ -781,12 +784,12 @@ content = [
 			. "b = 13\n"
 			. "inc = a -> a + 1 * b\n"
 			. "inc 29",
-				new FinalVal(42, 'Int'),
+				new FinalValue(42, 'Int'),
 				],
 
 			["inc = a -> a + 1\n"
 			."inc 41",
-				new FinalVal(42, 'Int'),
+				new FinalValue(42, 'Int'),
 				],
 
 			[""
@@ -794,7 +797,7 @@ content = [
 			."inc = a -> a + b\n"
 			."inc 41",
 				ParametricValue::Expr_(Expr::Bin_(
-					new FinalVal(41, 'Int'),
+					new FinalValue(41, 'Int'),
 					new MathOperator('+'),
 					new BindValue("b", '?')
 				), '?', [
@@ -803,7 +806,7 @@ content = [
 				],
 
 /*			["id = () -> 42\nid ()",
-				new FinalVal(42, 'Int'),
+				new FinalValue(42, 'Int'),
 				],
 				//*/
 
@@ -843,45 +846,45 @@ content = [
 	{
 		return [
 			["True",
-				new FinalVal(true, 'Symbol'),
+				new FinalValue(true, 'Symbol'),
 				],
 
 			["1 == 2",
-				new FinalVal(False, 'Symbol'),
+				new FinalValue(False, 'Symbol'),
 				],
 
 			["1 == 2 || 2 == 3",
-				new FinalVal(False, 'Symbol'),
+				new FinalValue(False, 'Symbol'),
 				],
 
 			["1 == 2 or 2 == 3",
-				new FinalVal(False, 'Symbol'),
+				new FinalValue(False, 'Symbol'),
 				],
 
 			["1 OR 2 OR 3",
-				new FinalVal(True, 'Symbol'),
+				new FinalValue(True, 'Symbol'),
 				],
 
 			["1 || 2 || 3",
-				new FinalVal(True, 'Symbol'),
+				new FinalValue(True, 'Symbol'),
 				],
 
 			["(1 == 1) && 1",
-				new FinalVal(True, 'Symbol'),
+				new FinalValue(True, 'Symbol'),
 				],
 
 			["6 == 6 && (2 + 1) == 3",
-				new FinalVal(True, 'Symbol'),
+				new FinalValue(True, 'Symbol'),
 				],
 
 			["6 == a && (2 + 1) == 3",
 				ParametricValue::Expr_(Expr::Bin_(Expr::Bin_(
-						new FinalVal(6, 'Int'),
+						new FinalValue(6, 'Int'),
 						new PredicateFunction('=='),
 						new BindValue('a', '?')
 						),
 					new PredicateFunction('&&'),
-					new FinalVal(True, 'Symbol')
+					new FinalValue(True, 'Symbol')
 					), '?', [
 						new BindValue('a', '?'),
 					]),
@@ -898,17 +901,16 @@ content = [
 	{
 		return [
 			["x = { foo: { doo: 41 } }\n1 + x.foo.doo",
-				new FinalVal(42, 'Int'),
+				new FinalValue(42, 'Int'),
 				],
 			["x = { foo: { doo: 41 } }\ny = x.foo.doo\n1 + y",
-				new FinalVal(42, 'Int'),
+				new FinalValue(42, 'Int'),
 				],
 			["x = { foo: { doo: 41 } }\ny = x.foo\n1 + y.doo",
-				new FinalVal(42, 'Int'),
+				new FinalValue(42, 'Int'),
 				],
 		];
 	}
-
 
 
 

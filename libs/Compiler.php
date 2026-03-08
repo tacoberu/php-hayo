@@ -9,6 +9,9 @@
 
 namespace Taco\Hayo;
 
+use DivisionByZeroError;
+
+
 /**
  * PHP Compiler Hayo.
  * The result is PHP code that can be saved to a file and loaded via require. This caching should probably be optional.
@@ -58,7 +61,7 @@ class Compiler
 			if (is_string($term)) {
 				return ParametricValue::ShortLinkBind(new BindValue($term, '?'));
 			}
-			throw CompileException::InvalidSourceCode("Invalid source code.");
+			throw CompileException::InvalidSourceCode();
 		}
 
 		// Extract all dependencies. Try to resolve them; e.g. builtin functions, etc.
@@ -112,10 +115,8 @@ class Compiler
 		// We assume exactly one dot. We do not nest namespaces. If needed,
 		// that should be handled at the provider level.
 		list($ns, $symbol) = explode('.', $nx, 2);
-		if (isset($this->libs[$ns])) {
-			if ($fn = $this->libs[$ns]->lookup($symbol)) {
-				return [$x, $fn];
-			}
+		if (isset($this->libs[$ns]) && $fn = $this->libs[$ns]->lookup($symbol)) {
+			return [$x, $fn];
 		}
 
 		return Null;
@@ -129,11 +130,7 @@ class Compiler
 			return $x;
 		}
 
-		if (isset($this->short[strtolower($x)])) {
-			return $this->short[strtolower($x)];
-		}
-
-		return $x;
+		return $this->short[strtolower($x)] ?? $x;
 	}
 
 
@@ -184,7 +181,7 @@ class Compiler
 
 			// Numbers, final values, and builtin functions have nothing to process
 			case $term instanceof Scalar:
-			case $term instanceof FinalVal:
+			case $term instanceof FinalValue:
 			case $term instanceof BuildinFunc:
 				return $term;
 
@@ -274,10 +271,15 @@ class Compiler
 
 				// Rovnou vyhodnotit
 				if ($term->refs() === []) {
-					return $items[1]->apply([ // @phpstan-ignore method.nonObject
-						self::castAny($items[0], False)[0],
-						self::castAny($items[2], False)[0],
-						]);
+					try {
+						return $items[1]->apply([ // @phpstan-ignore method.nonObject
+							self::castAny($items[0], False)[0],
+							self::castAny($items[2], False)[0],
+							]);
+					}
+					catch (DivisionByZeroError $e) {
+						throw CompileException::EvaluationError($e);
+					}
 				}
 
 				// There are some arguments
@@ -289,31 +291,29 @@ class Compiler
 				}
 
 				$term = Expr::Func_($items[0], array_slice($items, 1));
-
-				// Rovnou vyhodnotit
-				if ($term->refs() === []) {
-					$args = array_map(static function($x) {
+                // Rovnou vyhodnotit
+                if ($term->refs() === []) {
+                    $args = array_map(static function($x) {
 						return self::castAny($x, False)[0];
 					}, array_slice($items, 1));
-
-					// phpcs:ignore SlevomatCodingStandard.Operators.DisallowEqualOperators.DisallowedEqualOperator
-					if ($items[0] instanceof Scalar && $items[1] == Composite::Tuple_([])) {
+                    // phpcs:ignore SlevomatCodingStandard.Operators.DisallowEqualOperators.DisallowedEqualOperator
+                    if ($items[0] instanceof Scalar && $items[1] == Composite::Tuple_([])) {
 						return $items[0];
 					}
-					$expr = self::partialEvaluateApplicable($items[0], $args);
-					if (is_string($expr)) {
+                    $expr = self::partialEvaluateApplicable($items[0], $args);
+                    if (is_string($expr)) {
 						throw CompileException::UnresolvedExpression($term);
 					}
-					return $expr;
-				}
-				else {
-					if ($items[0] instanceof Lambda && count($items[0]->getArgs()) === count($items) - 1) {
-						$args = array_slice($items, 1);
-						$fn = $items[0];
-						$context = new Context(array_combine($fn->getArgs(), $args));
-						return self::partialEvaluateExpr($context, $fn->getExpr());
-					}
-				}
+                    return $expr;
+                }
+
+				// Rovnou vyhodnotit
+				if ($items[0] instanceof Lambda && count($items[0]->getArgs()) === count($items) - 1) {
+                    $args = array_slice($items, 1);
+                    $fn = $items[0];
+                    $context = new Context(array_combine($fn->getArgs(), $args));
+                    return self::partialEvaluateExpr($context, $fn->getExpr());
+                }
 
 				// There are some arguments
 				return $term;
@@ -360,7 +360,12 @@ class Compiler
 				return self::partialEvaluate($context, $fn->getExpr());
 
 			case $fn instanceof BuildinFunc:
-				return $fn->apply($args); // @phpstan-ignore argument.type
+				try {
+					return $fn->apply($args); // @phpstan-ignore argument.type
+				}
+				catch (DivisionByZeroError $e) {
+					throw CompileException::EvaluationError($e);
+				}
 
 			default:
 				throw CompileException::Unexpected();
@@ -526,13 +531,13 @@ class Compiler
 	 * The goal is to create an efficient, reusable runtime routine representing
 	 * the final form of the expression for execution in the client.
 	 *
-	 * @return ParametricValue | FinalVal
+	 * @return ParametricValue | FinalValue
 	 */
 	private static function compileRuntimeValue(Value $src)
 	{
 		list($val, $binds) = self::castAny($src, True);
 		switch (True) {
-			case $val instanceof FinalVal:
+			case $val instanceof FinalValue:
 				return $val;
 
 			case $val instanceof BindValue:
@@ -568,7 +573,7 @@ class Compiler
 	private static function castAny($src, bool $packref): array
 	{
 		switch (True) {
-			case $src instanceof FinalVal:
+			case $src instanceof FinalValue:
 				return [$src, []];
 
 			case $src instanceof Scalar:
@@ -607,7 +612,7 @@ class Compiler
 
 
 	/**
-	 * @return array{0: FinalVal, 1: array<string, BindValue>}
+	 * @return array{0: FinalValue, 1: array<string, BindValue>}
 	 */
 	private static function castScalar(Scalar $val): array
 	{
@@ -623,7 +628,7 @@ class Compiler
 		else {
 			$value = $val->getValue();
 		}
-		return [new FinalVal($value, self::castType($val->type())), []];
+		return [new FinalValue($value, self::castType($val->type())), []];
 	}
 
 
@@ -654,7 +659,7 @@ class Compiler
 	 * stage all optimization opportunities are exhausted and we simply wrap it
 	 * into a plain value if possible, or into a function if necessary.
 	 *
-	 * @return array{0: FinalVal | Composite, 1: array<string, BindValue>}
+	 * @return array{0: FinalValue | Composite, 1: array<string, BindValue>}
 	 */
 	private static function castComposite(Composite $src, bool $packref): array
 	{
@@ -662,13 +667,13 @@ class Compiler
 		if ((array) $src->getItems() === []) {
 			switch ($src->type()) {
 				case Composite::TypeTuple:
-					return [new FinalVal([], 'Tuple'), []];
+					return [new FinalValue([], 'Tuple'), []];
 
 				case Composite::TypeList:
-					return [new FinalVal([], 'List'), []];
+					return [new FinalValue([], 'List'), []];
 
 				case Composite::TypeDict:
-					return [new FinalVal((object) [], 'Dict'), []];
+					return [new FinalValue((object) [], 'Dict'), []];
 
 				default:
 					throw CompileException::UnsupportedException('casting composite', $src);
@@ -679,17 +684,17 @@ class Compiler
 		switch ($src->type()) {
 			case Composite::TypeTuple:
 				return $src->refs() === []
-					? [new FinalVal($items, 'Tuple'), []]
+					? [new FinalValue($items, 'Tuple'), []]
 					: [Composite::Tuple_($items), $lets];
 
 			case Composite::TypeList:
 				return $src->refs() === []
-					? [new FinalVal($items, 'List'), []]
+					? [new FinalValue($items, 'List'), []]
 					: [Composite::List_($items), $lets];
 
 			case Composite::TypeDict:
 				return $src->refs() === []
-					? [new FinalVal((object) $items, 'Dict'), []]
+					? [new FinalValue((object) $items, 'Dict'), []]
 					: [Composite::Dict_($items), $lets];
 
 			default:
@@ -826,7 +831,7 @@ class Compiler
 
 	private static function assertMissingSymbols($term): void
 	{
-		if ($term instanceof FinalVal) {
+		if ($term instanceof FinalValue) {
 			return;
 		}
 		$missing = [];

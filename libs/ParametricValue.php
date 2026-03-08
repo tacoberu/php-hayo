@@ -174,7 +174,7 @@ class ParametricValue implements HasRefs, Value
 	 */
 	function getArgs(): array
 	{
-		return array_map(static function($x) {
+		return array_map(static function(BindValue $x): string {
 			return $x->getName();
 			}, $this->getBinds());
 	}
@@ -182,8 +182,8 @@ class ParametricValue implements HasRefs, Value
 
 
 	/**
-	 * @param array<string, FinalVal | ParametricValue> $args
-	 * @return FinalVal | ParametricValue
+	 * @param array<string, FinalValue | ParametricValue> $args
+	 * @return FinalValue | ParametricValue
 	 */
 	function apply(array $args)
 	{
@@ -195,22 +195,10 @@ class ParametricValue implements HasRefs, Value
 
 
 	/**
-	 * @param array<string, FinalVal | ParametricValue> $xs
-	 */
-	private static function assertBindInArguments(BindValue $bind, array $xs): void // @phpstan-ignore method.unused
-	{
-		if ( ! array_key_exists($bind->getName(), $xs)) {
-			throw new InvalidArgumentException("Missing args: '{$bind->getBindName()}'.");
-		}
-	}
-
-
-
-	/**
 	 * Validates that the correct number of elements was passed.
 	 *
 	 * @param array<BindValue> $binds
-	 * @param array<string, FinalVal | ParametricValue> $args
+	 * @param array<string, FinalValue | ParametricValue> $args
 	 */
 	private static function assertBindArguments(array $binds, array $args): void
 	{
@@ -235,7 +223,7 @@ class ParametricValue implements HasRefs, Value
 
 
 	/**
-	 * @param array<string, FinalVal | ParametricValue> $args
+	 * @param array<string, FinalValue | ParametricValue> $args
 	 */
 	private static function assertArguments(array $args): void
 	{
@@ -247,13 +235,13 @@ class ParametricValue implements HasRefs, Value
 
 
 	/**
-	 * @param FinalVal | ParametricValue $val
+	 * @param FinalValue | ParametricValue $val
 	 */
 	private static function assertArgument(string $key, $val): void // @phpstan-ignore void.pure
 	{
-		if ( ! $val instanceof FinalVal // @phpstan-ignore booleanAnd.alwaysFalse
+		if ( ! $val instanceof FinalValue // @phpstan-ignore booleanAnd.alwaysFalse
 				&& ! $val instanceof self) { // @phpstan-ignore instanceof.alwaysTrue
-			throw new InvalidArgumentException("Argument '{$key}' must be package into FinalVal or ParametricValue; " . (is_object($val) ? get_class($val) : gettype($val)) . " given."); // @phpstan-ignore function.alreadyNarrowedType
+			throw new InvalidArgumentException("Argument '{$key}' must be package into FinalValue or ParametricValue; " . (is_object($val) ? get_class($val) : gettype($val)) . " given."); // @phpstan-ignore function.alreadyNarrowedType
 		}
 	}
 
@@ -261,7 +249,7 @@ class ParametricValue implements HasRefs, Value
 
 	function __toString(): string
 	{
-		$binds = implode(', ', array_map(static function($x) { return $x->getBindName(); }, $this->binds));
+		$binds = implode(', ', array_map(static function(BindValue $x): string { return $x->getBindName(); }, $this->binds));
 		return "CallableValue: {$this->expr} [$binds]";
 	}
 

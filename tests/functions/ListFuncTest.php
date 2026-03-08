@@ -23,10 +23,10 @@ class ListFuncTest extends TestCase
 			new BindVal('src', 'List<a>'),
 		], $inst->getBinds());
 		$this->assertSame(['src'], $inst->refs());
-		$this->assertEquals(new FinalVal(2, 'Int'), $inst->apply([
-			'src' => new FinalVal([
-				new FinalVal(1, 'Int'),
-				new FinalVal(1, 'Int'),
+		$this->assertEquals(new FinalValue(2, 'Int'), $inst->apply([
+			'src' => new FinalValue([
+				new FinalValue(1, 'Int'),
+				new FinalValue(1, 'Int'),
 			], 'List'),
 		]));
 	}
@@ -42,12 +42,12 @@ class ListFuncTest extends TestCase
 			new BindVal('default', 'a'),
 		], $inst->getBinds());
 		$this->assertSame(['src', 'default'], $inst->refs());
-		$this->assertEquals(new FinalVal(2, 'a'), $inst->apply([
-			'src' => new FinalVal([
-				new FinalVal(2, 'Int'),
-				new FinalVal(4, 'Int'),
+		$this->assertEquals(new FinalValue(2, 'a'), $inst->apply([
+			'src' => new FinalValue([
+				new FinalValue(2, 'Int'),
+				new FinalValue(4, 'Int'),
 			], 'List'),
-			'default' => new FinalVal(0, 'Int'),
+			'default' => new FinalValue(0, 'Int'),
 		]));
 	}
 
@@ -62,9 +62,9 @@ class ListFuncTest extends TestCase
 			new BindVal('default', 'a'),
 		], $inst->getBinds());
 		$this->assertSame(['src', 'default'], $inst->refs());
-		$this->assertEquals(new FinalVal(42, 'a'), $inst->apply([
-			'src' => new FinalVal([], 'List'),
-			'default' => new FinalVal(42, 'Int'),
+		$this->assertEquals(new FinalValue(42, 'a'), $inst->apply([
+			'src' => new FinalValue([], 'List'),
+			'default' => new FinalValue(42, 'Int'),
 		]));
 	}
 
@@ -80,13 +80,13 @@ class ListFuncTest extends TestCase
 			new BindVal('default', 'a'),
 		], $inst->getBinds());
 		$this->assertSame(['index', 'src', 'default'], $inst->refs());
-		$this->assertEquals(new FinalVal(4, 'a'), $inst->apply([
-			'index' => new FinalVal(1, 'Int'),
-			'src' => new FinalVal([
-				new FinalVal(2, 'Int'),
-				new FinalVal(4, 'Int'),
+		$this->assertEquals(new FinalValue(4, 'a'), $inst->apply([
+			'index' => new FinalValue(1, 'Int'),
+			'src' => new FinalValue([
+				new FinalValue(2, 'Int'),
+				new FinalValue(4, 'Int'),
 			], 'List'),
-			'default' => new FinalVal(0, 'Int'),
+			'default' => new FinalValue(0, 'Int'),
 		]));
 	}
 
@@ -102,13 +102,13 @@ class ListFuncTest extends TestCase
 			new BindVal('default', 'a'),
 		], $inst->getBinds());
 		$this->assertSame(['index', 'src', 'default'], $inst->refs());
-		$this->assertEquals(new FinalVal(42, 'a'), $inst->apply([
-			'index' => new FinalVal(999, 'Int'),
-			'src' => new FinalVal([
-				new FinalVal(2, 'Int'),
-				new FinalVal(4, 'Int'),
+		$this->assertEquals(new FinalValue(42, 'a'), $inst->apply([
+			'index' => new FinalValue(999, 'Int'),
+			'src' => new FinalValue([
+				new FinalValue(2, 'Int'),
+				new FinalValue(4, 'Int'),
 			], 'List'),
-			'default' => new FinalVal(42, 'Int'),
+			'default' => new FinalValue(42, 'Int'),
 		]));
 	}
 
@@ -123,11 +123,11 @@ class ListFuncTest extends TestCase
 			new BindVal('src', 'List<a>'),
 		], $inst->getBinds());
 		$this->assertSame(['index', 'src'], $inst->refs());
-		$this->assertEquals(new FinalVal(true, 'Bool'), $inst->apply([
-			'index' => new FinalVal(1, 'Int'),
-			'src' => new FinalVal([
-				new FinalVal(2, 'Int'),
-				new FinalVal(4, 'Int'),
+		$this->assertEquals(new FinalValue(true, 'Bool'), $inst->apply([
+			'index' => new FinalValue(1, 'Int'),
+			'src' => new FinalValue([
+				new FinalValue(2, 'Int'),
+				new FinalValue(4, 'Int'),
 			], 'List'),
 		]));
 	}

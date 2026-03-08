@@ -18,7 +18,7 @@ class ComputeTest extends TestCase
 {
 
 	/**
-	 * @param array<string, FinalVal> $args
+	 * @param array<string, FinalValue> $args
 	 */
 	#[DataProvider('dataOperations')]
 	#[DataProvider('dataStrings')]
@@ -54,28 +54,28 @@ class ComputeTest extends TestCase
 	{
 		return [
 			['a'
-				, [ 'a' => new FinalVal(42, 'Int')]
-				, new FinalVal(42, 'Int'),
+				, [ 'a' => new FinalValue(42, 'Int')]
+				, new FinalValue(42, 'Int'),
 				],
 			['40 + a'
-				, [ 'a' => new FinalVal(2, 'Int')]
-				, new FinalVal(42, 'Int'),
+				, [ 'a' => new FinalValue(2, 'Int')]
+				, new FinalValue(42, 'Int'),
 				],
 			['40 + (a + a)'
-				, [ 'a' => new FinalVal(45, 'Int')]
-				, new FinalVal(130, 'Int'),
+				, [ 'a' => new FinalValue(45, 'Int')]
+				, new FinalValue(130, 'Int'),
 				],
 			['40 + (1 + a)'
-				, [ 'a' => new FinalVal(45, 'Int')]
-				, new FinalVal(86, 'Int'),
+				, [ 'a' => new FinalValue(45, 'Int')]
+				, new FinalValue(86, 'Int'),
 				],
 			['(10 + a) + (a + 1)'
-				, [ 'a' => new FinalVal(8, 'Int')]
-				, new FinalVal(27, 'Int'),
+				, [ 'a' => new FinalValue(8, 'Int')]
+				, new FinalValue(27, 'Int'),
 				],
 			['(10 + a) or (a + 1)'
-				, [ 'a' => new FinalVal(8, 'Int')]
-				, new FinalVal(True, 'Symbol'),
+				, [ 'a' => new FinalValue(8, 'Int')]
+				, new FinalValue(True, 'Symbol'),
 				],
 		];
 	}
@@ -88,93 +88,76 @@ class ComputeTest extends TestCase
 	static function dataStrings(): array
 	{
 		return [
-			['strings.len a'
-				, [ 'a' => new FinalVal("", 'Str')]
-				, new FinalVal(0, 'Int'),
+			['Str.len a'
+				, [ 'a' => new FinalValue("", 'Str')]
+				, new FinalValue(0, 'Int'),
 				],
-			['strings.len a'
-				, [ 'a' => new FinalVal("a", 'Str')]
-				, new FinalVal(1, 'Int'),
+			['Str.len a'
+				, [ 'a' => new FinalValue("a", 'Str')]
+				, new FinalValue(1, 'Int'),
 				],
-			['strings.len a'
-				, [ 'a' => new FinalVal("Lorem ipsum doler O'hara.", 'Str')]
-				, new FinalVal(25, 'Int'),
+			['Str.len a'
+				, [ 'a' => new FinalValue("Lorem ipsum doler O'hara.", 'Str')]
+				, new FinalValue(25, 'Int'),
 				],
-			['strings.len a'
-				, [ 'a' => new FinalVal("Lorem ipsum doler O'hařa.", 'Str')]
-				, new FinalVal(25, 'Int'),
+			['Str.len a'
+				, [ 'a' => new FinalValue("Lorem ipsum doler O'hařa.", 'Str')]
+				, new FinalValue(25, 'Int'),
 				],
-			['strings.len a'
-				, [ 'a' => new FinalVal("Latin-Ελληνικά-Русский-中文-😊 = Multilingvální test! 🌐✨", 'Str')]
-				, new FinalVal(53, 'Int'),
+			['Str.len a'
+				, [ 'a' => new FinalValue("Latin-Ελληνικά-Русский-中文-😊 = Multilingvální test! 🌐✨", 'Str')]
+				, new FinalValue(53, 'Int'),
 				],
 
-			['strings.split "" a'
-				, [ 'a' => new FinalVal("", 'Str')]
-				, new FinalVal([], 'List'),
+			['Str.split a ""'
+				, [ 'a' => new FinalValue("", 'Str')]
+				, new FinalValue([], 'List'),
 				],
-			['strings.split " " a'
-				, [ 'a' => new FinalVal("", 'Str')]
-				, new FinalVal([], 'List'),
+			['Str.split a " "'
+				, [ 'a' => new FinalValue("", 'Str')]
+				, new FinalValue([], 'List'),
 				],
-			['strings.split " " a'
-				, [ 'a' => new FinalVal("Une deux trois", 'Str')]
-				, new FinalVal([
-					new FinalVal("Une", 'Str'),
-					new FinalVal("deux", 'Str'),
-					new FinalVal("trois", 'Str'),
+			['Str.split a " "'
+				, [ 'a' => new FinalValue("Une deux trois", 'Str')]
+				, new FinalValue([
+					new FinalValue("Une", 'Str'),
+					new FinalValue("deux", 'Str'),
+					new FinalValue("trois", 'Str'),
 					], 'List'),
 				],
 
-			['strings.concat sep ["Hello", "World"]',
-				[ 'sep' => new FinalVal(" ", 'Str'),
+			['Str.concat sep ["Hello", "World"]',
+				[ 'sep' => new FinalValue(" ", 'Str'),
 					],
-				new FinalVal("Hello World", 'Str'),
+				new FinalValue("Hello World", 'Str'),
 				],
-			['strings.concat " " [a, b]',
-				[ 'a' => new FinalVal("Hello", 'Str'),
-					'b' => new FinalVal("World!", 'Str'),
+			['Str.concat " " [a, b]',
+				[ 'a' => new FinalValue("Hello", 'Str'),
+					'b' => new FinalValue("World!", 'Str'),
 					],
-				new FinalVal("Hello World!", 'Str'),
+				new FinalValue("Hello World!", 'Str'),
 				],
-			['strings.concat "" [a, b]',
-				[ 'a' => new FinalVal("Hello", 'Str'),
-					'b' => new FinalVal("World!", 'Str'),
+			['Str.concat "" [a, b]',
+				[ 'a' => new FinalValue("Hello", 'Str'),
+					'b' => new FinalValue("World!", 'Str'),
 					],
-				new FinalVal("HelloWorld!", 'Str'),
+				new FinalValue("HelloWorld!", 'Str'),
 				],
-			['strings.concat "" [a]',
-				[ 'a' => new FinalVal("Hello", 'Str'),
+			['Str.concat "" [a]',
+				[ 'a' => new FinalValue("Hello", 'Str'),
 					],
-				new FinalVal("Hello", 'Str'),
+				new FinalValue("Hello", 'Str'),
 				],
-			['strings.concat sep []',
-				[ 'sep' => new FinalVal("", 'Str'),
+			['Str.concat sep []',
+				[ 'sep' => new FinalValue("", 'Str'),
 					],
-				new FinalVal("", 'Str'),
+				new FinalValue("", 'Str'),
 				],
-			['strings.concat " " [a, (strings.concat "" [ b, "!"])]',
-				[ 'a' => new FinalVal("Hello", 'Str'),
-					'b' => new FinalVal("World", 'Str'),
+			['Str.concat " " [a, (Str.concat "" [ b, "!"])]',
+				[ 'a' => new FinalValue("Hello", 'Str'),
+					'b' => new FinalValue("World", 'Str'),
 					],
-				new FinalVal("Hello World!", 'Str'),
-				],
-
-			['list.len a'
-				, [ 'a' => new FinalVal([], 'List<Int>')]
-				, new FinalVal(0, 'Int'),
-				],
-			['list.len a'
-				, [ 'a' => new FinalVal([1,2,3,], 'List<Int>')]
-				, new FinalVal(3, 'Int'),
-				],
-			['list.first xs ""'
-				, [ 'xs' => new FinalVal(["1","2","3",], 'List<Int>')]
-				, new FinalVal("1", 'a'),
-				],
-			['list.first xs 0'
-				, [ 'xs' => new FinalVal([1,2,3,], 'List<Int>')]
-				, new FinalVal(1, 'a'),
+				new FinalValue("Hello World!", 'Str'),
 				],
 
 			// @TODO
@@ -190,74 +173,74 @@ class ComputeTest extends TestCase
 	{
 		return [
 			["b = 40 \na + b"
-				, [ 'a' => new FinalVal(2, 'Int'),
+				, [ 'a' => new FinalValue(2, 'Int'),
 					]
-				, new FinalVal(42, 'Int'),
+				, new FinalValue(42, 'Int'),
 				],
 			["b = 40 \nb + (a + a)"
-				, [ 'a' => new FinalVal(45, 'Int'),
+				, [ 'a' => new FinalValue(45, 'Int'),
 					]
-				, new FinalVal(130, 'Int'),
+				, new FinalValue(130, 'Int'),
 				],
 			["b = 40 \nb + ((b + 1) + a)"
-				, [ 'a' => new FinalVal(45, 'Int'),
+				, [ 'a' => new FinalValue(45, 'Int'),
 					]
-				, new FinalVal(126, 'Int'),
+				, new FinalValue(126, 'Int'),
 				],
 			["b = 40 \n(10 + a) + (a + b)"
-				, [ 'a' => new FinalVal(8, 'Int'),
+				, [ 'a' => new FinalValue(8, 'Int'),
 					]
-				, new FinalVal(66, 'Int'),
+				, new FinalValue(66, 'Int'),
 				],
 			["b = 40 \n"
-			."(strings.len src) + b"
-				, [ 'src' => new FinalVal("8", 'Str'),
+			."(Str.len src) + b"
+				, [ 'src' => new FinalValue("8", 'Str'),
 					]
-				, new FinalVal(41, 'Int'),
+				, new FinalValue(41, 'Int'),
 				],
 			["b = a\n"
 			."b"
-				, [ 'a' => new FinalVal(41, 'Int'),
+				, [ 'a' => new FinalValue(41, 'Int'),
 					]
-				, new FinalVal(41, 'Int'),
+				, new FinalValue(41, 'Int'),
 				],
 			["b = a\n"
 			."b + b"
-				, [ 'a' => new FinalVal(41, 'Int'),
+				, [ 'a' => new FinalValue(41, 'Int'),
 					]
-				, new FinalVal(82, 'Int'),
+				, new FinalValue(82, 'Int'),
 				],
 			["b = c\n"
 			."c = a\n"
 			."b + b"
-				, [ 'a' => new FinalVal(41, 'Int'),
+				, [ 'a' => new FinalValue(41, 'Int'),
 					]
-				, new FinalVal(82, 'Int'),
+				, new FinalValue(82, 'Int'),
 				],
 
 			["x = y \n"
-			."(strings.len src) + x"
-				, [ 'src' => new FinalVal("9", 'Str'),
-					'y' => new FinalVal(8, "Int"),
+			."(Str.len src) + x"
+				, [ 'src' => new FinalValue("9", 'Str'),
+					'y' => new FinalValue(8, "Int"),
 					]
-				, new FinalVal(9, 'Int'),
+				, new FinalValue(9, 'Int'),
 				],
 
 			// Lambdy
 			["inc = x ->\n"
 			."	x + 1 \n"
 			."inc x"
-				, [ 'x' => new FinalVal(9, 'Int'),
+				, [ 'x' => new FinalValue(9, 'Int'),
 					]
-				, new FinalVal(10, 'Int'),
+				, new FinalValue(10, 'Int'),
 				],
 			["inc = x ->\n"
 			."	y = 2 \n"
 			."	x + y \n"
 			."inc x"
-				, [ 'x' => new FinalVal(9, 'Int'),
+				, [ 'x' => new FinalValue(9, 'Int'),
 					]
-				, new FinalVal(11, 'Int'),
+				, new FinalValue(11, 'Int'),
 				],
 			["inc = x ->\n"
 			."	y = 2 \n"
@@ -265,16 +248,16 @@ class ComputeTest extends TestCase
 			."		x * x \n"
 			."	(sqr x) + (sqr y) \n"
 			."inc x"
-				, [ 'x' => new FinalVal(9, 'Int'),
+				, [ 'x' => new FinalValue(9, 'Int'),
 					]
-				, new FinalVal(85, 'Int'),
+				, new FinalValue(85, 'Int'),
 				],
 			// separator ;
 			["inc = x -> y = 1; x + y \n"
 			."inc x"
-				, [ 'x' => new FinalVal(9, 'Int'),
+				, [ 'x' => new FinalValue(9, 'Int'),
 					]
-				, new FinalVal(10, 'Int'),
+				, new FinalValue(10, 'Int'),
 				],
 		];
 	}
@@ -288,49 +271,49 @@ class ComputeTest extends TestCase
 	{
 		return [
 			["a * 2"
-				, [ 'a' => new FinalVal(41, 'Int'),
+				, [ 'a' => new FinalValue(41, 'Int'),
 					]
-				, new FinalVal(82, 'Int'),
+				, new FinalValue(82, 'Int'),
 				],
 			["a || 2"
-				, [ 'a' => new FinalVal(41, 'Int'),
+				, [ 'a' => new FinalValue(41, 'Int'),
 					]
-				, new FinalVal(True, 'Symbol'),
+				, new FinalValue(True, 'Symbol'),
 				],
 			["a && 2"
-				, [ 'a' => new FinalVal(41, 'Int'),
+				, [ 'a' => new FinalValue(41, 'Int'),
 					]
-				, new FinalVal(True, 'Symbol'),
+				, new FinalValue(True, 'Symbol'),
 				],
 			["a && False"
-				, [ 'a' => new FinalVal(41, 'Int'),
+				, [ 'a' => new FinalValue(41, 'Int'),
 					]
-				, new FinalVal(False, 'Symbol'),
+				, new FinalValue(False, 'Symbol'),
 				],
 			["not a"
-				, [ 'a' => new FinalVal(41, 'Int'),
+				, [ 'a' => new FinalValue(41, 'Int'),
 					]
-				, new FinalVal(False, 'Symbol'),
+				, new FinalValue(False, 'Symbol'),
 				],
 			["not (not a)"
-				, [ 'a' => new FinalVal(41, 'Int'),
+				, [ 'a' => new FinalValue(41, 'Int'),
 					]
-				, new FinalVal(True, 'Symbol'),
+				, new FinalValue(True, 'Symbol'),
 				],
 			["not a"
-				, [ 'a' => new FinalVal(False, 'Bool'),
+				, [ 'a' => new FinalValue(False, 'Bool'),
 					]
-				, new FinalVal(True, 'Symbol'),
+				, new FinalValue(True, 'Symbol'),
 				],
 			["not (1 or a)"
-				, [ 'a' => new FinalVal(False, 'Bool'),
+				, [ 'a' => new FinalValue(False, 'Bool'),
 					]
-				, new FinalVal(False, 'Symbol'),
+				, new FinalValue(False, 'Symbol'),
 				],
 			["(not 1) or a"
-				, [ 'a' => new FinalVal(True, 'Bool'),
+				, [ 'a' => new FinalValue(True, 'Bool'),
 					]
-				, new FinalValue(True, 'Bool'),
+				, new FinalValue(True, 'Symbol'),
 				],
 		];
 	}
@@ -344,69 +327,69 @@ class ComputeTest extends TestCase
 	{
 		return [
 			["1 + x.foo.doo",
-				[ 'x' => new FinalVal((object) [
+				[ 'x' => new FinalValue((object) [
 					'foo' => (object) [
 						'doo' => 41,
 						],
 					], 'Dict'),
 					],
-				new FinalVal(42, 'Int'),
+				new FinalValue(42, 'Int'),
 				],
-			["str.len x.foo.doo",
-				[ 'x' => new FinalVal((object) [
+			["Str.len x.foo.doo",
+				[ 'x' => new FinalValue((object) [
 					'foo' => (object) [
 						'doo' => "Lorem ipsum doler ist",
 						],
 					], 'Dict'),
 					],
-				new FinalVal(21, 'Int'),
+				new FinalValue(21, 'Int'),
 				],
 			["x.foo.doo",
-				[ 'x' => new FinalVal((object) [
+				[ 'x' => new FinalValue((object) [
 					'foo' => (object) [
 						'doo' => "Lorem ipsum doler ist",
 						],
 					], 'Dict'),
 					],
-				new FinalVal('Lorem ipsum doler ist', '?'),
+				new FinalValue('Lorem ipsum doler ist', '?'),
 				],
 			["x.foo.nothing",
-				[ 'x' => new FinalVal((object) [
+				[ 'x' => new FinalValue((object) [
 					'foo' => (object) [
 						'doo' => "Lorem ipsum doler ist",
 						],
 					], 'Dict'),
 					],
-				new FinalVal(Null, '?'),
+				new FinalValue(Null, '?'),
 				],
 			["x.nothing",
-				[ 'x' => new FinalVal((object) [
+				[ 'x' => new FinalValue((object) [
 					'foo' => (object) [
 						'doo' => "Lorem ipsum doler ist",
 						],
 					], 'Dict'),
 					],
-				new FinalVal(Null, '?'),
+				new FinalValue(Null, '?'),
 				],
 			["x.pravda",
-				[ 'x' => new FinalVal((object) [
+				[ 'x' => new FinalValue((object) [
 					'foo' => (object) [
 						'doo' => "Lorem ipsum doler ist",
 						],
 					'pravda' => True,
 					], 'Dict'),
 					],
-				new FinalVal(true, '?'),
+				new FinalValue(true, '?'),
 				],
 			["x.nepravda",
-				[ 'x' => new FinalVal((object) [
+				[ 'x' => new FinalValue((object) [
 					'foo' => (object) [
 						'doo' => "Lorem ipsum doler ist",
 						],
 					'nepravda' => False,
 					], 'Dict'),
 					],
-				new FinalVal(False, '?'),
+				new FinalValue(False, '?'),
 				],
 		];
 	}
@@ -426,57 +409,57 @@ else "D"
 ';
 		return [
 			[$code,
-				[ 'xs' => new FinalVal([], 'List'),
+				[ 'xs' => new FinalValue([], 'List'),
 					],
-				new FinalVal('A', 'Str'),
+				new FinalValue('A', 'Str'),
 				],
 			[$code,
-				[ 'xs' => new FinalVal([
-						new FinalVal(1, 'Int'),
-						new FinalVal(2, 'Int'),
+				[ 'xs' => new FinalValue([
+						new FinalValue(1, 'Int'),
+						new FinalValue(2, 'Int'),
 						], 'List'),
 					],
-				new FinalVal('B', 'Str'),
+				new FinalValue('B', 'Str'),
 				],
 			[$code,
-				[ 'xs' => new FinalVal([
-						new FinalVal(1, 'Int'),
-						new FinalVal(2, 'Int'),
-						new FinalVal(3, 'Int'),
-						new FinalVal(4, 'Int'),
+				[ 'xs' => new FinalValue([
+						new FinalValue(1, 'Int'),
+						new FinalValue(2, 'Int'),
+						new FinalValue(3, 'Int'),
+						new FinalValue(4, 'Int'),
 						], 'List'),
 					],
-				new FinalVal('C', 'Str'),
+				new FinalValue('C', 'Str'),
 				],
 			[$code,
-				[ 'xs' => new FinalVal([
-						new FinalVal(1, 'Int'),
-						new FinalVal(2, 'Int'),
-						new FinalVal(3, 'Int'),
-						new FinalVal(4, 'Int'),
-						new FinalVal(5, 'Int'),
-						new FinalVal(6, 'Int'),
-						new FinalVal(7, 'Int'),
-						new FinalVal(8, 'Int'),
+				[ 'xs' => new FinalValue([
+						new FinalValue(1, 'Int'),
+						new FinalValue(2, 'Int'),
+						new FinalValue(3, 'Int'),
+						new FinalValue(4, 'Int'),
+						new FinalValue(5, 'Int'),
+						new FinalValue(6, 'Int'),
+						new FinalValue(7, 'Int'),
+						new FinalValue(8, 'Int'),
 						], 'List'),
 					],
-				new FinalVal('D', 'Str'),
+				new FinalValue('D', 'Str'),
 				],
 			[$code,
-				[ 'xs' => new FinalVal([
-						new FinalVal(1, 'Int'),
-						new FinalVal(2, 'Int'),
-						new FinalVal(3, 'Int'),
-						new FinalVal(4, 'Int'),
-						new FinalVal(5, 'Int'),
-						new FinalVal(6, 'Int'),
-						new FinalVal(7, 'Int'),
-						new FinalVal(8, 'Int'),
-						new FinalVal(9, 'Int'),
-						new FinalVal(10, 'Int'),
+				[ 'xs' => new FinalValue([
+						new FinalValue(1, 'Int'),
+						new FinalValue(2, 'Int'),
+						new FinalValue(3, 'Int'),
+						new FinalValue(4, 'Int'),
+						new FinalValue(5, 'Int'),
+						new FinalValue(6, 'Int'),
+						new FinalValue(7, 'Int'),
+						new FinalValue(8, 'Int'),
+						new FinalValue(9, 'Int'),
+						new FinalValue(10, 'Int'),
 						], 'List'),
 					],
-				new FinalVal('D', 'Str'),
+				new FinalValue('D', 'Str'),
 				],
 		];
 	}
@@ -490,27 +473,51 @@ else "D"
 	{
 		return [
 			["List.fold (List.map xs (x -> x * x)) 0 (prev curr -> prev + curr)",
-				[ 'xs' => new FinalVal([
-					new FinalVal(1, 'Int'),
-					new FinalVal(2, 'Int'),
-					new FinalVal(3, 'Int'),
-					new FinalVal(4, 'Int'),
+				[ 'xs' => new FinalValue([
+					new FinalValue(1, 'Int'),
+					new FinalValue(2, 'Int'),
+					new FinalValue(3, 'Int'),
+					new FinalValue(4, 'Int'),
 					], 'List'),
 					],
-				new FinalVal(30, 'Int'),
+				new FinalValue(30, 'Int'),
 				],
 
 			["xs\n"
 			."	|> List.map (x -> x * x)\n"
 			."	|> List.fold 0 (prev curr -> prev + curr)",
-				[ 'xs' => new FinalVal([
-					new FinalVal(1, 'Int'),
-					new FinalVal(2, 'Int'),
-					new FinalVal(3, 'Int'),
-					new FinalVal(4, 'Int'),
+				[ 'xs' => new FinalValue([
+					new FinalValue(1, 'Int'),
+					new FinalValue(2, 'Int'),
+					new FinalValue(3, 'Int'),
+					new FinalValue(4, 'Int'),
 					], 'List<Int>')],
-				new FinalVal(30, 'Int'),
+				new FinalValue(30, 'Int'),
 				],
+
+			["src\n"
+			."	|> Str.split \",\"\n"
+			."",
+				[ 'src' => new FinalValue("Majakovskeho 13, Karlovy Vary, Czech republic", 'Str')],
+				new FinalValue([
+					new FinalValue("Majakovskeho 13", 'Str'),
+					new FinalValue(" Karlovy Vary", 'Str'),
+					new FinalValue(" Czech republic", 'Str'),
+					], 'List'),
+				],
+
+			["src\n" // @TODO
+			."	|> Str.split \",\"\n"
+			."	|> List.map (x -> Str.trim x)\n"
+			."",
+				[ 'src' => new FinalValue("Majakovskeho 13, Karlovy Vary, Czech republic", 'Str')],
+				new FinalValue([
+					new FinalValue("Majakovskeho 13", 'Str'),
+					new FinalValue("Karlovy Vary", 'Str'),
+					new FinalValue("Czech republic", 'Str'),
+					], 'List'),
+				],
+
 		];
 	}
 

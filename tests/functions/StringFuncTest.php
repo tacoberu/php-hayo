@@ -33,7 +33,7 @@ class StringFuncTest extends TestCase
 	{
 		$inst = new StringFunc('strings.len');
 		$this->assertEquals($expected, $inst->apply([
-			new FinalVal($src, 'Str'),
+			new FinalValue($src, 'Str'),
 		])->unpack());
 	}
 
@@ -60,8 +60,8 @@ class StringFuncTest extends TestCase
 	{
 		$inst = new StringFunc('strings.split');
 		$this->assertEquals($expected, $inst->apply([
-			new FinalVal($sep, 'Str'),
-			new FinalVal($src, 'Str'),
+			new FinalValue($sep, 'Str'),
+			new FinalValue($src, 'Str'),
 		])->unpack());
 	}
 
@@ -88,8 +88,8 @@ class StringFuncTest extends TestCase
 	{
 		$inst = new StringFunc('strings.concat');
 		$this->assertEquals($expected, $inst->apply([
-			new FinalVal($sep, 'Str'),
-			new FinalVal($src, 'Str'),
+			new FinalValue($sep, 'Str'),
+			new FinalValue($src, 'Str'),
 		])->unpack());
 	}
 

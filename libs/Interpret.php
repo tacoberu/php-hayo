@@ -16,9 +16,9 @@ final class Interpret
 {
 
 	/**
-	 * @param string|FinalVal|self|BindValue| Value $src
-	 * @param array<string, FinalVal | ParametricValue> $lets
-	 * @return FinalVal | ParametricValue
+	 * @param string|FinalValue|self|BindValue| Value $src
+	 * @param array<string, FinalValue | ParametricValue> $lets
+	 * @return FinalValue | ParametricValue
 	 */
 	static function applyAny($src, array $lets)
 	{
@@ -30,7 +30,7 @@ final class Interpret
 			case $src instanceof BindValue:
 				//~ self::assertBindInArguments($src, $lets);
 				$value = $lets[$src->getName()];
-				if ( ! $value instanceof FinalVal) {
+				if ( ! $value instanceof FinalValue) {
 					throw new LogicException("Comming soon...");
 				}
 				if ($src->isPath()) {
@@ -58,21 +58,21 @@ final class Interpret
 				return self::applyStructTuple($src, $lets);
 
 			case $src instanceof Scalar:
-				return new FinalVal($src->getValue(), '?');
+				return new FinalValue($src->getValue(), '?');
 
-			case $src instanceof FinalVal:
+			case $src instanceof FinalValue:
 				return $src;
 
 			default:
-				throw new LogicException("Unsupported applicable token: '$src'.");
+				throw new LogicException("Unsupported applicable token: " . get_debug_type($src) . ".");
 		}
 	}
 
 
 
 	/**
-	 * @param array<string, FinalVal | ParametricValue> $lets
-	 * @return FinalVal | ParametricValue
+	 * @param array<string, FinalValue | ParametricValue> $lets
+	 * @return FinalValue | ParametricValue
 	 */
 	private static function applyExpr(Expr $expr, array $lets)
 	{
@@ -112,16 +112,18 @@ final class Interpret
 
 
 	/**
-	 * @param array<string, FinalVal | ParametricValue> $lets
-	 * @return FinalVal | ParametricValue
+	 * @param array<string, FinalValue | ParametricValue> $lets
+	 * @return FinalValue | ParametricValue
 	 */
 	private static function applyFormIfThenElse(Form $src, array $lets)
 	{
 		foreach ($src->getItems() as $block) {
+			/** @var object{cond: mixed, expr: mixed} $block */
 			if ($block->cond === Null) {
 				return self::applyAny($block->expr, $lets);
 			}
-			if (($cond = self::applyAny($block->cond, $lets)) && $cond->unpack()) {
+			$cond = self::applyAny($block->cond, $lets);
+			if ($cond->unpack()) {
 				return self::applyAny($block->expr, $lets);
 			}
 		}
@@ -131,45 +133,45 @@ final class Interpret
 
 
 	/**
-	 * @param array<string, FinalVal | ParametricValue> $lets
+	 * @param array<string, FinalValue | ParametricValue> $lets
 	 */
-	private static function applyStructList(Composite $expr, array $lets): FinalVal
+	private static function applyStructList(Composite $expr, array $lets): FinalValue
 	{
 		$items = [];
-		foreach ($expr->getItems() as $k => $x) {
+		foreach ((array) $expr->getItems() as $k => $x) {
 			$items[$k] = self::applyAny($x, $lets);
 		}
-		return new FinalVal($items, 'List');
+		return new FinalValue($items, 'List');
 	}
 
 
 
 	/**
-	 * @param array<string, FinalVal | ParametricValue> $lets
+	 * @param array<string, FinalValue | ParametricValue> $lets
 	 */
-	private static function applyStructDict(Composite $expr, array $lets): FinalVal
+	private static function applyStructDict(Composite $expr, array $lets): FinalValue
 	{
 		$items = [];
-		foreach ($expr->getItems() as $k => $x) {
+		foreach ((array) $expr->getItems() as $k => $x) {
 			$items[$k] = self::applyAny($x, $lets);
 		}
 
-		return new FinalVal((object) $items, 'Dict');
+		return new FinalValue((object) $items, 'Dict');
 	}
 
 
 
 	/**
-	 * @param array<string, FinalVal | ParametricValue> $lets
+	 * @param array<string, FinalValue | ParametricValue> $lets
 	 */
-	private static function applyStructTuple(Composite $expr, array $lets): FinalVal
+	private static function applyStructTuple(Composite $expr, array $lets): FinalValue
 	{
 		$items = [];
-		foreach ($expr->getItems() as $k => $x) {
+		foreach ((array) $expr->getItems() as $k => $x) {
 			$items[$k] = self::applyAny($x, $lets);
 		}
 
-		return new FinalVal((object) $items, 'Tuple');
+		return new FinalValue((object) $items, 'Tuple');
 	}
 
 
@@ -177,9 +179,8 @@ final class Interpret
 	/**
 	 * If the bound value is a path: `x.foo`, we expect
 	 * $src to be a dictionary and extract the correct value from it.
-	 * @param array<string, FinalValue | ParametricValue> $xs
 	 */
-	private static function selectByPath(BindValue $id, FinalVal $src): FinalVal
+	private static function selectByPath(BindValue $id, FinalValue $src): FinalValue
 	{
 		//~ self::assertDict($src);
 		$curr = (object)[
@@ -187,11 +188,11 @@ final class Interpret
 		];
 		foreach (explode('.', $id->getBindName()) as $x) {
 			if (!isset($curr->{$x})) {
-				return new FinalVal(Null, '?');
+				return new FinalValue(Null, '?');
 			}
 			$curr = $curr->{$x};
 		}
-		return new FinalVal($curr, '?');
+		return new FinalValue($curr, '?');
 	}
 
 }
