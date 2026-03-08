@@ -140,6 +140,26 @@ class HayoEngineTest extends TestCase
 			['1 + a', ['a' => 10, 'b' => 20],
 				InvalidArgumentException::class,
 				"Invalid count of arguments. Expected 'a'; given 'a', 'b'."],
+			// Wrong argument type for builtin → global \InvalidArgumentException from StringsProvider::assertStr
+			['Str.len xs', ['xs' => 42],
+				InvalidArgumentException::class,
+				'Expected string, got integer'],
+		];
+	}
+
+
+
+	/**
+	 * @return array<array<mixed>>
+	 */
+	static function dataValidationErrors(): array
+	{
+		return [
+			// IN predicate on non-array → TypeError from PHP built-in in_array()
+			['1 IN xs', ['xs' => 'hello'],
+				ValidationException::class,
+				'Invalid arguments of Predicate.in: Expected array, got string'],
+
 		];
 	}
 

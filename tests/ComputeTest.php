@@ -75,7 +75,7 @@ class ComputeTest extends TestCase
 				],
 			['(10 + a) or (a + 1)'
 				, [ 'a' => new FinalValue(8, 'Int')]
-				, new FinalValue(True, 'Symbol'),
+				, new FinalValue(True, 'Bool'),
 				],
 		];
 	}
@@ -278,42 +278,42 @@ class ComputeTest extends TestCase
 			["a || 2"
 				, [ 'a' => new FinalValue(41, 'Int'),
 					]
-				, new FinalValue(True, 'Symbol'),
+				, new FinalValue(True, 'Bool'),
 				],
 			["a && 2"
 				, [ 'a' => new FinalValue(41, 'Int'),
 					]
-				, new FinalValue(True, 'Symbol'),
+				, new FinalValue(True, 'Bool'),
 				],
 			["a && False"
 				, [ 'a' => new FinalValue(41, 'Int'),
 					]
-				, new FinalValue(False, 'Symbol'),
+				, new FinalValue(False, 'Bool'),
 				],
 			["not a"
 				, [ 'a' => new FinalValue(41, 'Int'),
 					]
-				, new FinalValue(False, 'Symbol'),
+				, new FinalValue(False, 'Bool'),
 				],
 			["not (not a)"
 				, [ 'a' => new FinalValue(41, 'Int'),
 					]
-				, new FinalValue(True, 'Symbol'),
+				, new FinalValue(True, 'Bool'),
 				],
 			["not a"
 				, [ 'a' => new FinalValue(False, 'Bool'),
 					]
-				, new FinalValue(True, 'Symbol'),
+				, new FinalValue(True, 'Bool'),
 				],
 			["not (1 or a)"
 				, [ 'a' => new FinalValue(False, 'Bool'),
 					]
-				, new FinalValue(False, 'Symbol'),
+				, new FinalValue(False, 'Bool'),
 				],
 			["(not 1) or a"
 				, [ 'a' => new FinalValue(True, 'Bool'),
 					]
-				, new FinalValue(True, 'Symbol'),
+				, new FinalValue(True, 'Bool'),
 				],
 		];
 	}

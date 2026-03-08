@@ -850,31 +850,31 @@ content = [
 				],
 
 			["1 == 2",
-				new FinalValue(False, 'Symbol'),
+				new FinalValue(False, 'Bool'),
 				],
 
 			["1 == 2 || 2 == 3",
-				new FinalValue(False, 'Symbol'),
+				new FinalValue(False, 'Bool'),
 				],
 
 			["1 == 2 or 2 == 3",
-				new FinalValue(False, 'Symbol'),
+				new FinalValue(False, 'Bool'),
 				],
 
 			["1 OR 2 OR 3",
-				new FinalValue(True, 'Symbol'),
+				new FinalValue(True, 'Bool'),
 				],
 
 			["1 || 2 || 3",
-				new FinalValue(True, 'Symbol'),
+				new FinalValue(True, 'Bool'),
 				],
 
 			["(1 == 1) && 1",
-				new FinalValue(True, 'Symbol'),
+				new FinalValue(True, 'Bool'),
 				],
 
 			["6 == 6 && (2 + 1) == 3",
-				new FinalValue(True, 'Symbol'),
+				new FinalValue(True, 'Bool'),
 				],
 
 			["6 == a && (2 + 1) == 3",
@@ -884,7 +884,7 @@ content = [
 						new BindValue('a', '?')
 						),
 					new PredicateFunction('&&'),
-					new FinalValue(True, 'Symbol')
+					new FinalValue(True, 'Bool')
 					), '?', [
 						new BindValue('a', '?'),
 					]),

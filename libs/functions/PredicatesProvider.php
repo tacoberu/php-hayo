@@ -9,9 +9,6 @@
 
 namespace Taco\Hayo;
 
-use LogicException;
-
-
 class PredicatesProvider implements SymbolProvider, ShortSymbolProvider
 {
 
@@ -28,7 +25,7 @@ class PredicatesProvider implements SymbolProvider, ShortSymbolProvider
 
 
 	/**
-	 * @retrun list<string>
+	 * @return list<string>
 	 */
 	function getShortSymbolTable(): array
 	{
@@ -43,192 +40,286 @@ class PredicatesProvider implements SymbolProvider, ShortSymbolProvider
 
 
 /**
- * `==` - Je rovno.
- * `!=` - Není rovno.
- * `<` - Menší jak.
- * `>` - Větší jak.
- * `<=` - Menší nebo rovno jak.
- * `>=` - Větší nebo rovno jak.
- * `IN` - prvek left je ve množině right.
- * `HAS` - v množině left je prvek right.
- * `SUPERSET` - Všechny prvky z pravé množiny jsou v levé.
- * `SUBSET` - Všechny prvky z levé množiny jsou v pravé
- * `INTERSECTS` - Množiny left a right mají alespon jeden společný prvek.
+ * `Pred.== a: ?, b: ? :: Bool` - Equal.
+ * `Pred.!= a: ?, b: ? :: Bool` - Not equal.
+ * `Pred.< a: ?, b: ? :: Bool` - Less than.
+ * `Pred.> a: ?, b: ? :: Bool` - Greater than.
+ * `Pred.<= a: ?, b: ? :: Bool` - Less than or equal.
+ * `Pred.>= a: ?, b: ? :: Bool` - Greater than or equal.
+ * `Pred.and a: ?, b: ? :: Bool` - Logical conjunction (also &&).
+ * `Pred.or a: ?, b: ? :: Bool` - Logical disjunction (also ||).
+ * `Pred.not a: ? :: Bool` - Negation.
+ * `Pred.in a: a, b: List<a> :: Bool` - Element left is in the right set.
+ * `Pred.has a: List<a>, b: a :: Bool` - The left set contains the right element.
+ * `Pred.superset a: List<a>, b: List<a> :: Bool` - All elements of the right set are in the left set.
+ * `Pred.subset a: List<a>, b: List<a> :: Bool` - All elements of the left set are in the right set.
+ * `Pred.intersects a: List<a>, b: List<a> :: Bool` - The sets share at least one common element.
  */
 class PredicateFunction implements BuildinFunc
 {
 
-    private string $name;
+	const Name = "Predicate";
+
+	/** Mapping of symbol to PHP method name */
+	private const OP_MAP = [
+		'==' => 'eq',
+		'!=' => 'neq',
+		'<' => 'lt',
+		'>' => 'gt',
+		'<=' => 'lte',
+		'>=' => 'gte',
+		'and' => 'and',
+		'or' => 'or',
+		'&&' => 'and',
+		'||' => 'or',
+		'not' => 'not',
+		'in' => 'in',
+		'has' => 'has',
+		'superset' => 'superset',
+		'subset' => 'subset',
+		'intersects' => 'intersects',
+	];
+
+	private string $name;
+
+	/**
+	 * @var array<string, array{0: list<BindValue>, 1: string}>
+	 */
+	private static array $functionMap = [];
 
 	function __construct(string $name)
 	{
 		$this->name = strtolower($name);
+		if (self::$functionMap === []) {
+			self::$functionMap = Utils::getApplyMethodFrom(self::class);
+		}
+	}
+
+
+
+	function getQualifiedName(): string
+	{
+		return self::Name . '.' . $this->name;
 	}
 
 
 
 	function type(): string
 	{
-		switch ($this->name) {
-			case '==':
-			case '!=':
-			case '<':
-			case '>':
-			case '<=':
-			case '>=':
-			case 'and':
-			case 'or':
-			case '&&':
-			case '||':
-			case 'in': // prvek left je ve množině right
-			case 'has': // v množině left je prvek right
-			case 'superset': // existuje alespoň jeden prvek v left, který je také v right. @todo ta definice je divná
-			case 'subset': // existuje alespoň jeden prvek v right, který je také v left @todo ta definice je divná
-			case 'intersects': // množiny left a right mají alespon jeden společný prvek.
-				return 'Bool';
-
-			default:
-				throw new LogicException("Unsupported predicate: {$this->name}.");
-		}
+		return Utils::selectReturnType(self::$functionMap, self::OP_MAP[$this->name]);
 	}
 
 
 
 	/**
-	 * Které argumenty to vyžaduje.
-	 * @return list<BindVal>
+	 * Which arguments are required.
+	 * @return list<BindValue>
 	 */
 	function getBinds(): array
 	{
-		switch ($this->name) {
-			case '==':
-			case '!=':
-			case '<':
-			case '>':
-			case '<=':
-			case '>=':
-			case 'and':
-			case 'or':
-			case '&&':
-			case '||':
-				return [
-					new BindVal('a', '?'),
-					new BindVal('b', '?'),
-				];
-
-			case 'in': // prvek left je ve množině right
-				return [
-					new BindVal('a', 'a'),
-					new BindVal('b', 'List<a>'),
-				];
-
-			case 'has': // v množině left je prvek right
-				return [
-					new BindVal('a', 'List<a>'),
-					new BindVal('b', 'a'),
-				];
-
-			case 'superset': // existuje alespoň jeden prvek v left, který je také v right.
-			case 'subset': // existuje alespoň jeden prvek v right, který je také v left
-			case 'intersects': // množiny left a right mají alespon jeden společný prvek.
-				return [
-					new BindVal('a', 'List<a>'),
-					new BindVal('b', 'List<a>'),
-				];
-
-			default:
-				throw new LogicException("Unsupported predicate: {$this->name}.");
-		}
+		return Utils::selectArgumentsSignature(self::$functionMap, self::OP_MAP[$this->name]);
 	}
 
 
 
 	/**
-	 * @return list<string>
-	 */
-	function refs(): array
-	{
-		return array_map(static function (BindVal $x): string {
-			return $x->getBindName();
-		}, $this->getBinds());
-	}
-
-
-
-	/**
-	 * Předáme požadované argumenty a vypočítáme výsledek. Argumenty už musí
-	 * být finální hodnoty.
-	 * @param array<string, FinalVal> $args
+	 * Pass the required arguments and compute the result. Arguments must already
+	 * be final values.
+	 * @param array<string, FinalValue> $args
 	 */
 	function apply(array $args): Value
 	{
-		$args = array_values($args);
-		$args = array_map(static function(Value $x) {
-			return $x instanceof FinalVal
-				? $x->unpack()
-				: $x;
-		}, $args);
-
-		switch ($this->name) {
-			case '==':
-				return new FinalVal($args[0] === $args[1], 'Symbol');
-
-			case '!=':
-				return new FinalVal($args[0] !== $args[1], 'Symbol');
-
-			case '>':
-				return new FinalVal($args[0] > $args[1], 'Symbol');
-
-			case '<':
-				return new FinalVal($args[0] < $args[1], 'Symbol');
-
-			case '<=':
-				return new FinalVal($args[0] <= $args[1], 'Symbol');
-
-			case '>=':
-				return new FinalVal($args[0] >= $args[1], 'Symbol');
-
-			case 'and':
-			case '&&':
-				return new FinalVal($args[0] && $args[1], 'Symbol');
-
-			case 'or':
-			case '||':
-				return new FinalVal($args[0] || $args[1], 'Symbol');
-
-			case 'not':
-				return new FinalVal( ! $args[0], 'Symbol');
-
-			// prvek left je ve množině right
-			case 'in':
-				return new FinalVal(in_array($args[0], $args[1], True), 'Symbol');
-
-			// v množině left je prvek right
-			case 'has':
-				return new FinalVal(in_array($args[1], $args[0], True), 'Symbol');
-
-			// Existuje alespoň jeden prvek v left, který je také v right.
-			case 'superset':
-				throw new LogicException("Comming soon... (2026.02.18 23:58:07 CET)");
-
-			// Existuje alespoň jeden prvek v right, který je také v left
-			case 'subset':
-				throw new LogicException("Comming soon... (2026.02.18 23:58:07 CET)");
-
-			// Množiny left a right mají alespon jeden společný prvek.
-			case 'intersects':
-				throw new LogicException("Comming soon... (2026.02.18 23:58:07 CET)");
-
-			default:
-				throw new LogicException("Unsupported predicate: {$this->name}.");
+		$func = 'apply' . ucfirst(self::OP_MAP[$this->name]);
+		if (method_exists(self::class, $func)) {
+			TypeValidator::assertArguments(self::Name . '.' . $this->name, $this->getBinds(), $args);
+			return call_user_func_array([self::class, $func], $args);
 		}
+		throw SymbolNotFound::UnsupportedFunc(self::Name, $this->name);
+	}
+
+
+
+	/**
+	 * @signature "a: a, b: a -> Bool"
+	 */
+	private static function applyEq(FinalValue $a, FinalValue $b): FinalValue
+	{
+		return new FinalValue($a->unpack() === $b->unpack(), 'Bool');
+	}
+
+
+
+	/**
+	 * @signature "a: a, b: a -> Bool"
+	 */
+	private static function applyNeq(FinalValue $a, FinalValue $b): FinalValue
+	{
+		return new FinalValue($a->unpack() !== $b->unpack(), 'Bool');
+	}
+
+
+
+	/**
+	 * @signature "a: a, b: a -> Bool"
+	 */
+	private static function applyLt(FinalValue $a, FinalValue $b): FinalValue
+	{
+		return new FinalValue($a->unpack() < $b->unpack(), 'Bool');
+	}
+
+
+
+	/**
+	 * @signature "a: a, b: a -> Bool"
+	 */
+	private static function applyGt(FinalValue $a, FinalValue $b): FinalValue
+	{
+		return new FinalValue($a->unpack() > $b->unpack(), 'Bool');
+	}
+
+
+
+	/**
+	 * @signature "a: a, b: a -> Bool"
+	 */
+	private static function applyLte(FinalValue $a, FinalValue $b): FinalValue
+	{
+		return new FinalValue($a->unpack() <= $b->unpack(), 'Bool');
+	}
+
+
+
+	/**
+	 * @signature "a: a, b: a -> Bool"
+	 */
+	private static function applyGte(FinalValue $a, FinalValue $b): FinalValue
+	{
+		return new FinalValue($a->unpack() >= $b->unpack(), 'Bool');
+	}
+
+
+
+	/**
+	 * @signature "a: Bool, b: Bool -> Bool"
+	 */
+	private static function applyAnd(FinalValue $a, FinalValue $b): FinalValue
+	{
+		if (!is_bool($a->unpack())) {
+			throw ScriptTypeException::expectedBool(gettype($a->unpack()));
+		}
+		if (!is_bool($b->unpack())) {
+			throw ScriptTypeException::expectedBool(gettype($b->unpack()));
+		}
+		return new FinalValue($a->unpack() && $b->unpack(), 'Bool');
+	}
+
+
+
+	/**
+	 * @signature "a: Bool, b: Bool -> Bool"
+	 */
+	private static function applyOr(FinalValue $a, FinalValue $b): FinalValue
+	{
+		if (!is_bool($a->unpack())) {
+			throw ScriptTypeException::expectedBool(gettype($a->unpack()));
+		}
+		if (!is_bool($b->unpack())) {
+			throw ScriptTypeException::expectedBool(gettype($b->unpack()));
+		}
+		return new FinalValue($a->unpack() || $b->unpack(), 'Bool');
+	}
+
+
+
+	/**
+	 * @signature "a: Bool -> Bool"
+	 */
+	private static function applyNot(FinalValue $a): FinalValue
+	{
+		if (!is_bool($a->unpack())) {
+			throw ScriptTypeException::expectedBool(gettype($a->unpack()));
+		}
+		return new FinalValue( ! $a->unpack(), 'Bool');
+	}
+
+
+
+	/**
+	 * Element left is in the right set.
+	 * @signature "a: a, b: List<a> -> Bool"
+	 */
+	private static function applyIn(FinalValue $a, FinalValue $b): FinalValue
+	{
+		return new FinalValue(in_array($a->unpack(), $b->unpack(), True), 'Bool');
+	}
+
+
+
+	/**
+	 * The left set contains the right element.
+	 * @signature "a: List<a>, b: a -> Bool"
+	 */
+	private static function applyHas(FinalValue $a, FinalValue $b): FinalValue
+	{
+		return new FinalValue(in_array($b->unpack(), $a->unpack(), True), 'Bool');
+	}
+
+
+
+	/**
+	 * All elements of the right set are in the left set.
+	 * @signature "a: List<a>, b: List<a> -> Bool"
+	 */
+	private static function applySuperset(FinalValue $a, FinalValue $b): FinalValue
+	{
+		$a = $a->unpack();
+		foreach ($b->unpack() as $item) {
+			if (!in_array($item, $a, True)) {
+				return new FinalValue(False, 'Bool');
+			}
+		}
+		return new FinalValue(True, 'Bool');
+	}
+
+
+
+	/**
+	 * All elements of the left set are in the right set.
+	 * @signature "a: List<a>, b: List<a> -> Bool"
+	 */
+	private static function applySubset(FinalValue $a, FinalValue $b): FinalValue
+	{
+		$b = $b->unpack();
+		foreach ($a->unpack() as $item) {
+			if (!in_array($item, $b, True)) {
+				return new FinalValue(False, 'Bool');
+			}
+		}
+		return new FinalValue(True, 'Bool');
+	}
+
+
+
+	/**
+	 * The left and right sets share at least one common element.
+	 * @signature "a: List<a>, b: List<a> -> Bool"
+	 */
+	private static function applyIntersects(FinalValue $a, FinalValue $b): FinalValue
+	{
+		$b = $b->unpack();
+		foreach ($a->unpack() as $item) {
+			if (in_array($item, $b, True)) {
+				return new FinalValue(True, 'Bool');
+			}
+		}
+		return new FinalValue(False, 'Bool');
 	}
 
 
 
 	function __toString(): string
 	{
-		return '<' . $this->name . ' ' . implode(' ', $this->refs()) . '>';
+		return '<' . self::Name . '.' . $this->name . '>';
 	}
 
 }
