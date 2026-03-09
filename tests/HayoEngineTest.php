@@ -12,6 +12,8 @@ namespace Taco\Hayo;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use DateInterval;
+use DivisionByZeroError;
+use RuntimeException;
 
 
 class HayoEngineTest extends TestCase
@@ -40,6 +42,31 @@ class HayoEngineTest extends TestCase
 		$this->expectExceptionMessage($message);
 		HayoEngine::WithDefaultLibraries()
 			->evaluate($code, $args);
+	}
+
+
+
+	/**
+	 * @param class-string<\Throwable> $exception
+	 */
+	#[DataProvider('dataRuntimeErrors')]
+	function testRuntimeErrors(string $code, array $args, string $exception, string $message): void
+	{
+		$this->expectException($exception);
+		$this->expectExceptionMessage($message);
+		HayoEngine::WithDefaultLibraries()
+			->evaluate($code, $args);
+	}
+
+
+
+	function testCacheNotWritable(): void
+	{
+		$this->expectException(RuntimeException::class);
+		$this->expectExceptionMessage("Location for file cache: '/proc' is not writeable.");
+		HayoEngine::WithDefaultLibraries()
+			->setCache(new FileBaseCache('/proc'))
+			->evaluate('1 + 1', []);
 	}
 
 
@@ -191,13 +218,21 @@ class HayoEngineTest extends TestCase
 
 
 
-	function testCacheNotWritable(): void
+	/**
+	 * @return array<array<mixed>>
+	 */
+	static function dataRuntimeErrors(): array
 	{
-		$this->expectException(\RuntimeException::class);
-		$this->expectExceptionMessage("Location for file cache: '/proc' is not writeable.");
-		HayoEngine::WithDefaultLibraries()
-			->setCache(new FileBaseCache('/proc'))
-			->evaluate('1 + 1', []);
+		return [
+			// Modulo by zero → DivisionByZeroError from PHP runtime
+			['10 mod a', ['a' => 0],
+				DivisionByZeroError::class,
+				'Modulo by zero'],
+			// Integer division by zero → DivisionByZeroError from PHP runtime
+			['10 div a', ['a' => 0],
+				DivisionByZeroError::class,
+				'Division by zero'],
+		];
 	}
 
 }
