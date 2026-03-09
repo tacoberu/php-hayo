@@ -19,6 +19,9 @@ use RuntimeException;
 class HayoEngineTest extends TestCase
 {
 
+	/**
+	 * @param array<mixed> $args
+	 */
 	#[DataProvider('dataCorrect')]
 	function testCorrect(string $code, array $args, $expected)
 	{
@@ -31,6 +34,7 @@ class HayoEngineTest extends TestCase
 
 	/**
 	 * @param class-string<\Throwable> $exception
+	 * @param array<mixed> $args
 	 */
 	#[DataProvider('dataSymbolNotFoundErrors')]
 	#[DataProvider('dataCompileErrors')]
@@ -48,6 +52,7 @@ class HayoEngineTest extends TestCase
 
 	/**
 	 * @param class-string<\Throwable> $exception
+	 * @param array<mixed> $args
 	 */
 	#[DataProvider('dataRuntimeErrors')]
 	function testRuntimeErrors(string $code, array $args, string $exception, string $message): void
@@ -183,7 +188,16 @@ class HayoEngineTest extends TestCase
 			// Math operator on wrong types → TypeError from PHP runtime
 			['a + b', ['a' => 'hello', 'b' => 2],
 				ValidationException::class,
-				'Invalid arguments of Math.+: Expected int, got string'],
+				'Invalid arguments of Math.+: Expected int or float, got string'],
+			['a - b', ['a' => 'hello', 'b' => 2],
+				ValidationException::class,
+				'Invalid arguments of Math.-: Expected int or float, got string'],
+			['a * b', ['a' => 'hello', 'b' => 2],
+				ValidationException::class,
+				'Invalid arguments of Math.*: Expected int or float, got string'],
+			['a div b', ['a' => 'hello', 'b' => 2],
+				ValidationException::class,
+				'Invalid arguments of Math.div: Expected int or float, got string'],
 
 			// IN predicate on non-array → TypeError from PHP built-in in_array()
 			['1 IN xs', ['xs' => 'hello'],

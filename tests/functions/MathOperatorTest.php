@@ -28,10 +28,10 @@ class MathOperatorTest extends TestCase
 	function testPlus()
 	{
 		$inst = new MathOperator('+');
-		$this->assertSame('Int', $inst->type());
+		$this->assertSame('Num', $inst->type());
 		$this->assertEquals([
-			new BindValue('a', 'Int'),
-			new BindValue('b', 'Int'),
+			new BindValue('a', 'Num'),
+			new BindValue('b', 'Num'),
 		], $inst->getBinds());
 		$this->assertSame('<Math.+>', (string) $inst);
 	}
@@ -39,12 +39,12 @@ class MathOperatorTest extends TestCase
 
 
 	#[DataProvider('dataPlusApply')]
-	function testPlusApply(int $a, int $b, int $expected)
+	function testPlusApply($a, $b, $expected)
 	{
 		$inst = new MathOperator('+');
 		$this->assertSame($expected, $inst->apply([
-			new FinalValue($a, 'Int'),
-			new FinalValue($b, 'Int'),
+			new FinalValue($a, 'Num'),
+			new FinalValue($b, 'Num'),
 		])->unpack());
 	}
 
@@ -55,10 +55,10 @@ class MathOperatorTest extends TestCase
 	function testMinus()
 	{
 		$inst = new MathOperator('-');
-		$this->assertSame('Int', $inst->type());
+		$this->assertSame('Num', $inst->type());
 		$this->assertEquals([
-			new BindValue('a', 'Int'),
-			new BindValue('b', 'Int'),
+			new BindValue('a', 'Num'),
+			new BindValue('b', 'Num'),
 		], $inst->getBinds());
 		$this->assertSame('<Math.->', (string) $inst);
 	}
@@ -66,7 +66,7 @@ class MathOperatorTest extends TestCase
 
 
 	#[DataProvider('dataMinusApply')]
-	function testMinusApply(int $a, int $b, int $expected)
+	function testMinusApply($a, $b, $expected)
 	{
 		$inst = new MathOperator('-');
 		$this->assertSame($expected, $inst->apply([
@@ -82,10 +82,10 @@ class MathOperatorTest extends TestCase
 	function testMultiply()
 	{
 		$inst = new MathOperator('*');
-		$this->assertSame('Int', $inst->type());
+		$this->assertSame('Num', $inst->type());
 		$this->assertEquals([
-			new BindValue('a', 'Int'),
-			new BindValue('b', 'Int'),
+			new BindValue('a', 'Num'),
+			new BindValue('b', 'Num'),
 		], $inst->getBinds());
 		$this->assertSame('<Math.*>', (string) $inst);
 	}
@@ -93,7 +93,7 @@ class MathOperatorTest extends TestCase
 
 
 	#[DataProvider('dataMultiplyApply')]
-	function testMultiplyApply(int $a, int $b, int $expected)
+	function testMultiplyApply($a, $b, $expected)
 	{
 		$inst = new MathOperator('*');
 		$this->assertSame($expected, $inst->apply([
@@ -109,10 +109,10 @@ class MathOperatorTest extends TestCase
 	function testDiv()
 	{
 		$inst = new MathOperator('div');
-		$this->assertSame('Int', $inst->type());
+		$this->assertSame('Num', $inst->type());
 		$this->assertEquals([
-			new BindValue('a', 'Int'),
-			new BindValue('b', 'Int'),
+			new BindValue('a', 'Num'),
+			new BindValue('b', 'Num'),
 		], $inst->getBinds());
 		$this->assertSame('<Math.div>', (string) $inst);
 	}
@@ -120,7 +120,7 @@ class MathOperatorTest extends TestCase
 
 
 	#[DataProvider('dataDivApply')]
-	function testDivApply(int $a, int $b, int $expected)
+	function testDivApply($a, $b, $expected)
 	{
 		$inst = new MathOperator('div');
 		$this->assertSame($expected, $inst->apply([
@@ -243,8 +243,12 @@ class MathOperatorTest extends TestCase
 	static function dataPlusApply(): array
 	{
 		return [
+			// Int
 			[1, 1, 2],
 			[0, 5, 5],
+			// Real
+			[1.1, 1.1, 2.2],
+			[0.2, 5.5, 5.7],
 		];
 	}
 
@@ -256,8 +260,13 @@ class MathOperatorTest extends TestCase
 	static function dataMinusApply(): array
 	{
 		return [
+			// Int
 			[1, 1, 0],
 			[5, 3, 2],
+			// Real
+			[1.1, 1.1, 0.0],
+			[1.5, 1.0, 0.5],
+			[0.2, 5.5, -5.3],
 		];
 	}
 
@@ -269,8 +278,12 @@ class MathOperatorTest extends TestCase
 	static function dataMultiplyApply(): array
 	{
 		return [
+			// Int
 			[2, 2, 4],
 			[3, 4, 12],
+			// Real
+			[2.2, 2.3, 5.06],
+			[3.6, 4.1, 14.76],
 		];
 	}
 
@@ -282,8 +295,12 @@ class MathOperatorTest extends TestCase
 	static function dataDivApply(): array
 	{
 		return [
+			// Int
 			[4, 2, 2],
 			[7, 2, 3],
+			// Real
+			[5.0, 2.5, 2.0],
+			[3.6, 4.5, 0.8],
 		];
 	}
 

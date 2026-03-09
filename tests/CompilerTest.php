@@ -625,17 +625,17 @@ content = [
 
 			["a = 554\n{a: 42, b: a + 1}", new FinalValue((object) [
 				'a' => new FinalValue(42, 'Int'),
-				'b' => new FinalValue(555, 'Int'),
+				'b' => new FinalValue(555, 'Num'),
 				], 'Dict')],
 
 			["a = 554\n{a: 42, b: (a + a) + 1}", new FinalValue((object) [
 				'a' => new FinalValue(42, 'Int'),
-				'b' => new FinalValue(1109, 'Int'),
+				'b' => new FinalValue(1109, 'Num'),
 				], 'Dict')],
 
 			["a = 100 + 454\n{a: 42, b: a + 1}", new FinalValue((object) [
 				'a' => new FinalValue(42, 'Int'),
-				'b' => new FinalValue(555, 'Int'),
+				'b' => new FinalValue(555, 'Num'),
 				], 'Dict')],
 
 			// @TODO
@@ -650,18 +650,18 @@ content = [
 	static function dataOperations(): array
 	{
 		return [
-			['40 + 2', new FinalValue(42, 'Int')],
-			['40 + (1 + 1)', new FinalValue(42, 'Int')],
-			['(10 + 30) + (1 + 1)', new FinalValue(42, 'Int')],
-			['2 * ((10 + 30) + (1 + 1))', new FinalValue(84, 'Int')],
-			['2 * 10 + 30 + 1 + 1', new FinalValue(52, 'Int')],
-			['(2 * 10) + 30 + 1 + 1', new FinalValue(52, 'Int')],
-			['2 * 10 div 30 + 1 + 1', new FinalValue(2, 'Int')],
-			['(2 * 10) div 30 + 1 + 1', new FinalValue(2, 'Int')],
-			['((2 * 10) div 30) + 1 + 1', new FinalValue(2, 'Int')],
-			['2 * 10 mod 30 + 1 + 1', new FinalValue(22, 'Int')],
-			['(2 * 10) mod 30 + 1 + 1', new FinalValue(22, 'Int')],
-			['((2 * 10) mod 30) + 1 + 1', new FinalValue(22, 'Int')],
+			['40 + 2', new FinalValue(42, 'Num')],
+			['40 + (1 + 1)', new FinalValue(42, 'Num')],
+			['(10 + 30) + (1 + 1)', new FinalValue(42, 'Num')],
+			['2 * ((10 + 30) + (1 + 1))', new FinalValue(84, 'Num')],
+			['2 * 10 + 30 + 1 + 1', new FinalValue(52, 'Num')],
+			['(2 * 10) + 30 + 1 + 1', new FinalValue(52, 'Num')],
+			['2 * 10 div 30 + 1 + 1', new FinalValue(2, 'Num')],
+			['(2 * 10) div 30 + 1 + 1', new FinalValue(2, 'Num')],
+			['((2 * 10) div 30) + 1 + 1', new FinalValue(2, 'Num')],
+			['2 * 10 mod 30 + 1 + 1', new FinalValue(22, 'Num')],
+			['(2 * 10) mod 30 + 1 + 1', new FinalValue(22, 'Num')],
+			['((2 * 10) mod 30) + 1 + 1', new FinalValue(22, 'Num')],
 
 			// @TODO
 		];
@@ -675,16 +675,16 @@ content = [
 	static function dataFinalValueWithSymbol(): array
 	{
 		return [
-			["a = 2\n40 + a", new FinalValue(42, 'Int')],
-			["a = 2\nb = 40\nb + a", new FinalValue(42, 'Int')],
-			["a = 2\nb = 20\n(b + b) + a", new FinalValue(42, 'Int')],
+			["a = 2\n40 + a", new FinalValue(42, 'Num')],
+			["a = 2\nb = 40\nb + a", new FinalValue(42, 'Num')],
+			["a = 2\nb = 20\n(b + b) + a", new FinalValue(42, 'Num')],
 
 			["a = 554\n{a: 42, b: a + 1}", new FinalValue((object) [
 					'a' => new FinalValue(42, 'Int'),
-					'b' => new FinalValue(555, 'Int'),
+					'b' => new FinalValue(555, 'Num'),
 				], 'Dict')],
 
-			["a = 5\nb = 13\ncalc = a + 1 * b\ncalc", new FinalValue(18, 'Int')],
+			["a = 5\nb = 13\ncalc = a + 1 * b\ncalc", new FinalValue(18, 'Num')],
 			// @TODO
 		];
 	}
@@ -709,7 +709,7 @@ content = [
 			["b = 13\ncalc = a + 1 * b\ncalc", ParametricValue::Expr_(Expr::Bin_(
 				new BindValue('a', '?'),
 				new MathOperator('+'),
-				new FinalValue(13, 'Int')
+				new FinalValue(13, 'Num')
 				), '?', [
 					new BindValue('a', '?'),
 				])],
@@ -770,12 +770,12 @@ content = [
 			. "b = 13\n"
 			. "inc = a -> a + 1 * b\n"
 			. "inc 29",
-				new FinalValue(42, 'Int'),
+				new FinalValue(42, 'Num'),
 				],
 
 			["inc = a -> a + 1\n"
 			."inc 41",
-				new FinalValue(42, 'Int'),
+				new FinalValue(42, 'Num'),
 				],
 
 			[""
@@ -990,10 +990,10 @@ content = [
 			. "xs = [1, 2, 3, 4]\n"
 			. "List.map xs (x -> x * x)",
 				new FinalValue([
-					new FinalValue(1, 'Int'),
-					new FinalValue(4, 'Int'),
-					new FinalValue(9, 'Int'),
-					new FinalValue(16, 'Int'),
+					new FinalValue(1, 'Num'),
+					new FinalValue(4, 'Num'),
+					new FinalValue(9, 'Num'),
+					new FinalValue(16, 'Num'),
 					], 'List'),
 				],
 
@@ -1011,7 +1011,7 @@ content = [
 			[""
 			. "xs = [1, 2, 3, 4]\n"
 			. "List.fold xs 0 (prev x -> prev + x)",
-				new FinalValue(10, 'Int'),
+				new FinalValue(10, 'Num'),
 				],
 
 			// `List.split`
@@ -1180,13 +1180,13 @@ content = [
 	{
 		return [
 			["x = { foo: { doo: 41 } }\n1 + x.foo.doo",
-				new FinalValue(42, 'Int'),
+				new FinalValue(42, 'Num'),
 				],
 			["x = { foo: { doo: 41 } }\ny = x.foo.doo\n1 + y",
-				new FinalValue(42, 'Int'),
+				new FinalValue(42, 'Num'),
 				],
 			["x = { foo: { doo: 41 } }\ny = x.foo\n1 + y.doo",
-				new FinalValue(42, 'Int'),
+				new FinalValue(42, 'Num'),
 				],
 		];
 	}
