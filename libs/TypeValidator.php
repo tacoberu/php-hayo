@@ -123,6 +123,11 @@ final class TypeValidator
 				? Null
 				: 'Expected int, got ' . gettype($val);
 		}
+		if ($type === 'Num') {
+			return is_int($val) || is_float($val)
+				? Null
+				: 'Expected int or float, got ' . gettype($val);
+		}
 		if ($type === 'Str' || $type === 'String') {
 			return is_string($val)
 				? Null

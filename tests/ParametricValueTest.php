@@ -21,14 +21,14 @@ class ParametricValueTest extends TestCase
 			'a',
 			new MathOperator('+'),
 			'b'
-		), 'Int', [new BindValue('a', 'Int'), new BindValue('b', 'Int')]);
-		$this->assertSame('Int', $inst->getTypeName());
+		), 'Num', [new BindValue('a', 'Num'), new BindValue('b', 'Num')]);
+		$this->assertSame('Num', $inst->getTypeName());
 		$this->assertSame(['a', 'b'], $inst->refs());
 		$this->assertEquals([
-			new BindValue('a', 'Int'),
-			new BindValue('b', 'Int'),
+			new BindValue('a', 'Num'),
+			new BindValue('b', 'Num'),
 		], $inst->getBinds());
-		$this->assertEquals(new FinalValue(16, 'Int')
+		$this->assertEquals(new FinalValue(16, 'Num')
 			, $inst->apply([
 				'a' => new FinalValue(8, 'Int'),
 				'b' => new FinalValue(8, 'Int'),
@@ -40,16 +40,16 @@ class ParametricValueTest extends TestCase
 	function testVariadic1()
 	{
 		$inst = ParametricValue::Expr_(Expr::Bin_(
-			new FinalValue(41, 'Int'),
+			new FinalValue(41, 'Num'),
 			new MathOperator('+'),
 			'a'
-		), 'Int', [new BindValue('a', 'Int')]);
-		$this->assertSame('Int', $inst->getTypeName());
+		), 'Num', [new BindValue('a', 'Num')]);
+		$this->assertSame('Num', $inst->getTypeName());
 		$this->assertSame(['a'], $inst->refs());
 		$this->assertEquals([
-			new BindValue('a', 'Int'),
+			new BindValue('a', 'Num'),
 		], $inst->getBinds());
-		$this->assertEquals(new FinalValue(49, 'Int')
+		$this->assertEquals(new FinalValue(49, 'Num')
 			, $inst->apply(['a' => new FinalValue(8, 'Int')]));
 	}
 
@@ -58,14 +58,14 @@ class ParametricValueTest extends TestCase
 	function testVariadic2()
 	{
 		$inst = ParametricValue::Expr_(Expr::Bin_(
-			new FinalValue(41, 'Int'),
+			new FinalValue(41, 'Num'),
 			new MathOperator('+'),
-			new FinalValue(11, 'Int')
-		), 'Int', []);
-		$this->assertSame('Int', $inst->getTypeName());
+			new FinalValue(11, 'Num')
+		), 'Num', []);
+		$this->assertSame('Num', $inst->getTypeName());
 		$this->assertSame([], $inst->refs());
 		$this->assertEquals([], $inst->getBinds());
-		$this->assertEquals(new FinalValue(52, 'Int')
+		$this->assertEquals(new FinalValue(52, 'Num')
 			, $inst->apply([]));
 	}
 
