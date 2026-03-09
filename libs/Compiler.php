@@ -9,9 +9,6 @@
 
 namespace Taco\Hayo;
 
-use LogicException;
-
-
 /**
  * PHP Compiler Hayo.
  * The result is PHP code that can be saved to a file and loaded via require. This caching should probably be optional.
@@ -53,14 +50,15 @@ class Compiler
 	 */
 	function compile(string $source)
 	{
-		$decoder = new HayoDecoder();
-		$term = $decoder->decode($source);
+		$term = self::decodeSource($source);
+
+		// @TODO Přesunout do decodeSource()
 		if ( ! $term instanceof Value) {
 			// `a` -- returning argument
 			if (is_string($term)) {
 				return ParametricValue::ShortLinkBind(new BindVal($term, '?'));
 			}
-			throw new LogicException("Invalid source code.");
+			throw CompileException::InvalidSourceCode("Invalid source code.");
 		}
 
 		// Extract all dependencies. Try to resolve them; e.g. builtin functions, etc.
@@ -69,13 +67,10 @@ class Compiler
 
 		// First phase: evaluate bound symbols. Compute everything that can be resolved statically.
 		$term = self::partialEvaluate($context, $term);
-		if ( ! $term instanceof Value) {
-			throw new LogicException("Invalid source code.");
-		}
 
 		// Second phase: convert term -> val
 		$term = self::compileRuntimeValue($term);
-		//~ self::assertMissingSymbols($term);
+		self::assertMissingSymbols($term);
 
 		return $term;
 	}
@@ -143,6 +138,19 @@ class Compiler
 
 
 
+	private static function decodeSource(string $source)
+	{
+		$decoder = new HayoDecoder();
+		try {
+			return $decoder->decode($source);
+		}
+		catch (HayoParserException $e) {
+			throw CompileException::HayoParser($e);
+		}
+	}
+
+
+
 	/**
 	 * Performs **partial evaluation** of an expression.
 	 *
@@ -199,7 +207,7 @@ class Compiler
 			// Could be a function call: `format(1 2 3)`, return value
 			// Could be an operation: `1 + 1`, return value
 			case $term instanceof Expr && $term->refs() === []:
-				throw self::UnsupportedException('partial evaluate', $term);
+				throw CompileException::UnsupportedException('partial evaluate', $term);
 
 			// Could be a function call: `format(1 a 3)`, since "a" is unknown, return a function.
 			// Could be an operation: `1 + a`, since "a" is unknown, return a function.
@@ -208,7 +216,7 @@ class Compiler
 				return self::partialEvaluateExpr($context, $term);
 
 			default:
-				throw self::UnsupportedException('partial evaluate', $term);
+				throw CompileException::UnsupportedException('partial evaluate', $term);
 		}
 	}
 
@@ -268,7 +276,11 @@ class Compiler
 					if ($items[0] instanceof Scalar && $items[1] == Composite::Tuple_([])) {
 						return $items[0];
 					}
-					return self::partialEvaluateApplicable($items[0], $args); // @phpstan-ignore argument.type, return.type
+					$expr = self::partialEvaluateApplicable($items[0], $args);
+					if (is_string($expr)) {
+						throw CompileException::UnresolvedExpression($term);
+					}
+					return $expr;
 				}
 				else {
 					if ($items[0] instanceof Lambda
@@ -283,7 +295,7 @@ class Compiler
 				return $term;
 
 			default:
-				throw self::UnsupportedException('partial evaluate expr of term', $term);
+				throw CompileException::UnsupportedException('partial evaluate expr of term', $term);
 		}
 	}
 
@@ -316,7 +328,7 @@ class Compiler
 				return $fn->apply($args); // @phpstan-ignore argument.type
 
 			default:
-				throw new LogicException("oops.");
+				throw CompileException::Unexpected();
 		}
 	}
 
@@ -337,7 +349,7 @@ class Compiler
 
 			// Nested scope is not supported.
 			case $src->getExpr() instanceof Scope:
-				throw self::UnsupportedException('partial evaluate const scope of scope', $src->getExpr());
+				throw CompileException::UnsupportedException('partial evaluate const scope of scope', $src->getExpr());
 
 			// `{1 + 1}` -- because addition is also a symbol -> `{+ = buildin; 1 + 1}`
 			// `{a = 1; a + a}`
@@ -405,7 +417,7 @@ class Compiler
 				return self::partialEvaluate($context2, $src->getExpr());
 
 			default:
-				throw self::UnsupportedException('partial evaluate const scope', $src->getExpr());
+				throw CompileException::UnsupportedException('partial evaluate const scope', $src->getExpr());
 		}
 	}
 
@@ -419,7 +431,6 @@ class Compiler
 	private static function partialEvaluateLambda(Context $context, Lambda $src): Lambda
 	{
 		$context2 = clone $context;
-		// @TODO Is this correct?
 		foreach ($src->getArgs() as $id) {
 			$context2->shadowByArg($id);
 		}
@@ -449,7 +460,7 @@ class Compiler
 				return Composite::Tuple_($items);
 
 			default:
-				throw new LogicException("Comming soon... (2026.02.18 16:30:34 CET): {$src}");
+				throw CompileException::Unexpected();
 		}
 	}
 
@@ -501,7 +512,7 @@ class Compiler
 				return ParametricValue::Tuple_($val, array_values($binds));
 
 			default:
-				throw self::UnsupportedException('compile value', $val);
+				throw CompileException::UnsupportedException('compile value', $val);
 		}
 	}
 
@@ -544,7 +555,7 @@ class Compiler
 				return self::castAny($src->getExpr(), $packref);
 
 			default:
-				throw self::UnsupportedException('casting', $src);
+				throw CompileException::UnsupportedException('casting', $src);
 		}
 	}
 
@@ -611,7 +622,7 @@ class Compiler
 					return [new FinalVal((object) [], 'Dict'), []];
 
 				default:
-					throw self::UnsupportedException('casting composite', $src);
+					throw CompileException::UnsupportedException('casting composite', $src);
 			}
 		}
 
@@ -633,7 +644,7 @@ class Compiler
 					: [Composite::Dict_($items), $lets];
 
 			default:
-				throw self::UnsupportedException('casting composite', $src);
+				throw CompileException::UnsupportedException('casting composite', $src);
 		}
 	}
 
@@ -646,7 +657,7 @@ class Compiler
 	{
 		list($items, $lets) = self::castCompositeItems($src->getItems(), $packref);
 		if ($src->refs() === []) {
-			throw new LogicException("Comming soon... (2026.02.20 02:49:33 CET)");
+			throw CompileException::Unexpected();
 		}
 		switch ($src->getNotation()) {
 			case Expr::NotationInfix:
@@ -656,7 +667,7 @@ class Compiler
 				return [Expr::Func_($items[0], array_slice($items, 1)), $lets];
 
 			default:
-				throw new LogicException("oops.");
+				throw CompileException::Unexpected();
 		}
 	}
 
@@ -722,14 +733,21 @@ class Compiler
 
 
 
-	/**
-	 * @param mixed $term
-	 */
-	private static function UnsupportedException(string $label, $term): LogicException
+	private static function assertMissingSymbols($term): void
 	{
-		return new LogicException("Unsupported {$label} (" . (is_object($term)
-					? get_class($term)
-					: gettype($term)) . "): '{$term}'.");
+		if ($term instanceof FinalValue) {
+			return;
+		}
+		$missing = [];
+		foreach ($term->getBinds() as $x) {
+			if ($x->isLibrarySymbol()) {
+				$missing[] = $x->getBindName();
+			}
+		}
+		if (count($missing)) {
+			$missing = implode(',', $missing);
+			throw new SymbolNotFound("Unable to find symbols: $missing.");
+		}
 	}
 
 }

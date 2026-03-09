@@ -10,7 +10,6 @@
 namespace Taco\Hayo;
 
 use LogicException;
-use InvalidArgumentException;
 
 
 /**

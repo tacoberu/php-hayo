@@ -9,8 +9,6 @@
 
 namespace Taco\Hayo;
 
-use LogicException;
-use InvalidArgumentException;
 use stdClass;
 
 
@@ -97,7 +95,7 @@ final class HayoEngine
 					->unpack();
 
 			default:
-				throw new LogicException("Unexpected compiled result: {$expr}");
+				throw new CompileException("Unexpected compiled result: {$expr}");
 		}
 	}
 
@@ -217,7 +215,7 @@ final class HayoEngine
 				return 'Dict';
 
 			default:
-				throw new LogicException("Invalid type of value: '" . print_r($src, True) . "'.");
+				throw new InvalidArgumentException("Invalid type of value: '" . print_r($src, True) . "'.");
 		}
 	}
 

@@ -307,7 +307,7 @@ class ComputeTest extends TestCase
 			["(not 1) or a"
 				, [ 'a' => new FinalVal(True, 'Bool'),
 					]
-				, new FinalVal(True, 'Symbol'),
+				, new FinalValue(True, 'Bool'),
 				],
 		];
 	}
