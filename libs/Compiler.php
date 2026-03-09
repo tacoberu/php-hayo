@@ -14,7 +14,7 @@ use LogicException;
 
 /**
  * PHP Compiler Hayo.
- * Výsledek je php kod, který se dá uložit do souboru, který se načíst pomocí require. Toto uložení by ale asi mělo být volitelné, jako cache.
+ * The result is PHP code that can be saved to a file and loaded via require. This caching should probably be optional.
  */
 class Compiler
 {
@@ -25,7 +25,7 @@ class Compiler
 	private array $libs = [];
 
 	/**
-	 * Tabulka krátkých názvů, jako `+`, `div`, `and`, etc.
+	 * Table of short names, like `+`, `div`, `and`, etc.
 	 * @var array<string, string>
 	 */
 	private array $short = [];
@@ -48,33 +48,36 @@ class Compiler
 
 
 	/**
-	 * Vrací konečnou hodnotu, nebo funkci, kterou je třeba naplnit argumenty.
-	 * @return FinalVal | ParametricValue
+	 * Returns a final value, or a function that needs to be filled with arguments.
+	 * @return FinalValue | ParametricValue
 	 */
 	function compile(string $source)
 	{
 		$decoder = new HayoDecoder();
 		$term = $decoder->decode($source);
 		if ( ! $term instanceof Value) {
-			// `a` -- vracíme argument
+			// `a` -- returning argument
 			if (is_string($term)) {
 				return ParametricValue::ShortLinkBind(new BindVal($term, '?'));
 			}
 			throw new LogicException("Invalid source code.");
 		}
 
-		// Vytáhnu si všechny závislosti. Pokusím se je dohledat; například buildin funkce, a podobně.
-		// A ty co nejsou zůstanou jako parametry funkce.
+		// Extract all dependencies. Try to resolve them; e.g. builtin functions, etc.
+		// Those that cannot be resolved will remain as function parameters.
 		$context = $this->createGlobalSymbols($term);
 
-		// První fáze: vyhodnotíme nabindované symboly. Vypočítáme všechny věci, které jdou vypočítat staticky.
+		// First phase: evaluate bound symbols. Compute everything that can be resolved statically.
 		$term = self::partialEvaluate($context, $term);
 		if ( ! $term instanceof Value) {
 			throw new LogicException("Invalid source code.");
 		}
 
-		// Druhá váze: převedem term -> val
-		return self::compileRuntimeValue($term);
+		// Second phase: convert term -> val
+		$term = self::compileRuntimeValue($term);
+		//~ self::assertMissingSymbols($term);
+
+		return $term;
 	}
 
 
@@ -95,26 +98,24 @@ class Compiler
 
 
 	/**
-	 * Vytahuje globální symboly, jako matematické opertáry, funkce pro práci
-	 * s textem, poly, a uživatelsky definované funkce.
-	 *
-	 * @TODO Možnost lokálního importu.
+	 * Retrieves global symbols such as math operators, string functions,
+	 * fields, and user-defined functions.
 	 *
 	 * @return array{0: string, 1: Value}
 	 */
 	private function lookupGlobalSymbol(string $x): ?array
 	{
-		// Ve zdroji je `+`, my hledáme `math.+`, ale vrátit musíme opět jen `+`.
-		// Ve zdroji je `str.len`, my hledáme `str.len`, ale vrátit musíme `str.len`.
+		// In the source we have `+`, we look for `math.+`, but must return just `+`.
+		// In the source we have `str.len`, we look for `str.len`, and return `str.len`.
 		$nx = $this->normalizeShortSymbols($x);
 
 		if ( ! strpos($nx, '.')) {
 			return Null;
 		}
 
-		// Symbol se skládá z namespace a názvu funkce.
-		// Předpokládáme právě jednu tečku. Nebudeme namespace zanořovat. Pokud
-		// ano, tak at si to udělá na úrovni provideru.
+		// Symbol consists of a namespace and a function name.
+		// We assume exactly one dot. We do not nest namespaces. If needed,
+		// that should be handled at the provider level.
 		list($ns, $symbol) = explode('.', $nx, 2);
 		if (isset($this->libs[$ns])) {
 			if ($fn = $this->libs[$ns]->lookup($symbol)) {
@@ -143,26 +144,26 @@ class Compiler
 
 
 	/**
-	 * Provede **částečné vyhodnocení** výrazu.
+	 * Performs **partial evaluation** of an expression.
 	 *
-	 * Tato funkce rekurzivně prochází strom výrazů (AST) a snaží se
-	 * vyhodnotit všechny části, které lze určit už v aktuálním kontextu.
+	 * This function recursively traverses the expression tree (AST) and tries
+	 * to evaluate all parts that can be determined in the current context.
 	 *
-	 * - Pokud jsou všechny operandy výrazu známé (konstanty nebo hodnoty
-	 *   dostupné v kontextu), výraz se okamžitě spočítá a nahradí výsledkem.
-	 * - Pokud je známá jen část operandů, funkce zachová výraz v původní
-	 *   struktuře, ale dosadí známé hodnoty a případně zjednoduší operace.
-	 * - Pokud není možné nic vyhodnotit, výraz zůstává beze změny.
+	 * - If all operands of an expression are known (constants or values
+	 *   available in the context), the expression is immediately computed and replaced with the result.
+	 * - If only some operands are known, the function preserves the expression in its original
+	 *   structure, substitutes the known values, and simplifies where possible.
+	 * - If nothing can be evaluated, the expression remains unchanged.
 	 *
-	 * Typickým příkladem je situace, kdy máme:
+	 * A typical example:
 	 *     a = 10
-	 *     výraz: a * 2 + b
+	 *     expression: a * 2 + b
 	 *
-	 * Po částečném vyhodnocení vznikne:
+	 * After partial evaluation:
 	 *     20 + b
 	 *
-	 * Cílem funkce je snížit složitost výrazu před jeho úplným vyhodnocením
-	 * nebo kompilací, a tím zrychlit pozdější provádění.
+	 * The goal is to reduce the complexity of the expression before full evaluation
+	 * or compilation, thereby speeding up later execution.
 	 *
 	 * @param Value | string $term
 	 * @return Value | string
@@ -174,35 +175,35 @@ class Compiler
 			case is_string($term):
 				return $context->trySelectSymbol($term);
 
-			// Na číslech, konkečných hodnotách a vestavěných funkcích není co zpravovávat
+			// Numbers, final values, and builtin functions have nothing to process
 			case $term instanceof Scalar:
 			case $term instanceof FinalVal:
 			case $term instanceof BuildinFunc:
 				return $term;
 
-			// Ve slovnících etc sice mohou být navázány symboly, nebo volání funkce, ale to musíme zpracovat o úroven víš, ve Scope.
+			// Dicts etc. may contain bound symbols or function calls, but those must be handled one level up, in Scope.
 			case $term instanceof Composite:
 				return self::partialEvaluateComposite($context, $term);
 
 			//~ case $term instanceof BuildinFunc:
-			// @TODO Prostor pro optimalizaci: Labda se nedá vykonat celá, protože závisí na stavu argumentu.
-			// ale části toho Expr by možná šli. Záleží jak moc je ta lambda košatá.
+			// @TODO Room for optimization: Lambda cannot be fully executed because it depends on argument state.
+			// But parts of the Expr might be. Depends on how complex the lambda is.
 			case $term instanceof Lambda:
 				return self::partialEvaluateLambda($context, $term);
 
-			// Všechny symboly z lokálního scope přesunout na místo užití, a následně symbol i scope zaniká.
-			// Provede **částečné vyhodnocení** výrazu, u kterého očekáváme jako výsledek hodnotu.
+			// Move all symbols from the local scope to their usage site; the symbol and scope then cease to exist.
+			// Performs **partial evaluation** of an expression expected to produce a value.
 			case $term instanceof Scope:
 				return self::partialEvaluateScope($context, $term);
 
-			// Může se jednat o volání funkce: `format(1 2 3)`, vrátíme hodnotu
-			// Může se jednat o operaci: `1 + 1`, vrátíme hodnotu
+			// Could be a function call: `format(1 2 3)`, return value
+			// Could be an operation: `1 + 1`, return value
 			case $term instanceof Expr && $term->refs() === []:
 				throw self::UnsupportedException('partial evaluate', $term);
 
-			// Může se jednat o volání funkce: `format(1 a 3)`, protože "a" neznáme, vrátíme funkci.
-			// Může se jednat o operaci: `1 + a`, protože "a" neznáme, vrátíme funkci.
-			// Může se jednat o predikát: `equals(1, 1) and a == 42`, protože "a" neznáme, vrátíme funkci.
+			// Could be a function call: `format(1 a 3)`, since "a" is unknown, return a function.
+			// Could be an operation: `1 + a`, since "a" is unknown, return a function.
+			// Could be a predicate: `equals(1, 1) and a == 42`, since "a" is unknown, return a function.
 			case $term instanceof Expr && $term->refs() !== []:
 				return self::partialEvaluateExpr($context, $term);
 
@@ -214,8 +215,8 @@ class Compiler
 
 
 	/**
-	 * Provede **částečné vyhodnocení** výrazu, u kterého očekáváme jako výsledek lambdu.
-	 * Očekáváme, že, všechny závislosti jsou vyřešeny, a ty které nejsou jsou vnější.
+	 * Performs **partial evaluation** of an expression expected to produce a lambda.
+	 * Assumes all dependencies are resolved; those that are not are external.
 	 *
 	 * `1 + 1`
 	 * `41 + a`
@@ -225,10 +226,7 @@ class Compiler
 	 * `list.at 2 src`
 	 * `list.at 2 ["une", a, "trois"]`
 	 *
-	 * Nabindované symboly si vytáhneme z contextu. Než je ale vykonáme tak musíme vykonat zanořené expression.
-	 *
-	 * @TODO Special form
-	 * @TODO Forma? Podmíněné vyhodnocování? Vzhledem k tomu, že nemáme sideeffecty, tak to není tak horký.
+	 * We pull bound symbols from the context. Before executing them, we must evaluate nested expressions.
 	 */
 	private static function partialEvaluateExpr(Context $context, Expr $term): Value
 	{
@@ -250,7 +248,7 @@ class Compiler
 						]);
 				}
 
-				// Jsou tam nějaké argumenty
+				// There are some arguments
 				return $term;
 
 			case $term->getNotation() === Expr::NotationPrefix:
@@ -281,7 +279,7 @@ class Compiler
 					}
 				}
 
-				// Jsou tam nějaké argumenty
+				// There are some arguments
 				return $term;
 
 			default:
@@ -325,7 +323,7 @@ class Compiler
 
 
 	/**
-	 * Provede **částečné vyhodnocení** výrazu.
+	 * Performs **partial evaluation** of an expression.
 	 * @return Value | string
 	 */
 	private static function partialEvaluateScope(Context $context, Scope $src)
@@ -337,16 +335,16 @@ class Compiler
 				//~ }
 				return $src;
 
-			// Zanořené scope není podporováno.
+			// Nested scope is not supported.
 			case $src->getExpr() instanceof Scope:
 				throw self::UnsupportedException('partial evaluate const scope of scope', $src->getExpr());
 
-			// `{1 + 1}` -- protože sčítání je taky symbol -> `{+ = buildin; 1 + 1}`
+			// `{1 + 1}` -- because addition is also a symbol -> `{+ = buildin; 1 + 1}`
 			// `{a = 1; a + a}`
 			case $src->getExpr() instanceof Expr:
 				$context2 = clone $context;
 				$seconds = [];
-				// 1/ Nejdříve zpracujeme bezpečné hodnoty
+				// 1/ First process safe values
 				foreach ($src->getLets() as $id => $value) {
 					if (is_string($value) && strpos($value, '.')) {
 						$seconds[$id] = $value;
@@ -365,7 +363,7 @@ class Compiler
 					}
 				}
 
-				// 2/ Hodnoty, které šahají do rodičovského scope
+				// 2/ Values that reach into the parent scope
 				// @TODO Recurse
 				foreach ($seconds as $id => $value) {
 					$context2->shadow($id, self::partialEvaluate($context2, $value)); // @phpstan-ignore argument.type
@@ -382,7 +380,7 @@ class Compiler
 			case $src->getExpr() instanceof Composite:
 				$context2 = clone $context;
 				$seconds = [];
-				// 1/ Nejdříve zpracujeme bezpečné hodnoty
+				// 1/ First process safe values
 				foreach ($src->getLets() as $id => $value) {
 					if (is_string($value)) {
 						$context2->shadowAnotherSymbol($id, $value);
@@ -398,7 +396,7 @@ class Compiler
 					}
 				}
 
-				// 2/ Hodnoty, které šahají do rodičovského scope
+				// 2/ Values that reach into the parent scope
 				// @TODO Recurse
 				foreach ($seconds as $id => $value) {
 					$context2->shadow($id, self::partialEvaluate($context2, $value)); // @phpstan-ignore argument.type
@@ -414,14 +412,14 @@ class Compiler
 
 
 	/**
-	 * Potřebujeme zkopírovat hodnoty vnějšího kontextu.
-	 * Argumenty překrývají vnější kontext a vnitřní kontext zase překryje argumenty.
-	 * Výsledek je lambda = hodnota.
+	 * We need to copy the values of the outer context.
+	 * Arguments shadow the outer context, and the inner context shadows the arguments.
+	 * The result is lambda = value.
 	 */
 	private static function partialEvaluateLambda(Context $context, Lambda $src): Lambda
 	{
 		$context2 = clone $context;
-		// @TODO Je to správně?
+		// @TODO Is this correct?
 		foreach ($src->getArgs() as $id) {
 			$context2->shadowByArg($id);
 		}
@@ -458,26 +456,25 @@ class Compiler
 
 
 	/**
-	 * Přeloží (zkompiluje) předzpracovaný AST do výsledné **runtime hodnoty**.
+	 * Translates (compiles) the pre-processed AST into the resulting **runtime value**.
 	 *
-	 * Funkce přijímá již částečně vyhodnocený strom výrazů (AST), který byl
-	 * upraven funkcí `partialEvaluate()`, a převádí jej do finální podoby,
-	 * kterou lze přímo použít za běhu programu.
+	 * The function receives an already partially evaluated expression tree (AST), modified
+	 * by `partialEvaluate()`, and converts it to its final form that can be used directly at runtime.
 	 *
-	 * Výsledkem může být:
-	 *  - **konkrétní hodnota**, pokud je celý výraz známý už v době kompilace,
-	 *  - nebo **funkce (uzávěr, lambda)**, která při pozdějším volání provede
-	 *    samotné výpočty na základě dostupných parametrů a kontextu.
+	 * The result may be:
+	 *  - a **concrete value**, if the entire expression is known at compile time,
+	 *  - or a **function (closure, lambda)**, which performs the actual computation
+	 *    when called later based on available parameters and context.
 	 *
-	 * Důležité je, že tato funkce **neprovádí výpočty** – pouze zkonstruuje
-	 * reprezentaci, která tyto výpočty provede až při volání.
+	 * Importantly, this function **does not perform computations** – it only constructs
+	 * a representation that will perform them when invoked.
 	 *
-	 * Příklad:
+	 * Example:
 	 *     AST: a + 1
-	 *     Výsledek: funkce (context) => context["a"] + 1
+	 *     Result: function (context) => context["a"] + 1
 	 *
-	 * Cílem funkce je vytvořit efektivní a znovupoužitelnou runtime rutinu,
-	 * která představuje konečnou podobu daného výrazu pro provádění v klientovi.
+	 * The goal is to create an efficient, reusable runtime routine representing
+	 * the final form of the expression for execution in the client.
 	 *
 	 * @return ParametricValue | FinalVal
 	 */
@@ -512,8 +509,8 @@ class Compiler
 
 	/**
 	 * @param string | Value $src
-	 * @param bool $packref Když narazíme na symbol závislosti, tak nědy se nám nehodí, že se zabalí do BindVal
-	 * @return array{0: Value, 1: array<string, BindVal>}
+	 * @param bool $packref When we encounter a dependency symbol, sometimes we don't want it wrapped in a BindValue
+	 * @return array{0: Value, 1: array<string, BindValue>}
 	 */
 	private static function castAny($src, bool $packref): array
 	{
@@ -593,15 +590,15 @@ class Compiler
 
 
 	/**
-	 * Kompozitní hodnota může nebo nemusí obsahovat symboly a výrazy. V této
-	 * fázy už jsme veškeré možnosti optimalizace vyčerpali a už to pouze přebalíme
-	 * na čistou hodnotu, jde-li to, nebo na funkci, je-li to nutné.
+	 * A composite value may or may not contain symbols and expressions. At this
+	 * stage all optimization opportunities are exhausted and we simply wrap it
+	 * into a plain value if possible, or into a function if necessary.
 	 *
 	 * @return array{0: FinalVal | Composite, 1: array<string, BindVal>}
 	 */
 	private static function castComposite(Composite $src, bool $packref): array
 	{
-		// Zádné prvky, žádné problémy
+		// No elements, no problems
 		if ((array) $src->getItems() === []) {
 			switch ($src->type()) {
 				case Composite::TypeTuple:

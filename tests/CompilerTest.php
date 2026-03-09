@@ -262,14 +262,13 @@ xs = (strings.split "," src)
 
 
 	/**
-	 * Struktura odkazuje na symbol, který bude vytvořen. Zacyklí se to.
-	 * Řešení by mohlo být, že zakážu vytvářet odkazy na sebe sama.
-	 * Zakázání se projeví tím, že nemohu odkazovat na symbol jehož jsem součástí
-	 * a tudíž se to neresolvne a tudíž se ten symbol bude požadovat zvenčí.
+	 * The structure references a symbol that is being created. This causes a cycle.
+	 * A solution could be to forbid self-referencing.
+	 * Forbidding it means I cannot reference a symbol I am part of,
+	 * so it won't resolve and will be required from outside.
 	 */
-	function _____testSelfReferencingBug()
+	function testSelfReferencingBug()
 	{
-		// @TODO
 		$call = $this->compile("
 content = {
 	foo: content
@@ -280,7 +279,19 @@ content = {
 }
 ");
 		$this->assertSame("Dict", $call->type());
-		die("\n------\n" . __file__ . ':' . __line__ . "\n");
+		$this->assertEquals([
+			new BindValue('content', '?'),
+		], $call->getBinds());
+
+		$this->assertEquals(new FinalValue((object) [
+			'name' => new FinalValue('contact', 'Str'),
+			'content' => new FinalValue((object) [
+					'foo' => new FinalValue('Iem', 'Str'),
+				], 'Dict'),
+			], 'Dict')
+			, $call->apply([
+				'content' => new FinalValue("Iem", 'Str'),
+			]));
 	}
 
 
@@ -302,9 +313,6 @@ content = {
 			new BindVal('content', '?'),
 		], $call->getBinds());
 
-		//~ dump($call->apply([
-				//~ 'content' => new FinalVal("Iem", 'Str'),
-			//~ ]));
 		$this->assertEquals(new FinalVal((object) [
 			'content' => new FinalVal([
 				new FinalVal((object) [
@@ -335,11 +343,6 @@ content = {
 }
 ");
 		$this->assertSame("Dict", $call->type());
-		/* dump($call->apply([
-				'author' => new FinalVal("Iem", 'Str'),
-				'email' => new FinalVal("iem@domain.tld", 'Str'),
-				'content' => new FinalVal([], 'List'),
-			])); //*/
 		$this->assertEquals([
 			new BindVal('email', '?'),
 			new BindVal('author', '?'),
@@ -459,9 +462,8 @@ author = {
 
 
 
-	function _____testComposeDictDopredneDohledaniSymbolu()
+	function testComposeDictDopredneDohledaniSymbolu()
 	{
-		// @FIXME Dopředné dohledání symbolů.
 		$call = $this->compile("
 author = {
 	foo: address
@@ -494,7 +496,7 @@ name = \"Hi\"
 
 
 	/**
-	 * Problém, kdy parametr je zanořený v lokální proměnné.
+	 * Problem where a parameter is nested inside a local variable.
 	 * LogicException: Symbol 'author' is not found.
 	 */
 	function testComposeDictBugX()

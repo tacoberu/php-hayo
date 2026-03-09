@@ -63,8 +63,8 @@ final class HayoEngine
 
 
 	/**
-	 * Zpracová do "bytecode" a případně uloží.
-	 * @return FinalVal | ParametricValue
+	 * Compiles to "bytecode" and optionally saves it.
+	 * @return FinalValue | ParametricValue
 	 */
 	function compile(string $code)
 	{
@@ -121,8 +121,8 @@ final class HayoEngine
 
 
 	/**
-	 * Když předáme argumenty nepojmenované, ale jen jako pole.
-	 * Funkce má svou signaturu argumentů. Ve $values máme hodnoty těchto argumentů. Spojíme je podle indexů.
+	 * When arguments are passed unnamed, just as an array.
+	 * The function has its own argument signature. $values contains the values for those arguments. We combine them by index.
 	 * @param list<mixed> $values
 	 * @return array<string, mixed>
 	 */
@@ -144,7 +144,7 @@ final class HayoEngine
 
 
 	/**
-	 * Přebalíme argumenty z prostých hodnot do FinalVal
+	 * Wrap arguments from plain values into FinalValue
 	 *
 	 * @param list<mixed> | array<string, mixed> $args
 	 * @return array<string, FinalVal>

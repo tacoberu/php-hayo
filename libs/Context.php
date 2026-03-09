@@ -13,8 +13,8 @@ use ArrayIterator;
 
 
 /**
- * Pomocná třída sloužící jako banka vázaných symbolů. Sémantická podpora
- * pro klonování -> zanořování, a přepisování symbolů.
+ * Helper class serving as a bank of bound symbols. Semantic support
+ * for cloning -> nesting, and overwriting symbols.
  */
 final class Context
 {
@@ -57,9 +57,9 @@ final class Context
 
 	/**
 	 * `a = 1;inc = (a) -> a + 1;inc 41`
-	 * Ve vnějším kontextu je jako `a` nabindována 1. Ale mi ji chceme předat jako
-	 * argument. Když tuto hodnotu z kontextu odstraníme, budeme to chápat, jako hodnotu,
-	 * kterou máme dostat z vnějšku, při volání lambdy.
+	 * In the outer context, `a` is bound to 1. But we want to pass it as an
+	 * argument. By removing this value from the context, we treat it as a value
+	 * to be received from outside when calling the lambda.
 	 */
 	function shadowByArg(string $name): void
 	{
