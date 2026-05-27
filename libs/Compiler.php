@@ -670,7 +670,7 @@ class Compiler
 			case is_string($src):
 				if ($packref) {
 					$x = new BindValue($src, "?");
-					return [$x, [$x]];
+					return [$x, [$src => $x]]; // @phpstan-ignore return.type
 				}
 				return [$src, []];
 
@@ -859,11 +859,11 @@ class Compiler
 				$depends = array_merge($depends, $depends1);
 				return [Form::IfThenElse_($chains, $elseexpr), $depends];
 			}
-			list($block->cond, $depends1) = self::castAny($block->cond, True);
+			list($cond, $depends1) = self::castAny($block->cond, True);
 			$depends = array_merge($depends, $depends1);
-			list($block->expr, $depends1) = self::castAny($block->expr, True);
+			list($expr, $depends1) = self::castAny($block->expr, True);
 			$depends = array_merge($depends, $depends1);
-			$chains[] = $block;
+			$chains[] = (object)['cond' => $cond, 'expr' => $expr];
 		}
 		throw CompileException::Unexpected();
 	}
