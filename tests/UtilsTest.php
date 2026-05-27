@@ -194,9 +194,9 @@ class UtilsTest extends TestCase
 		$this->assertEquals([
 			new BindValue('xs', 'Dict'),
 			new BindValue('key', 'Str'),
-			new BindValue('default', '?'),
+			new BindValue('default', 'a'),
 		], $binds);
-		$this->assertSame('?', $returnType);
+		$this->assertSame('a', $returnType);
 	}
 
 

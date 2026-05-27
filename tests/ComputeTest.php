@@ -60,19 +60,19 @@ class ComputeTest extends TestCase
 				],
 			['40 + a'
 				, [ 'a' => new FinalValue(2, 'Int')]
-				, new FinalValue(42, 'Num'),
+				, new FinalValue(42, 'Int'),
 				],
 			['40 + (a + a)'
 				, [ 'a' => new FinalValue(45, 'Int')]
-				, new FinalValue(130, 'Num'),
+				, new FinalValue(130, 'Int'),
 				],
 			['40 + (1 + a)'
 				, [ 'a' => new FinalValue(45, 'Int')]
-				, new FinalValue(86, 'Num'),
+				, new FinalValue(86, 'Int'),
 				],
 			['(10 + a) + (a + 1)'
 				, [ 'a' => new FinalValue(8, 'Int')]
-				, new FinalValue(27, 'Num'),
+				, new FinalValue(27, 'Int'),
 				],
 			['(10 + a) or (a + 1)'
 				, [ 'a' => new FinalValue(8, 'Int')]
@@ -191,28 +191,28 @@ class ComputeTest extends TestCase
 			["b = 40 \na + b"
 				, [ 'a' => new FinalValue(2, 'Int'),
 					]
-				, new FinalValue(42, 'Num'),
+				, new FinalValue(42, 'Int'),
 				],
 			["b = 40 \nb + (a + a)"
 				, [ 'a' => new FinalValue(45, 'Int'),
 					]
-				, new FinalValue(130, 'Num'),
+				, new FinalValue(130, 'Int'),
 				],
 			["b = 40 \nb + ((b + 1) + a)"
 				, [ 'a' => new FinalValue(45, 'Int'),
 					]
-				, new FinalValue(126, 'Num'),
+				, new FinalValue(126, 'Int'),
 				],
 			["b = 40 \n(10 + a) + (a + b)"
 				, [ 'a' => new FinalValue(8, 'Int'),
 					]
-				, new FinalValue(66, 'Num'),
+				, new FinalValue(66, 'Int'),
 				],
 			["b = 40 \n"
 			."(Str.len src) + b"
 				, [ 'src' => new FinalValue("8", 'Str'),
 					]
-				, new FinalValue(41, 'Num'),
+				, new FinalValue(41, 'Int'),
 				],
 			["b = a\n"
 			."b"
@@ -224,14 +224,14 @@ class ComputeTest extends TestCase
 			."b + b"
 				, [ 'a' => new FinalValue(41, 'Int'),
 					]
-				, new FinalValue(82, 'Num'),
+				, new FinalValue(82, 'Int'),
 				],
 			["b = c\n"
 			."c = a\n"
 			."b + b"
 				, [ 'a' => new FinalValue(41, 'Int'),
 					]
-				, new FinalValue(82, 'Num'),
+				, new FinalValue(82, 'Int'),
 				],
 
 			["x = y \n"
@@ -239,7 +239,7 @@ class ComputeTest extends TestCase
 				, [ 'src' => new FinalValue("9", 'Str'),
 					'y' => new FinalValue(8, "Int"),
 					]
-				, new FinalValue(9, 'Num'),
+				, new FinalValue(9, 'Int'),
 				],
 
 			// Lambdy
@@ -248,7 +248,7 @@ class ComputeTest extends TestCase
 			."inc x"
 				, [ 'x' => new FinalValue(9, 'Int'),
 					]
-				, new FinalValue(10, 'Num'),
+				, new FinalValue(10, 'Int'),
 				],
 			["inc = x ->\n"
 			."	y = 2 \n"
@@ -256,7 +256,7 @@ class ComputeTest extends TestCase
 			."inc x"
 				, [ 'x' => new FinalValue(9, 'Int'),
 					]
-				, new FinalValue(11, 'Num'),
+				, new FinalValue(11, 'Int'),
 				],
 			["inc = x ->\n"
 			."	y = 2 \n"
@@ -266,14 +266,14 @@ class ComputeTest extends TestCase
 			."inc x"
 				, [ 'x' => new FinalValue(9, 'Int'),
 					]
-				, new FinalValue(85, 'Num'),
+				, new FinalValue(85, 'Int'),
 				],
 			// separator ;
 			["inc = x -> y = 1; x + y \n"
 			."inc x"
 				, [ 'x' => new FinalValue(9, 'Int'),
 					]
-				, new FinalValue(10, 'Num'),
+				, new FinalValue(10, 'Int'),
 				],
 		];
 	}
@@ -289,7 +289,7 @@ class ComputeTest extends TestCase
 			["a * 2",
 				[ 'a' => new FinalValue(41, 'Int'),
 					],
-				new FinalValue(82, 'Num'),
+				new FinalValue(82, 'Int'),
 				],
 
 			// `List.slice`
@@ -317,10 +317,10 @@ class ComputeTest extends TestCase
 					], 'List'),
 					],
 				new FinalValue([
-					new FinalValue(1, 'Num'),
-					new FinalValue(4, 'Num'),
-					new FinalValue(9, 'Num'),
-					new FinalValue(16, 'Num'),
+					new FinalValue(1, 'Int'),
+					new FinalValue(4, 'Int'),
+					new FinalValue(9, 'Int'),
+					new FinalValue(16, 'Int'),
 					], 'List'),
 				],
 
@@ -384,7 +384,7 @@ class ComputeTest extends TestCase
 			["a * 2"
 				, [ 'a' => new FinalValue(41, 'Int'),
 					]
-				, new FinalValue(82, 'Num'),
+				, new FinalValue(82, 'Int'),
 				],
 			["a || 2"
 				, [ 'a' => new FinalValue(41, 'Int'),
@@ -444,7 +444,7 @@ class ComputeTest extends TestCase
 						],
 					], 'Dict'),
 					],
-				new FinalValue(42, 'Num'),
+				new FinalValue(42, 'Int'),
 				],
 			["Str.len x.foo.doo",
 				[ 'x' => new FinalValue((object) [
@@ -591,7 +591,7 @@ else "D"
 					new FinalValue(4, 'Int'),
 					], 'List'),
 					],
-				new FinalValue(30, 'Num'),
+				new FinalValue(30, 'Int'),
 				],
 
 			["xs\n"
@@ -603,7 +603,7 @@ else "D"
 					new FinalValue(3, 'Int'),
 					new FinalValue(4, 'Int'),
 					], 'List<Int>')],
-				new FinalValue(30, 'Num'),
+				new FinalValue(30, 'Int'),
 				],
 
 			["src\n"

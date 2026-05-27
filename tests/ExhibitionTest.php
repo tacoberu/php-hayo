@@ -80,7 +80,7 @@ a + x', [10]);
 		$routine = HayoEngine::WithDefaultLibraries()
 			->setCache(new FileBaseCache(__dir__ . '/../temp/cache'))
 			->compile("1 + a");
-		$this->assertEquals(new FinalValue(6, 'Num'),
+		$this->assertEquals(new FinalValue(6, 'Int'),
 			$routine->apply(['a' => new FinalValue(5, 'Int')]));
 	}
 

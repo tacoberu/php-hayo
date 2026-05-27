@@ -28,7 +28,7 @@ class ParametricValueTest extends TestCase
 			new BindValue('a', 'Num'),
 			new BindValue('b', 'Num'),
 		], $inst->getBinds());
-		$this->assertEquals(new FinalValue(16, 'Num')
+		$this->assertEquals(new FinalValue(16, 'Int')
 			, $inst->apply([
 				'a' => new FinalValue(8, 'Int'),
 				'b' => new FinalValue(8, 'Int'),
@@ -40,7 +40,7 @@ class ParametricValueTest extends TestCase
 	function testVariadic1()
 	{
 		$inst = ParametricValue::Expr_(Expr::Bin_(
-			new FinalValue(41, 'Num'),
+			new FinalValue(41, 'Int'),
 			new MathOperator('+'),
 			'a'
 		), 'Num', [new BindValue('a', 'Num')]);
@@ -49,7 +49,7 @@ class ParametricValueTest extends TestCase
 		$this->assertEquals([
 			new BindValue('a', 'Num'),
 		], $inst->getBinds());
-		$this->assertEquals(new FinalValue(49, 'Num')
+		$this->assertEquals(new FinalValue(49, 'Int')
 			, $inst->apply(['a' => new FinalValue(8, 'Int')]));
 	}
 
@@ -58,14 +58,14 @@ class ParametricValueTest extends TestCase
 	function testVariadic2()
 	{
 		$inst = ParametricValue::Expr_(Expr::Bin_(
-			new FinalValue(41, 'Num'),
+			new FinalValue(41, 'Int'),
 			new MathOperator('+'),
-			new FinalValue(11, 'Num')
+			new FinalValue(11, 'Int')
 		), 'Num', []);
 		$this->assertSame('Num', $inst->getTypeName());
 		$this->assertSame([], $inst->refs());
 		$this->assertEquals([], $inst->getBinds());
-		$this->assertEquals(new FinalValue(52, 'Num')
+		$this->assertEquals(new FinalValue(52, 'Int')
 			, $inst->apply([]));
 	}
 
