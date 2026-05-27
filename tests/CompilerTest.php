@@ -701,6 +701,10 @@ content = [
 				], 'Dict')],
 
 			["a = 5\nb = 13\ncalc = a + 1 * b\ncalc", new FinalValue(18, 'Num')],
+
+			// Silent reassignment: the second binding silently overwrites the first
+			["xs = 1\nxs = 2\nxs", new FinalValue(2, 'Int')],
+
 			// @TODO
 		];
 	}
@@ -1338,6 +1342,14 @@ content = [
 				['xs' => new FinalValue([], 'List<a>')],
 				SymbolNotFound::class, 'Unable to find symbols: List.noth.'],
 
+			// Unknown symbol
+			'unknown list function' => ['List.nope xs',
+				['xs' => new FinalValue([], 'List<a>')],
+				SymbolNotFound::class, 'List.nope'],
+			'unknown str function' => ['Str.nope src',
+				['src' => new FinalValue("abc", 'str')],
+				SymbolNotFound::class, 'Str.nope'],
+
 			// Division by zero: the compiler catches DivisionByZeroError from partial evaluation
 			// and re-throws it as CompileException so callers never see a raw PHP error.
 			'int div zero (constant)' => ['10 div 0',
@@ -1352,21 +1364,13 @@ content = [
 			// mod accepts only Int — passing a Real fires a type error before the zero-check
 			'float mod zero (constant)' => ['10.0 mod 0',
 				[],
-				ValidationException::class, 'Expected int'],
+				CompileException::class, 'Expected int'],
 
 			// Wrong argument type passed to a built-in — caught at compile time
 			// when all operands are constants and the call is partially evaluated.
 			'Str.len on integer literal' => ['Str.len 42',
 				[],
-				ValidationException::class, 'Expected string'],
-
-			// Unknown symbol
-			'unknown list function' => ['List.nope xs',
-				['xs' => new FinalValue([], 'List<a>')],
-				SymbolNotFound::class, 'List.nope'],
-			'unknown str function' => ['Str.nope src',
-				['src' => new FinalValue("abc", 'str')],
-				SymbolNotFound::class, 'Str.nope'],
+				CompileException::class, 'Expected string'],
 
 			// Syntax / parse errors
 			'incomplete if' => ['if a then',
@@ -1389,37 +1393,37 @@ content = [
 			'int OR int' => [
 				'1 OR 2 OR 3',
 				[],
-				CompileException::class, 'Expected bool'
+				CompileException::class, 'Expected bool',
 				],
 
 			'int || int' => [
 				'1 || 2 || 3',
 				[],
-				CompileException::class, 'Expected bool'
+				CompileException::class, 'Expected bool',
 				],
 
 			'bool AND int' => [
 				'(1 == 1) && 1',
 				[],
-				CompileException::class, 'Expected bool'
+				CompileException::class, 'Expected bool',
 				],
 
 			'str AND int' => [
 				'"hello" AND 1',
 				[],
-				CompileException::class, 'Expected bool'
+				CompileException::class, 'Expected bool',
 				],
 
 			'str AND zero' => [
 				'"hello" AND 0',
 				[],
-				CompileException::class, 'Expected bool'
+				CompileException::class, 'Expected bool',
 				],
 
 			'zero OR zero' => [
 				'0 OR 0',
 				[],
-				CompileException::class, 'Expected bool'
+				CompileException::class, 'Expected bool',
 				],
 
 			// Unsupported lambda forms

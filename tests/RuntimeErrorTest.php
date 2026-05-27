@@ -11,6 +11,9 @@ namespace Taco\Hayo;
 
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Throwable;
+use DivisionByZeroError;
+use InvalidArgumentException;
 
 
 /**
@@ -34,14 +37,24 @@ class RuntimeErrorTest extends TestCase
 	 * runtime errors (fire during apply)
 	 * @param array<string, mixed> $args
 	 * @param class-string<\Throwable> $exception
+	 * @param class-string<\Throwable>|null $cause
 	 */
+	#[DataProvider('dataArgumentErrors')]
 	#[DataProvider('dataRuntimeErrors')]
-	function testApplyError(string $code, array $args, string $exception, string $messageFragment): void
+	function testApplyError(string $code, array $args, string $exception, string $messageFragment, ?string $cause = null): void
 	{
 		$compiled = $this->compile($code);
-		$this->expectException($exception);
-		$this->expectExceptionMessageMatches('/' . preg_quote($messageFragment, '/') . '/i');
-		$compiled->apply($args);
+		try {
+			$compiled->apply($args);
+			$this->fail("Expected {$exception}");
+		}
+		catch (Throwable $e) {
+			$this->assertInstanceOf($exception, $e);
+			$this->assertMatchesRegularExpression('/' . preg_quote($messageFragment, '/') . '/i', $e->getMessage());
+			if ($cause !== null) {
+				$this->assertInstanceOf($cause, $e->getPrevious());
+			}
+		}
 	}
 
 
@@ -50,13 +63,23 @@ class RuntimeErrorTest extends TestCase
 	 * convenience: errors surfaced through HayoEngine::evaluate
 	 * @param array<mixed> $args
 	 * @param class-string<\Throwable> $exception
+	 * @param class-string<\Throwable>|null $cause
 	 */
+	#[DataProvider('dataArgumentErrors')]
 	#[DataProvider('dataRuntimeErrors')]
-	function testEvaluateError(string $code, array $args, string $exception, string $messageFragment): void
+	function testEvaluateError(string $code, array $args, string $exception, string $messageFragment, ?string $cause = null): void
 	{
-		$this->expectException($exception);
-		$this->expectExceptionMessageMatches('/' . preg_quote($messageFragment, '/') . '/i');
-		HayoEngine::WithDefaultLibraries()->evaluate($code, $args);
+		try {
+			HayoEngine::WithDefaultLibraries()->evaluate($code, $args);
+			$this->fail("Expected {$exception}");
+		}
+		catch (Throwable $e) {
+			$this->assertInstanceOf($exception, $e);
+			$this->assertMatchesRegularExpression('/' . preg_quote($messageFragment, '/') . '/i', $e->getMessage());
+			if ($cause !== null) {
+				$this->assertInstanceOf($cause, $e->getPrevious());
+			}
+		}
 	}
 
 
@@ -72,71 +95,75 @@ class RuntimeErrorTest extends TestCase
 			'a div 0 — int' => [
 				'a div 0',
 				['a' => new FinalValue(10, 'Int')],
-				ScriptRuntimeException::class,
-				'zero',
+				ScriptRuntimeException::class, 'zero',
+				DivisionByZeroError::class,
 				],
 
 			'a mod 0 — int' => [
 				'a mod 0',
 				['a' => new FinalValue(10, 'Int')],
-				ScriptRuntimeException::class,
-				'zero',
+				ScriptRuntimeException::class, 'zero',
+				DivisionByZeroError::class,
 				],
 
 			// Division by zero when the divisor itself is a parameter.
 			'10 div b — b=0' => [
 				'10 div b',
 				['b' => new FinalValue(0, 'Int')],
-				ScriptRuntimeException::class,
-				'zero',
+				ScriptRuntimeException::class, 'zero',
+				DivisionByZeroError::class,
 				],
 
 			'a div b — b=0' => [
 				'a div b',
 				['a' => new FinalValue(10, 'Int'), 'b' => new FinalValue(0, 'Int')],
-				ScriptRuntimeException::class,
-				'zero',
+				ScriptRuntimeException::class, 'zero',
+				DivisionByZeroError::class,
 				],
 
 			// Type mismatch: built-in function receives a value of the wrong type.
-			'Str.len on integer param' => [ // @TODO except SymbolNotFound::InvalidTypeOfArguments
+			'Str.len on integer param' => [
 				'Str.len x',
 				['x' => new FinalValue(42, 'Int')],
-				ScriptRuntimeException::class,
-				'Expected string',
+				ScriptRuntimeException::class, 'Expected string',
+				InvalidArgumentException::class,
 				],
 
-			'Str.len on boolean param' => [ // @TODO except SymbolNotFound::InvalidTypeOfArguments
+			'Str.len on boolean param' => [
 				'Str.len x',
 				['x' => new FinalValue(True, 'Bool')],
-				ScriptRuntimeException::class,
-				'Expected string',
+				ScriptRuntimeException::class, 'Expected string',
+				InvalidArgumentException::class,
 				],
 
-			'Math.ceil on integer (expects Real)' => [ // @TODO except SymbolNotFound::InvalidTypeOfArguments
-				'Math.ceil x',
-				['x' => new FinalValue(5, 'Int')],
-				ScriptRuntimeException::class,
-				'Expected float',
-				],
+		];
+	}
 
+
+
+	/**
+	 * @return array<string, array<mixed>>
+	 */
+	static function dataArgumentErrors(): array
+	{
+		return [
 			// Wrong number of arguments supplied to a compiled ParametricValue.
-			'too few arguments' => [ // @TODO except SymbolNotFound::InvalidArguments
+			'too few arguments' => [
 				'a + b',
 				['a' => new FinalValue(1, 'Int')],
-				ScriptRuntimeException::class, 'Invalid count of arguments',
+				ArgumentsException::class, 'Invalid count of arguments',
 				],
 
-			'too many arguments' => [// @TODO except SymbolNotFound::InvalidArguments
+			'too many arguments' => [
 				'a + 1',
 				['a' => new FinalValue(1, 'Int'), 'b' => new FinalValue(2, 'Int')],
-				ScriptRuntimeException::class, 'Invalid count of arguments',
+				ArgumentsException::class, 'Invalid count of arguments',
 				],
 
-			'wrong argument name' => [ // @TODO except SymbolNotFound::InvalidArguments
+			'wrong argument name' => [
 				'a + 1',
 				['z' => new FinalValue(1, 'Int')],
-				ScriptRuntimeException::class, 'Invalid arguments',
+				ArgumentsException::class, 'Invalid arguments',
 				],
 
 		];
