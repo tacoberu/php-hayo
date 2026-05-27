@@ -9,11 +9,17 @@
 
 namespace Taco\Hayo;
 
+use InvalidArgumentException;
 use LogicException;
 use RuntimeException;
 use Throwable;
+use Exception;
 
 
+/**
+ * Thrown when a script references a symbol, built-in function, or library function
+ * that is not available in the current runtime (not registered, not imported, or misspelled).
+ */
 class SymbolNotFound extends LogicException
 {
 
@@ -24,16 +30,65 @@ class SymbolNotFound extends LogicException
 
 
 
-	static function InvalidTypeOfArguments(string $arg, string $expected, string $gone): self
+	static function MissingSymbols(string $missing): self
 	{
-		return new self("Invalid type of argument {$arg}: {$expected}, gone: {$gone}.");
+		return new self("Unable to find symbols: {$missing}.");
 	}
 
 
 
-	static function InvalidArguments(string $arg, string $cause): self
+	static function InvalidArgumentWrapper(string $key, string $type): self
 	{
-		return new self("Invalid argument {$arg}: {$cause}.");
+		return new self("Argument '{$key}' must be package into FinalValue or ParametricValue; {$type} given.");
+	}
+
+}
+
+
+
+/**
+ * Thrown when a compiled script is called with wrong parameters — wrong names,
+ * wrong count, or an unsupported value type.
+ */
+class ArgumentsException extends InvalidArgumentException
+{
+
+	/**
+	 * A compiled script was applied with wrong argument names.
+	 * @param list<string> $expected
+	 * @param list<string> $passed
+	 */
+	static function InvalidArguments(array $expected, array $passed): self
+	{
+		$fmt = static function(string $x): string { return "'{$x}'"; };
+		$expected = implode(', ', array_map($fmt, $expected)) ?: 'empty';
+		$passed = implode(', ', array_map($fmt, $passed)) ?: 'empty';
+		return new self("Invalid arguments. Expected {$expected}; given {$passed}.");
+	}
+
+
+
+	/**
+	 * A compiled script was applied with the wrong number of arguments.
+	 * @param list<string> $expected
+	 * @param list<string> $passed
+	 */
+	static function InvalidCountOfArguments(string $fnname, array $expected, array $passed): self
+	{
+		$fmt = static function(string $x): string { return "'{$x}'"; };
+		$expected = implode(', ', array_map($fmt, $expected)) ?: 'empty';
+		$passed = implode(', ', array_map($fmt, $passed)) ?: 'empty';
+		return new self("Invalid count of arguments func '{$fnname}'. Expected {$expected}; given {$passed}.");
+	}
+
+
+
+	/**
+	 * @param mixed $src
+	 */
+	static function InvalidValueType($src): self
+	{
+		return new self("Invalid type of value: '" . print_r($src, True) . "'.");
 	}
 
 }
@@ -86,6 +141,37 @@ class CompileException extends LogicException
 
 
 
+	static function InvalidLambdaArguments(): self
+	{
+		return new self("Lambda arguments must be simple names, not expressions. Use `(a b -> ...)` instead of `((a b) -> ...)`.");
+	}
+
+
+
+	static function UnsupportedZeroArgLambda(): self
+	{
+		return new self("Zero-argument lambdas are not supported. Use a local variable instead: `val = 42`.");
+	}
+
+
+
+	static function UnsupportedCurriedLambda(): self
+	{
+		return new self("Curried lambdas (x -> y -> ...) are not supported. Use a multi-argument lambda instead: `x y -> ...`.");
+	}
+
+
+
+	/**
+	 * @param mixed $expr
+	 */
+	static function UnexpectedResult($expr): self
+	{
+		return new self("Unexpected compiled result: {$expr}");
+	}
+
+
+
 	static function EvaluationError(Throwable $e): self
 	{
 		return new self($e->getMessage(), 0, $e);
@@ -95,28 +181,55 @@ class CompileException extends LogicException
 
 
 
+
 /**
- * Invalid types. For example, adding strings.
- * This error can be thrown by both the parser and the evaluator due to invalid arguments.
+ * Thrown when a value of the wrong type is encountered.
+ *
+ * Surfaced at compile time as CompileException::EvaluationError,
+ * and at runtime as ScriptRuntimeException.
  */
-class ValidationException extends LogicException
+class ScriptTypeException extends Exception
 {
 
-	/**
-	 * @param list<string> $errors
-	 */
-	static function InvalidArguments(string $fn, array $errors): self
+	static function expectedStr(string $got): self
 	{
-		$errors = implode(', ', $errors);
-		return new self("Invalid arguments of $fn: $errors");
+		return new self("Expected string, got {$got}");
 	}
 
-}
+
+
+	static function expectedInt(string $got): self
+	{
+		return new self("Expected int, got {$got}");
+	}
 
 
 
-class InvalidArgumentException extends ValidationException
-{
+	static function expectedFloat(string $got): self
+	{
+		return new self("Expected float, got {$got}");
+	}
+
+
+
+	static function expectedList(string $got): self
+	{
+		return new self("Expected array, got {$got}");
+	}
+
+
+
+	static function expectedStrElement(int $index, string $got): self
+	{
+		return new self("Expected string at index {$index}, got '{$got}'");
+	}
+
+
+
+	static function expectedBool(string $got): self
+	{
+		return new self("Expected bool, got {$got}");
+	}
 
 }
 
@@ -137,7 +250,7 @@ class InvalidArgumentException extends ValidationException
 class ScriptRuntimeException extends RuntimeException
 {
 
-	static function wrap(Throwable $e): self
+	static function From(Throwable $e): self
 	{
 		return new self($e->getMessage(), 0, $e);
 	}

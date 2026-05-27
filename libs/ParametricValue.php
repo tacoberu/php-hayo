@@ -10,6 +10,7 @@
 namespace Taco\Hayo;
 
 use LogicException;
+use Throwable;
 
 
 /**
@@ -187,9 +188,17 @@ class ParametricValue implements HasRefs, Value
 	 */
 	function apply(array $args)
 	{
-		self::assertArguments($args);
-		self::assertBindArguments($this->getBinds(), $args);
-		return Interpret::applyAny($this->expr, $args);
+		try {
+			self::assertArguments($args);
+			self::assertBindArguments($this->getBinds(), $args);
+			return Interpret::applyAny($this->expr, $args);
+		}
+		catch (ScriptRuntimeException $e) {
+			throw $e;
+		}
+		catch (Throwable $e) {
+			throw ScriptRuntimeException::wrap($e);
+		}
 	}
 
 

@@ -24,6 +24,9 @@ use PHPUnit\Framework\Attributes\DataProvider;
 class ScriptSignatureTest extends TestCase
 {
 
+	/**
+	 * @param list<BindValue> $expectedBinds
+	 */
 	#[DataProvider('dataNoParams')]
 	#[DataProvider('dataWithParams')]
 	function testSignature(string $code, array $expectedBinds): void
@@ -43,6 +46,9 @@ class ScriptSignatureTest extends TestCase
 
 
 
+	/**
+	 * @param list<BindValue> $expectedBinds
+	 */
 	#[DataProvider('dataContract')]
 	function testContract(string $code, array $expectedBinds, string $expectedType): void
 	{
@@ -53,7 +59,6 @@ class ScriptSignatureTest extends TestCase
 
 
 
-
 	/**
 	 * data: scripts that need no parameters
 	 * @return array<array<mixed>>
@@ -61,20 +66,20 @@ class ScriptSignatureTest extends TestCase
 	static function dataNoParams(): array
 	{
 		return [
-			'integer constant'        => ['42',                     []],
-			'real constant'           => ['3.14',                   []],
-			'string constant'         => ['"hello"',                []],
-			'True symbol'             => ['True',                   []],
-			'False symbol'            => ['False',                  []],
-			'Null symbol'             => ['Null',                   []],
-			'empty list'              => ['[]',                     []],
-			'empty dict'              => ['{}',                     []],
-			'empty tuple'             => ['()',                      []],
-			'pure arithmetic'         => ['1 + 1',                  []],
-			'local var fully resolved'=> ["a = 5\na + 1",           []],
-			'two local vars resolved' => ["a = 2\nb = 40\nb + a",   []],
-			'constant dict'           => ['{x: 1, y: 2}',           []],
-			'constant list'           => ['[1, 2, 3]',              []],
+			'integer constant' => ['42', []],
+			'real constant' => ['3.14', []],
+			'string constant' => ['"hello"', []],
+			'True symbol' => ['True', []],
+			'False symbol' => ['False', []],
+			'Null symbol' => ['Null', []],
+			'empty list' => ['[]', []],
+			'empty dict' => ['{}', []],
+			'empty tuple' => ['()', []],
+			'pure arithmetic' => ['1 + 1', []],
+			'local var fully resolved'=> ["a = 5\na + 1", []],
+			'two local vars resolved' => ["a = 2\nb = 40\nb + a", []],
+			'constant dict' => ['{x: 1, y: 2}', []],
+			'constant list' => ['[1, 2, 3]', []],
 		];
 	}
 
@@ -87,12 +92,12 @@ class ScriptSignatureTest extends TestCase
 	static function dataWithParams(): array
 	{
 		return [
-			'single param'            => [
+			'single param' => [
 				'a + 1',
 				[new BindValue('a', '?')],
 				],
 
-			'two params'              => [
+			'two params' => [
 				'a + b',
 				[new BindValue('a', '?'), new BindValue('b', '?')],
 				],
@@ -102,22 +107,22 @@ class ScriptSignatureTest extends TestCase
 				[new BindValue('price', '?')],
 				],
 
-			'alias for param'         => [
+			'alias for param' => [
 				"x = a\nx + x",
 				[new BindValue('a', '?')],
 				],
 
-			'dict with params'        => [
+			'dict with params' => [
 				'{name: name, age: age}',
 				[new BindValue('name', '?'), new BindValue('age', '?')],
 				],
 
-			'dict with mixed'         => [
+			'dict with mixed' => [
 				'{label: "hello", value: val}',
 				[new BindValue('val', '?')],
 				],
 
-			'list with param'         => [
+			'list with param' => [
 				'[a, 1, 2]',
 				[new BindValue('a', '?')],
 				],
@@ -127,12 +132,12 @@ class ScriptSignatureTest extends TestCase
 				[new BindValue('a', '?')],
 				],
 
-			'pipe chain'              => [
+			'pipe chain' => [
 				"xs\n\t|> List.map (x -> x * x)\n\t|> List.fold 0 (prev curr -> prev + curr)",
 				[new BindValue('xs', '?')],
 				],
 
-			'nested dict with param'  => [
+			'nested dict with param' => [
 				"content = [{key: \"name\", value: name}]\n{title: \"form\", fields: content}",
 				[new BindValue('name', '?')],
 				],
@@ -148,24 +153,24 @@ class ScriptSignatureTest extends TestCase
 	static function dataReturnType(): array
 	{
 		return [
-			'Int'           => ['42',                   'Int'],
-			'Real'          => ['3.14',                 'Real'],
-			'Str'           => ['"hello"',              'Str'],
-			'Symbol'        => ['True',                 'Symbol'],
-			'empty List'    => ['[]',                   'List'],
-			'empty Dict'    => ['{}',                   'Dict'],
-			'empty Tuple'   => ['()',                   'Tuple'],
-			'Num from add'  => ['1 + 1',                'Num'],
-			'Dict static'   => ['{a: 1, b: 2}',         'Dict'],
-			'List static'   => ['[1, 2, 3]',            'List'],
+			'Int' => ['42', 'Int'],
+			'Real' => ['3.14', 'Real'],
+			'Str' => ['"hello"', 'Str'],
+			'Symbol' => ['True', 'Symbol'],
+			'empty List' => ['[]', 'List'],
+			'empty Dict' => ['{}', 'Dict'],
+			'empty Tuple' => ['()', 'Tuple'],
+			'Num from add' => ['1 + 1', 'Num'],
+			'Dict static' => ['{a: 1, b: 2}', 'Dict'],
+			'List static' => ['[1, 2, 3]', 'List'],
 
 			// Expressions with unresolved params → type is '?'
-			'expr with param'         => ['a + 1',                  '?'],
+			'expr with param' => ['a + 1', '?'],
 			'if-then-else with param' => ['if a > 0 then 1 else 2', '?'],
 
 			// Composite structures with unresolved params keep their structural type
-			'Dict with param'         => ['{x: val, y: 2}',         'Dict'],
-			'List with param'         => ['[a, 1, 2]',              'List'],
+			'Dict with param' => ['{x: val, y: 2}', 'Dict'],
+			'List with param' => ['[a, 1, 2]', 'List'],
 		];
 	}
 
@@ -257,10 +262,10 @@ else "A"'),
 	{
 		return (new Compiler([
 			'predicate' => new PredicatesProvider(),
-			'Math'      => new MathsProvider(),
-			'Str'       => new StringsProvider(),
-			'List'      => new ListsProvider(),
-			'Dict'      => new DictsProvider(),
+			'Math' => new MathsProvider(),
+			'Str' => new StringsProvider(),
+			'List' => new ListsProvider(),
+			'Dict' => new DictsProvider(),
 			]))
 			->compile($code);
 	}
