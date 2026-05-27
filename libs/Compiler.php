@@ -235,6 +235,7 @@ class Compiler
 		if ($value = $context->selectSymbol($id->getName())) {
 			if ($id->isPath()) {
 				list($value, ) = self::castAny($value, False);
+				assert($value instanceof FinalValue);
 				return self::selectByPath($id, $value);
 			}
 			return $value;
@@ -338,7 +339,7 @@ class Compiler
 
 				// Validate types of resolved args against the function signature (only full arity calls)
 				if ($items[0] instanceof BuildinFunc) {
-					$callArgs = array_values(array_slice($items, 1));
+					$callArgs = array_slice($items, 1);
 					if (count($callArgs) === count($items[0]->getBinds())) {
 						try {
 							TypeValidator::assertPartialArgTypes(
