@@ -12,7 +12,6 @@ namespace Taco\Hayo;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use DateInterval;
-use DivisionByZeroError;
 use RuntimeException;
 
 
@@ -165,13 +164,13 @@ class HayoEngineTest extends TestCase
 			['a', [new DateInterval('P1D')],
 				InvalidArgumentException::class,
 				"Invalid type of value: 'DateInterval Object\n"],
-			// Wrong named argument → global \InvalidArgumentException from ParametricValue::assertBindArguments
+			// Wrong named argument → ScriptRuntimeException (wraps InvalidArgumentException from ParametricValue::assertBindArguments)
 			['1 + a', ['b' => 10],
-				InvalidArgumentException::class,
+				ScriptRuntimeException::class,
 				"Invalid arguments. Expected 'a'; given 'b'."],
-			// Extra named argument → global \InvalidArgumentException from ParametricValue::assertBindArguments
+			// Extra named argument → ScriptRuntimeException (wraps InvalidArgumentException from ParametricValue::assertBindArguments)
 			['1 + a', ['a' => 10, 'b' => 20],
-				InvalidArgumentException::class,
+				ScriptRuntimeException::class,
 				"Invalid count of arguments. Expected 'a'; given 'a', 'b'."],
 		];
 	}
@@ -187,44 +186,44 @@ class HayoEngineTest extends TestCase
 
 			// Math operator on wrong types → TypeError from PHP runtime
 			['a + b', ['a' => 'hello', 'b' => 2],
-				ValidationException::class,
+				ScriptRuntimeException::class,
 				'Invalid arguments of Math.+: Expected int or float, got string'],
 			['a - b', ['a' => 'hello', 'b' => 2],
-				ValidationException::class,
+				ScriptRuntimeException::class,
 				'Invalid arguments of Math.-: Expected int or float, got string'],
 			['a * b', ['a' => 'hello', 'b' => 2],
-				ValidationException::class,
+				ScriptRuntimeException::class,
 				'Invalid arguments of Math.*: Expected int or float, got string'],
 			['a div b', ['a' => 'hello', 'b' => 2],
-				ValidationException::class,
+				ScriptRuntimeException::class,
 				'Invalid arguments of Math.div: Expected int or float, got string'],
 
 			// IN predicate on non-array → TypeError from PHP built-in in_array()
 			['1 IN xs', ['xs' => 'hello'],
-				ValidationException::class,
+				ScriptRuntimeException::class,
 				'Invalid arguments of Predicate.in: Expected array, got string'],
 
 			// List.len on non-array → TypeError from PHP built-in count()
 			['List.len xs', ['xs' => 'hello'],
-				ValidationException::class,
+				ScriptRuntimeException::class,
 				'Invalid arguments of List.len: Expected array, got string'],
 			// List.map on non-array → TypeError from PHP built-in array_map()
 			['List.map xs (x -> x + 1)', ['xs' => 42],
-				ValidationException::class,
+				ScriptRuntimeException::class,
 				'Invalid arguments of List.map: Expected array, got integer'],
 
 			// Wrong argument type for builtin → global \InvalidArgumentException from StringsProvider::assertStr
 			['Str.len xs', ['xs' => 42],
-				ValidationException::class,
+				ScriptRuntimeException::class,
 				'Expected string, got integer'],
 
 			// DateTime.fromDate with non-int year → TypeError from DateTime::setDate()
 			['DateTime.fromDate y m d', ['y' => 'not-a-year', 'm' => 1, 'd' => 1],
-				ValidationException::class,
+				ScriptRuntimeException::class,
 				'Invalid arguments of DateTime.fromDate: Expected int, got string'],
 			// DateTime.fromTimestamp with invalid string → Exception from DateTime constructor
 			['DateTime.fromTimestamp src', ['src' => 'abc'],
-				ValidationException::class,
+				ScriptRuntimeException::class,
 				'Invalid arguments of DateTime.fromTimestamp: Expected int, got string'],
 
 		];
@@ -238,13 +237,13 @@ class HayoEngineTest extends TestCase
 	static function dataRuntimeErrors(): array
 	{
 		return [
-			// Modulo by zero → DivisionByZeroError from PHP runtime
+			// Modulo by zero → ScriptRuntimeException (wraps DivisionByZeroError from PHP runtime)
 			['10 mod a', ['a' => 0],
-				DivisionByZeroError::class,
+				ScriptRuntimeException::class,
 				'Modulo by zero'],
-			// Integer division by zero → DivisionByZeroError from PHP runtime
+			// Integer division by zero → ScriptRuntimeException (wraps DivisionByZeroError from PHP runtime)
 			['10 div a', ['a' => 0],
-				DivisionByZeroError::class,
+				ScriptRuntimeException::class,
 				'Division by zero'],
 		];
 	}

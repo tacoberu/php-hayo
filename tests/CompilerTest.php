@@ -533,14 +533,30 @@ content = [
 
 
 	/**
-	 * @param class-string<\Throwable> $exception
+	 * @param array<mixed> $_args
+	 * @param class-string<Throwable> $exception
 	 */
 	#[DataProvider('dataErrors')]
-	function testCompileWithErrors(string $code, string $exception, string $message): void
+	function testCompileWithErrors(string $code, array $_args, string $exception, string $message): void
 	{
 		$this->expectException($exception);
 		$this->expectExceptionMessage($message);
 		$this->compile($code);
+	}
+
+
+
+	/**
+	 * convenience: errors surfaced through HayoEngine::evaluate
+	 * @param array<mixed> $args
+	 * @param class-string<Throwable> $exception
+	 */
+	#[DataProvider('dataErrors')]
+	function testEvaluateWithErrors(string $code, array $args, string $exception, string $messageFragment): void
+	{
+		$this->expectException($exception);
+		$this->expectExceptionMessageMatches('/' . preg_quote($messageFragment, '/') . '/i');
+		HayoEngine::WithDefaultLibraries()->evaluate($code, $args);
 	}
 
 
@@ -1140,18 +1156,6 @@ content = [
 				new FinalValue(False, 'Bool'),
 				],
 
-			["1 OR 2 OR 3",
-				new FinalValue(True, 'Bool'),
-				],
-
-			["1 || 2 || 3",
-				new FinalValue(True, 'Bool'),
-				],
-
-			["(1 == 1) && 1",
-				new FinalValue(True, 'Bool'),
-				],
-
 			["6 == 6 && (2 + 1) == 3",
 				new FinalValue(True, 'Bool'),
 				],
@@ -1330,9 +1334,106 @@ content = [
 	static function dataErrors(): array
 	{
 		return [
-			['List.noth (a b -> a + b) xs',
-				SymbolNotFound::class,
-				'Unable to find symbols: List.noth.'],
+			'missing List.noth' => ['List.noth (a b -> a + b) xs',
+				['xs' => new FinalValue([], 'List<a>')],
+				SymbolNotFound::class, 'Unable to find symbols: List.noth.'],
+
+			// Division by zero: the compiler catches DivisionByZeroError from partial evaluation
+			// and re-throws it as CompileException so callers never see a raw PHP error.
+			'int div zero (constant)' => ['10 div 0',
+				[],
+				CompileException::class, 'zero'],
+			'int mod zero (constant)' => ['10 mod 0',
+				[],
+				CompileException::class, 'zero'],
+			'float div zero (constant)' => ['3.14 div 0.0',
+				[],
+				CompileException::class, 'zero'],
+			// mod accepts only Int — passing a Real fires a type error before the zero-check
+			'float mod zero (constant)' => ['10.0 mod 0',
+				[],
+				ValidationException::class, 'Expected int'],
+
+			// Wrong argument type passed to a built-in — caught at compile time
+			// when all operands are constants and the call is partially evaluated.
+			'Str.len on integer literal' => ['Str.len 42',
+				[],
+				ValidationException::class, 'Expected string'],
+
+			// Unknown symbol
+			'unknown list function' => ['List.nope xs',
+				['xs' => new FinalValue([], 'List<a>')],
+				SymbolNotFound::class, 'List.nope'],
+			'unknown str function' => ['Str.nope src',
+				['src' => new FinalValue("abc", 'str')],
+				SymbolNotFound::class, 'Str.nope'],
+
+			// Syntax / parse errors
+			'incomplete if' => ['if a then',
+				[],
+				CompileException::class, 'Required closing bracked: EOF.'],
+			'lambda with tuple args' => [
+				'List.sort xs ((a b) -> a + b)',
+				['xs' => new FinalValue([], 'List<a>')],
+				CompileException::class, 'Lambda arguments must be simple names',
+				],
+
+			// Compile-time type mismatch: `b` is Str but `+` requires Num
+			'type mismatch at compile' => [
+				"b = \"Hi\"\na + b",
+				[],
+				CompileException::class, 'Invalid arguments of Math.+:',
+				],
+
+			// AND/OR/NOT require Bool operands
+			'int OR int' => [
+				'1 OR 2 OR 3',
+				[],
+				CompileException::class, 'Expected bool'
+				],
+
+			'int || int' => [
+				'1 || 2 || 3',
+				[],
+				CompileException::class, 'Expected bool'
+				],
+
+			'bool AND int' => [
+				'(1 == 1) && 1',
+				[],
+				CompileException::class, 'Expected bool'
+				],
+
+			'str AND int' => [
+				'"hello" AND 1',
+				[],
+				CompileException::class, 'Expected bool'
+				],
+
+			'str AND zero' => [
+				'"hello" AND 0',
+				[],
+				CompileException::class, 'Expected bool'
+				],
+
+			'zero OR zero' => [
+				'0 OR 0',
+				[],
+				CompileException::class, 'Expected bool'
+				],
+
+			// Unsupported lambda forms
+			'zero-arg lambda' => [
+				"f = () -> 42\nf",
+				[],
+				CompileException::class, 'Zero-argument lambdas are not supported',
+				],
+			'curried lambda' => [
+				"f = x -> y -> x + y\nf 1 2",
+				[],
+				CompileException::class, 'Curried lambdas',
+				],
+
 		];
 	}
 

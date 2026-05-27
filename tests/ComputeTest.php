@@ -49,6 +49,20 @@ class ComputeTest extends TestCase
 
 
 	/**
+	 * @param array<string, FinalValue> $args
+	 * @param class-string<\Throwable> $exception
+	 */
+	#[DataProvider('dataApplyErrors')]
+	function testComputeApplyErrors(string $code, array $args, string $exception, string $message): void
+	{
+		$this->expectException($exception);
+		$this->expectExceptionMessage($message);
+		$this->compile($code)->apply($args);
+	}
+
+
+
+	/**
 	 * @return array<array<mixed>>
 	 */
 	static function dataOperations(): array
@@ -73,10 +87,6 @@ class ComputeTest extends TestCase
 			['(10 + a) + (a + 1)'
 				, [ 'a' => new FinalValue(8, 'Int')]
 				, new FinalValue(27, 'Int'),
-				],
-			['(10 + a) or (a + 1)'
-				, [ 'a' => new FinalValue(8, 'Int')]
-				, new FinalValue(True, 'Bool'),
 				],
 		];
 	}
@@ -386,45 +396,25 @@ class ComputeTest extends TestCase
 					]
 				, new FinalValue(82, 'Int'),
 				],
-			["a || 2"
-				, [ 'a' => new FinalValue(41, 'Int'),
-					]
-				, new FinalValue(True, 'Bool'),
-				],
-			["a && 2"
-				, [ 'a' => new FinalValue(41, 'Int'),
-					]
-				, new FinalValue(True, 'Bool'),
-				],
-			["a && False"
-				, [ 'a' => new FinalValue(41, 'Int'),
-					]
-				, new FinalValue(False, 'Bool'),
-				],
-			["not a"
-				, [ 'a' => new FinalValue(41, 'Int'),
-					]
-				, new FinalValue(False, 'Bool'),
-				],
-			["not (not a)"
-				, [ 'a' => new FinalValue(41, 'Int'),
-					]
-				, new FinalValue(True, 'Bool'),
-				],
 			["not a"
 				, [ 'a' => new FinalValue(False, 'Bool'),
 					]
 				, new FinalValue(True, 'Bool'),
 				],
-			["not (1 or a)"
-				, [ 'a' => new FinalValue(False, 'Bool'),
+			["not a"
+				, [ 'a' => new FinalValue(True, 'Bool'),
 					]
 				, new FinalValue(False, 'Bool'),
 				],
-			["(not 1) or a"
+			["a OR False"
 				, [ 'a' => new FinalValue(True, 'Bool'),
 					]
 				, new FinalValue(True, 'Bool'),
+				],
+			["a AND True"
+				, [ 'a' => new FinalValue(False, 'Bool'),
+					]
+				, new FinalValue(False, 'Bool'),
 				],
 		];
 	}
@@ -650,6 +640,41 @@ else "D"
 			['List.sort xs ((a) -> a + 1)',
 				CompileException::class,
 				$msg],
+		];
+	}
+
+
+
+	/**
+	 * @return array<array<mixed>>
+	 */
+	static function dataApplyErrors(): array
+	{
+		return [
+			['(10 + a) or (a + 1)',
+				['a' => new FinalValue(8, 'Int')],
+				ScriptRuntimeException::class, 'Expected bool'],
+			['a || 2',
+				['a' => new FinalValue(41, 'Int')],
+				CompileException::class, 'Expected bool'],
+			['a && 2',
+				['a' => new FinalValue(41, 'Int')],
+				CompileException::class, 'Expected bool'],
+			['a && False',
+				['a' => new FinalValue(41, 'Int')],
+				ScriptRuntimeException::class, 'Expected bool'],
+			['not a',
+				['a' => new FinalValue(41, 'Int')],
+				ScriptRuntimeException::class, 'Expected bool'],
+			['not (not a)',
+				['a' => new FinalValue(41, 'Int')],
+				ScriptRuntimeException::class, 'Expected bool'],
+			['not (1 or a)',
+				['a' => new FinalValue(False, 'Bool')],
+				CompileException::class, 'Expected bool'],
+			['(not 1) or a',
+				['a' => new FinalValue(True, 'Bool')],
+				CompileException::class, 'Expected bool'],
 		];
 	}
 
