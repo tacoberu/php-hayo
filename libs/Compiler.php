@@ -513,10 +513,10 @@ class Compiler
 	{
 		$context2 = clone $context;
 		foreach ($src->getArgs() as $id) {
-			if ($id === false || $id === null) {
+			if ($id === false || $id === null) { // @phpstan-ignore identical.alwaysFalse, identical.alwaysFalse, booleanOr.alwaysFalse
 				throw CompileException::UnsupportedZeroArgLambda();
 			}
-			if ( ! is_string($id)) {
+			if ( ! is_string($id)) { // @phpstan-ignore function.alreadyNarrowedType
 				throw CompileException::InvalidLambdaArguments();
 			}
 			$context2->shadowByArg($id);
