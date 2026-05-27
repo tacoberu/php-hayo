@@ -31,7 +31,7 @@ final class Interpret
 				//~ self::assertBindInArguments($src, $lets);
 				$value = $lets[$src->getName()];
 				if ( ! $value instanceof FinalValue) {
-					throw new LogicException("Comming soon...");
+					throw new LogicException("Argument '{$src->getName()}' received a partially-applied script (ParametricValue) instead of a final value. Ensure all parameters of the inner script are bound before passing it as a value.");
 				}
 				if ($src->isPath()) {
                     return self::selectByPath($src, $value);

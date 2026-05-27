@@ -561,6 +561,17 @@ content = [
 
 
 
+	function testPassPartiallyAppliedScriptAsArgument(): void
+	{
+		$compiled = $this->compile('1 + a');
+		$partial = $this->compile('b + 1');
+		$this->expectException(ScriptRuntimeException::class);
+		$this->expectExceptionMessageMatches('/partially-applied/i');
+		$compiled->apply(['a' => $partial]);
+	}
+
+
+
 	/**
 	 * @return array<array<mixed>>
 	 */
