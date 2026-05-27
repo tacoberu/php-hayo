@@ -136,6 +136,9 @@ class Compiler
 
 
 
+	/**
+	 * @return Value|string|null
+	 */
 	private static function decodeSource(string $source)
 	{
 		$decoder = new HayoDecoder();
@@ -222,6 +225,9 @@ class Compiler
 
 
 
+	/**
+	 * @return Value|string
+	 */
 	private static function partialEvaluateSymbol(Context $context, string $term)
 	{
 		// Check whether we have a Dict stored in the context; select by the first key in the path x.foo.doo
@@ -229,6 +235,7 @@ class Compiler
 		if ($value = $context->selectSymbol($id->getName())) {
 			if ($id->isPath()) {
 				list($value, ) = self::castAny($value, False);
+				assert($value instanceof FinalValue);
 				return self::selectByPath($id, $value);
 			}
 			return $value;
@@ -284,7 +291,7 @@ class Compiler
 				}
 
 				// Validate types of resolved operands against the operator signature
-				if ($items[1] instanceof BuildinFunc) { // @phpstan-ignore instanceof.alwaysTrue
+				if ($items[1] instanceof BuildinFunc) {
 					try {
 						TypeValidator::assertPartialArgTypes(
 							$items[1]->getQualifiedName(),
@@ -315,7 +322,7 @@ class Compiler
                     if ($items[0] instanceof Scalar && $items[1] == Composite::Tuple_([])) {
 						return $items[0];
 					}
-                    $expr = self::partialEvaluateApplicable($items[0], $args);
+                    $expr = self::partialEvaluateApplicable($items[0], $args); // @phpstan-ignore argument.type
                     if (is_string($expr)) {
 						throw CompileException::UnresolvedExpression($term);
 					}
@@ -327,12 +334,12 @@ class Compiler
                     $args = array_slice($items, 1);
                     $fn = $items[0];
                     $context = new Context(array_combine($fn->getArgs(), $args));
-                    return self::partialEvaluateExpr($context, $fn->getExpr());
+                    return self::partialEvaluateExpr($context, $fn->getExpr()); // @phpstan-ignore argument.type
                 }
 
 				// Validate types of resolved args against the function signature (only full arity calls)
 				if ($items[0] instanceof BuildinFunc) {
-					$callArgs = array_values(array_slice($items, 1));
+					$callArgs = array_slice($items, 1);
 					if (count($callArgs) === count($items[0]->getBinds())) {
 						try {
 							TypeValidator::assertPartialArgTypes(
@@ -366,6 +373,7 @@ class Compiler
 	{
 		$chains = [];
 		foreach ($term->getItems() as $usecase) {
+			/** @var object{cond: mixed, expr: mixed} $usecase */
 			$chains[] = (object) [
 				'cond' => $usecase->cond ? self::partialEvaluate($context, $usecase->cond) : Null,
 				'expr' => self::partialEvaluate($context, $usecase->expr),
@@ -420,12 +428,12 @@ class Compiler
 				return $src;
 
 			// Nested scope is not supported.
-			case $src->getExpr() instanceof Scope:
+			case $src->getExpr() instanceof Scope: // @phpstan-ignore instanceof.alwaysFalse
 				throw CompileException::UnsupportedException('partial evaluate const scope of scope', $src->getExpr());
 
 			// `{1 + 1}` -- because addition is also a symbol -> `{+ = buildin; 1 + 1}`
 			// `{a = 1; a + a}`
-			case $src->getExpr() instanceof Expr:
+			case $src->getExpr() instanceof Expr: // @phpstan-ignore instanceof.alwaysTrue
 				$context2 = clone $context;
 				$seconds = [];
 				// 1/ First process safe values
@@ -459,7 +467,7 @@ class Compiler
 			// `a = 5; (a, 5)`
 			// `a = 5; [1, a]`
 			// `a = 5; {a: a}`
-			case $src->getExpr() instanceof Composite:
+			case $src->getExpr() instanceof Composite: // @phpstan-ignore instanceof.alwaysFalse
 				$context2 = clone $context;
 				$seconds = [];
 				// 1/ First process safe values
@@ -505,15 +513,18 @@ class Compiler
 	{
 		$context2 = clone $context;
 		foreach ($src->getArgs() as $id) {
-			if ($id === false || $id === null) {
+			if ($id === false) { // @phpstan-ignore identical.alwaysFalse
 				throw CompileException::UnsupportedZeroArgLambda();
 			}
-			if ( ! is_string($id)) {
+			if ($id === null) { // @phpstan-ignore identical.alwaysFalse
+				throw CompileException::UnsupportedZeroArgLambda();
+			}
+			if ( ! is_string($id)) { // @phpstan-ignore function.alreadyNarrowedType
 				throw CompileException::InvalidLambdaArguments();
 			}
 			$context2->shadowByArg($id);
 		}
-		return new Lambda($src->getArgs(), self::partialEvaluate($context2, $src->getExpr()));
+		return new Lambda($src->getArgs(), self::partialEvaluate($context2, $src->getExpr())); // @phpstan-ignore argument.type
 	}
 
 
@@ -530,13 +541,13 @@ class Compiler
 
 		switch ($src->type()) {
 			case Composite::TypeList:
-				return Composite::List_($items);
+				return Composite::List_($items); // @phpstan-ignore argument.type
 
 			case Composite::TypeDict:
 				return Composite::Dict_($items);
 
 			case Composite::TypeTuple:
-				return Composite::Tuple_($items);
+				return Composite::Tuple_($items); // @phpstan-ignore argument.type
 
 			default:
 				throw CompileException::Unexpected();
@@ -566,9 +577,10 @@ class Compiler
 	 * The goal is to create an efficient, reusable runtime routine representing
 	 * the final form of the expression for execution in the client.
 	 *
+	 * @param Value|string $src
 	 * @return ParametricValue | FinalValue
 	 */
-	private static function compileRuntimeValue(Value $src)
+	private static function compileRuntimeValue($src)
 	{
 		list($val, $binds) = self::castAny($src, True);
 		switch (True) {
@@ -636,7 +648,7 @@ class Compiler
 	/**
 	 * @param string | Value $src
 	 * @param bool $packref When we encounter a dependency symbol, sometimes we don't want it wrapped in a BindValue
-	 * @return array{0: Value, 1: array<string, BindValue>}
+	 * @return array{0: Value|string, 1: array<string, BindValue>}
 	 */
 	private static function castAny($src, bool $packref): array
 	{
@@ -662,7 +674,7 @@ class Compiler
 			case is_string($src):
 				if ($packref) {
 					$x = new BindValue($src, "?");
-					return [$x, [$x]];
+					return [$x, [$src => $x]]; // @phpstan-ignore return.type
 				}
 				return [$src, []];
 
@@ -714,10 +726,10 @@ class Compiler
 			$binds[$x] = new BindValue($x, '?');
 		}
 		$expr = $val->getExpr();
-		if ($expr instanceof Form) {
+		if ($expr instanceof Form) { // @phpstan-ignore instanceof.alwaysFalse
 			return [ParametricValue::Form_($expr, '?', array_values($binds)), $binds];
 		}
-		return [ParametricValue::Expr_($expr, '?', array_values($binds)), $binds];
+		return [ParametricValue::Expr_($expr, '?', array_values($binds)), $binds]; // @phpstan-ignore argument.type
     }
 
 
@@ -753,17 +765,17 @@ class Compiler
 			case Composite::TypeTuple:
 				return $src->refs() === []
 					? [new FinalValue($items, 'Tuple'), []]
-					: [Composite::Tuple_($items), $lets];
+					: [Composite::Tuple_($items), $lets]; // @phpstan-ignore argument.type
 
 			case Composite::TypeList:
 				return $src->refs() === []
 					? [new FinalValue($items, 'List'), []]
-					: [Composite::List_($items), $lets];
+					: [Composite::List_($items), $lets]; // @phpstan-ignore argument.type
 
 			case Composite::TypeDict:
 				return $src->refs() === []
 					? [new FinalValue((object) $items, 'Dict'), []]
-					: [Composite::Dict_($items), $lets];
+					: [Composite::Dict_($items), $lets]; // @phpstan-ignore argument.type
 
 			default:
 				throw CompileException::UnsupportedException('casting composite', $src);
@@ -784,10 +796,10 @@ class Compiler
 		}
 		switch ($src->getNotation()) {
 			case Expr::NotationInfix:
-				return [Expr::Bin_($items[0], $items[1], $items[2]), $lets];
+				return [Expr::Bin_($items[0], $items[1], $items[2]), $lets]; // @phpstan-ignore argument.type, argument.type, argument.type
 
 			case Expr::NotationPrefix:
-				return [Expr::Func_($items[0], array_slice($items, 1)), $lets];
+				return [Expr::Func_($items[0], array_slice($items, 1)), $lets]; // @phpstan-ignore argument.type, argument.type
 
 			default:
 				throw CompileException::Unexpected();
@@ -845,16 +857,17 @@ class Compiler
 		$chains = [];
 		$depends = [];
 		foreach ($src->getItems() as $block) {
+			/** @var object{cond: mixed, expr: mixed} $block */
 			if ($block->cond === Null) {
 				list($elseexpr, $depends1) = self::castAny($block->expr, True);
 				$depends = array_merge($depends, $depends1);
 				return [Form::IfThenElse_($chains, $elseexpr), $depends];
 			}
-			list($block->cond, $depends1) = self::castAny($block->cond, True);
+			list($cond, $depends1) = self::castAny($block->cond, True);
 			$depends = array_merge($depends, $depends1);
-			list($block->expr, $depends1) = self::castAny($block->expr, True);
+			list($expr, $depends1) = self::castAny($block->expr, True);
 			$depends = array_merge($depends, $depends1);
-			$chains[] = $block;
+			$chains[] = (object)['cond' => $cond, 'expr' => $expr];
 		}
 		throw CompileException::Unexpected();
 	}
@@ -864,7 +877,7 @@ class Compiler
 	/**
 	 * @param array<string|int, string | Value> $src
 	 * @param array<int|string, BindValue|null> $typeHints expected parameter types keyed by item position
-	 * @return array{0: array<Value>, 1: array<string, BindValue>}
+	 * @return array{0: array<int|string, string|Value|BindValue>, 1: array<string, BindValue>}
 	 */
 	private static function castCompositeItems(array $src, bool $packref, array $typeHints = []): array
 	{
@@ -943,6 +956,9 @@ class Compiler
 
 
 
+	/**
+	 * @param FinalValue|ParametricValue $term
+	 */
 	private static function assertMissingSymbols($term): void
 	{
 		if ($term instanceof FinalValue) {
