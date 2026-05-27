@@ -97,7 +97,7 @@ final class HayoEngine
 					->unpack();
 
 			default:
-				throw new CompileException("Unexpected compiled result: {$expr}");
+				throw CompileException::UnexpectedResult($expr);
 		}
 	}
 
@@ -116,29 +116,6 @@ final class HayoEngine
 	private function getCompiler(): Compiler
 	{
 		return new Compiler($this->libs);
-	}
-
-
-
-	/**
-	 * When arguments are passed unnamed, just as an array.
-	 * The function has its own argument signature. $values contains the values for those arguments. We combine them by index.
-	 * @param list<mixed> $values
-	 * @return array<string, mixed>
-	 */
-	private static function combineBindWithValues(ParametricValue $fn, array $values): array
-	{
-		$refs = array_map(static function (BindValue $x): string {
-			return $x->getBindName();
-		}, $fn->getBinds());
-
-		if (count($refs) !== count($values)) {
-			$expected = count($refs);
-			$passed = count($values);
-			throw new InvalidArgumentException("Too few arguments to function {$fn}, {$passed} passed and exactly {$expected} expected.");
-		}
-
-		return array_combine($refs, $values);
 	}
 
 
@@ -217,8 +194,29 @@ final class HayoEngine
 				return 'Dict';
 
 			default:
-				throw new InvalidArgumentException("Invalid type of value: '" . print_r($src, True) . "'.");
+				throw ArgumentsException::InvalidValueType($src);
 		}
+	}
+
+
+
+	/**
+	 * When arguments are passed unnamed, just as an array.
+	 * The function has its own argument signature. $values contains the values for those arguments. We combine them by index.
+	 * @param list<mixed> $values
+	 * @return array<string, mixed>
+	 */
+	private static function combineBindWithValues(ParametricValue $fn, array $values): array
+	{
+		$refs = array_map(static function (BindValue $x): string {
+			return $x->getBindName();
+		}, $fn->getBinds());
+
+		if (count($refs) !== count($values)) {
+			throw ArgumentsException::InvalidCountOfArguments((string) $fn, $refs, $values);
+		}
+
+		return array_combine($refs, $values);
 	}
 
 

@@ -190,14 +190,17 @@ class ParametricValue implements HasRefs, Value
 	{
 		try {
 			self::assertArguments($args);
-			self::assertBindArguments($this->getBinds(), $args);
+			$this->assertBindArguments($this->getBinds(), $args);
 			return Interpret::applyAny($this->expr, $args);
 		}
-		catch (ScriptRuntimeException $e) {
+		catch (ScriptRuntimeException | SymbolNotFound | ArgumentsException $e) {
 			throw $e;
 		}
+		catch (ScriptTypeException $e) {
+			throw ScriptRuntimeException::From($e);
+		}
 		catch (Throwable $e) {
-			throw ScriptRuntimeException::wrap($e);
+			throw ScriptRuntimeException::From($e);
 		}
 	}
 
@@ -209,23 +212,19 @@ class ParametricValue implements HasRefs, Value
 	 * @param array<BindValue> $binds
 	 * @param array<string, FinalValue | ParametricValue> $args
 	 */
-	private static function assertBindArguments(array $binds, array $args): void
+	private function assertBindArguments(array $binds, array $args): void
 	{
-		$binds = array_map(static function(BindValue $x): string {
+		$binds = array_values(array_map(static function(BindValue $x): string {
 			return $x->getName();
-		}, $binds);
+		}, $binds));
 		$args = array_keys($args);
 		if (count($binds) !== count($args)) {
-			$binds = implode(', ', array_map(static function(string $x): string { return "'{$x}'";}, $binds));
-			$args = implode(', ', array_map(static function(string $x): string { return "'{$x}'";}, $args));
-			throw new InvalidArgumentException("Invalid count of arguments. Expected {$binds}; given {$args}.");
+			throw ArgumentsException::InvalidCountOfArguments((string) $this, $binds, $args);
 		}
 		$missing = array_diff($binds, $args);
 		$extra = array_diff($args, $binds);
 		if (count($missing) || count($extra)) {
-			$binds = implode(', ', array_map(static function(string $x): string { return "'{$x}'";}, $binds));
-			$args = implode(', ', array_map(static function(string $x): string { return "'{$x}'";}, $args));
-			throw new InvalidArgumentException("Invalid arguments. Expected {$binds}; given {$args}.");
+			throw ArgumentsException::InvalidArguments($binds, $args);
 		}
 	}
 
@@ -250,7 +249,7 @@ class ParametricValue implements HasRefs, Value
 	{
 		if ( ! $val instanceof FinalValue // @phpstan-ignore booleanAnd.alwaysFalse
 				&& ! $val instanceof self) { // @phpstan-ignore instanceof.alwaysTrue
-			throw new InvalidArgumentException("Argument '{$key}' must be package into FinalValue or ParametricValue; " . (is_object($val) ? get_class($val) : gettype($val)) . " given."); // @phpstan-ignore function.alreadyNarrowedType
+			throw SymbolNotFound::InvalidArgumentWrapper($key, is_object($val) ? $val::class : gettype($val)); // @phpstan-ignore function.alreadyNarrowedType
 		}
 	}
 

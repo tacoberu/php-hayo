@@ -10,6 +10,7 @@
 namespace Taco\Hayo;
 
 use DivisionByZeroError;
+use InvalidArgumentException;
 
 
 /**
@@ -277,18 +278,23 @@ class Compiler
 							self::castAny($items[2], False)[0],
 							]);
 					}
-					catch (DivisionByZeroError $e) {
+					catch (DivisionByZeroError | ScriptTypeException | InvalidArgumentException $e) {
 						throw CompileException::EvaluationError($e);
 					}
 				}
 
 				// Validate types of resolved operands against the operator signature
 				if ($items[1] instanceof BuildinFunc) { // @phpstan-ignore instanceof.alwaysTrue
-					TypeValidator::assertPartialArgTypes(
-						$items[1]->getQualifiedName(),
-						$items[1]->getBinds(),
-						[self::castAny($items[0], False)[0], self::castAny($items[2], False)[0]],
-					);
+					try {
+						TypeValidator::assertPartialArgTypes(
+							$items[1]->getQualifiedName(),
+							$items[1]->getBinds(),
+							[self::castAny($items[0], False)[0], self::castAny($items[2], False)[0]]
+						);
+					}
+					catch (InvalidArgumentException $e) {
+						throw CompileException::EvaluationError($e);
+					}
 				}
 
 				// There are some arguments
@@ -328,11 +334,16 @@ class Compiler
 				if ($items[0] instanceof BuildinFunc) {
 					$callArgs = array_values(array_slice($items, 1));
 					if (count($callArgs) === count($items[0]->getBinds())) {
-						TypeValidator::assertPartialArgTypes(
-							$items[0]->getQualifiedName(),
-							$items[0]->getBinds(),
-							array_map(static function($x) { return self::castAny($x, False)[0]; }, $callArgs),
-						);
+						try {
+							TypeValidator::assertPartialArgTypes(
+								$items[0]->getQualifiedName(),
+								$items[0]->getBinds(),
+								array_map(static function($x) { return self::castAny($x, False)[0]; }, $callArgs)
+							);
+						}
+						catch (InvalidArgumentException $e) {
+							throw CompileException::EvaluationError($e);
+						}
 					}
 				}
 
@@ -384,7 +395,7 @@ class Compiler
 				try {
 					return $fn->apply($args); // @phpstan-ignore argument.type
 				}
-				catch (DivisionByZeroError $e) {
+				catch (DivisionByZeroError | ScriptTypeException | InvalidArgumentException $e) {
 					throw CompileException::EvaluationError($e);
 				}
 
@@ -494,8 +505,11 @@ class Compiler
 	{
 		$context2 = clone $context;
 		foreach ($src->getArgs() as $id) {
+			if ($id === false || $id === null) {
+				throw CompileException::UnsupportedZeroArgLambda();
+			}
 			if ( ! is_string($id)) {
-				throw new CompileException("Lambda arguments must be simple names, not expressions. Use `(a b -> ...)` instead of `((a b) -> ...)`.");
+				throw CompileException::InvalidLambdaArguments();
 			}
 			$context2->shadowByArg($id);
 		}
@@ -597,14 +611,18 @@ class Compiler
 			case Expr::NotationInfix:
 				if (isset($items[1]) && $items[1] instanceof BuildinFunc) {
 					$t = $items[1]->type();
-					return ($t !== '' && $t !== 'a') ? $t : '?';
+					return $t !== '' && $t !== 'a'
+						? $t
+						: '?';
 				}
 				return '?';
 
 			case Expr::NotationPrefix:
 				if (isset($items[0]) && $items[0] instanceof BuildinFunc) {
 					$t = $items[0]->type();
-					return ($t !== '' && $t !== 'a') ? $t : '?';
+					return $t !== '' && $t !== 'a'
+						? $t
+						: '?';
 				}
 				return '?';
 
@@ -782,8 +800,8 @@ class Compiler
 	 * Builds a position-keyed map of expected parameter types from the operator/function
 	 * in the expression. Used to annotate unresolved BindValues with inferred types.
 	 *
-	 * Infix:  position 0 = left arg, position 1 = operator (skip), position 2 = right arg
-	 * Prefix: position 0 = function  (skip), positions 1..n = args 0..n-1
+	 * Infix: position 0 = left arg, position 1 = operator (skip), position 2 = right arg
+	 * Prefix: position 0 = function (skip), positions 1..n = args 0..n-1
 	 *
 	 * @return array<int, BindValue|null>
 	 */
@@ -854,7 +872,9 @@ class Compiler
 		$items = [];
 		foreach ($src as $k => $x) {
 			if (is_string($x)) {
-				$inferredType = isset($typeHints[$k]) ? $typeHints[$k]->getTypeName() : '?';
+				$inferredType = isset($typeHints[$k])
+					? $typeHints[$k]->getTypeName()
+					: '?';
 				$items[$k] = $packref
 					? $lets[$x] = new BindValue($x, $inferredType)
 					: $x;
@@ -936,7 +956,7 @@ class Compiler
 		}
 		if (count($missing)) {
 			$missing = implode(',', $missing);
-			throw new SymbolNotFound("Unable to find symbols: $missing.");
+			throw SymbolNotFound::MissingSymbols($missing);
 		}
 	}
 

@@ -38,23 +38,8 @@ class HayoEngineTest extends TestCase
 	#[DataProvider('dataSymbolNotFoundErrors')]
 	#[DataProvider('dataCompileErrors')]
 	#[DataProvider('dataInvalidArgumentErrors')]
-	#[DataProvider('dataValidationErrors')]
+	#[DataProvider('dataScriptRuntimeErrors')]
 	function testCompileWithErrors(string $code, array $args, string $exception, string $message): void
-	{
-		$this->expectException($exception);
-		$this->expectExceptionMessage($message);
-		HayoEngine::WithDefaultLibraries()
-			->evaluate($code, $args);
-	}
-
-
-
-	/**
-	 * @param class-string<\Throwable> $exception
-	 * @param array<mixed> $args
-	 */
-	#[DataProvider('dataRuntimeErrors')]
-	function testRuntimeErrors(string $code, array $args, string $exception, string $message): void
 	{
 		$this->expectException($exception);
 		$this->expectExceptionMessage($message);
@@ -86,6 +71,16 @@ class HayoEngineTest extends TestCase
 				],
 			['"""Sinead O\'Connor"""', [],
 				"Sinead O'Connor",
+				],
+
+			// a + 1 with Int argument
+			['a + 1', ['a' => 41],
+				42,
+				],
+
+			// a + 1 with Real argument
+			['a + 1', ['a' => 41.0],
+				42.0,
 				],
 		];
 	}
@@ -152,26 +147,26 @@ class HayoEngineTest extends TestCase
 	static function dataInvalidArgumentErrors(): array
 	{
 		return [
-			// Too few positional arguments → Taco\Hayo\InvalidArgumentException from HayoEngine::combineBindWithValues
+			// Too few positional arguments → ArgumentsException from HayoEngine::combineBindWithValues
 			['List.first xs', [],
-				InvalidArgumentException::class,
-				'Too few arguments to function CallableValue: <List.first> <?xs> :: List<a> [xs], 0 passed and exactly 1 expected.'],
-			// Too many positional arguments → Taco\Hayo\InvalidArgumentException from HayoEngine::combineBindWithValues
+				ArgumentsException::class,
+				"Invalid count of arguments func 'CallableValue: <List.first> <?xs> :: List<a> [xs]'. Expected 'xs'; given empty."],
+			// Too many positional arguments → ArgumentsException from HayoEngine::combineBindWithValues
 			['1 + a', [10, 99],
-				InvalidArgumentException::class,
-				'Too few arguments to function CallableValue: 1 <Math.+> <?a> :: Num [a], 2 passed and exactly 1 expected.'],
-			// Unsupported PHP argument type → Taco\Hayo\InvalidArgumentException from HayoEngine::gauseType
+				ArgumentsException::class,
+				"Invalid count of arguments func 'CallableValue: 1 <Math.+> <?a> :: Num [a]'. Expected 'a'; given '10', '99'."],
+			// Unsupported PHP argument type → ArgumentsException from HayoEngine::gauseType
 			['a', [new DateInterval('P1D')],
-				InvalidArgumentException::class,
+				ArgumentsException::class,
 				"Invalid type of value: 'DateInterval Object\n"],
-			// Wrong named argument → ScriptRuntimeException (wraps InvalidArgumentException from ParametricValue::assertBindArguments)
+			// Wrong named argument → ArgumentsException from ParametricValue::assertBindArguments
 			['1 + a', ['b' => 10],
-				ScriptRuntimeException::class,
+				ArgumentsException::class,
 				"Invalid arguments. Expected 'a'; given 'b'."],
-			// Extra named argument → ScriptRuntimeException (wraps InvalidArgumentException from ParametricValue::assertBindArguments)
+			// Extra named argument → ArgumentsException from ParametricValue::assertBindArguments
 			['1 + a', ['a' => 10, 'b' => 20],
-				ScriptRuntimeException::class,
-				"Invalid count of arguments. Expected 'a'; given 'a', 'b'."],
+				ArgumentsException::class,
+				"Invalid count of arguments func 'CallableValue: 1 <Math.+> <?a> :: Num [a]'. Expected 'a'; given 'a', 'b'."],
 		];
 	}
 
@@ -180,11 +175,11 @@ class HayoEngineTest extends TestCase
 	/**
 	 * @return array<array<mixed>>
 	 */
-	static function dataValidationErrors(): array
+	static function dataScriptRuntimeErrors(): array
 	{
 		return [
 
-			// Math operator on wrong types → TypeError from PHP runtime
+			// Math operator on wrong types → ScriptRuntimeException from TypeValidator::assertArguments
 			['a + b', ['a' => 'hello', 'b' => 2],
 				ScriptRuntimeException::class,
 				'Invalid arguments of Math.+: Expected int or float, got string'],
@@ -198,45 +193,34 @@ class HayoEngineTest extends TestCase
 				ScriptRuntimeException::class,
 				'Invalid arguments of Math.div: Expected int or float, got string'],
 
-			// IN predicate on non-array → TypeError from PHP built-in in_array()
+			// IN predicate on non-array → ScriptRuntimeException from TypeValidator::assertArguments
 			['1 IN xs', ['xs' => 'hello'],
 				ScriptRuntimeException::class,
 				'Invalid arguments of Predicate.in: Expected array, got string'],
 
-			// List.len on non-array → TypeError from PHP built-in count()
+			// List.len on non-array → ScriptRuntimeException from TypeValidator::assertArguments
 			['List.len xs', ['xs' => 'hello'],
 				ScriptRuntimeException::class,
 				'Invalid arguments of List.len: Expected array, got string'],
-			// List.map on non-array → TypeError from PHP built-in array_map()
+			// List.map on non-array → ScriptRuntimeException from TypeValidator::assertArguments
 			['List.map xs (x -> x + 1)', ['xs' => 42],
 				ScriptRuntimeException::class,
 				'Invalid arguments of List.map: Expected array, got integer'],
 
-			// Wrong argument type for builtin → global \InvalidArgumentException from StringsProvider::assertStr
+			// Wrong argument type for builtin → ScriptRuntimeException from TypeValidator::assertArguments
 			['Str.len xs', ['xs' => 42],
 				ScriptRuntimeException::class,
 				'Expected string, got integer'],
 
-			// DateTime.fromDate with non-int year → TypeError from DateTime::setDate()
+			// DateTime.fromDate with non-int year → ScriptRuntimeException from TypeValidator::assertArguments
 			['DateTime.fromDate y m d', ['y' => 'not-a-year', 'm' => 1, 'd' => 1],
 				ScriptRuntimeException::class,
 				'Invalid arguments of DateTime.fromDate: Expected int, got string'],
-			// DateTime.fromTimestamp with invalid string → Exception from DateTime constructor
+			// DateTime.fromTimestamp with invalid string → ScriptRuntimeException from TypeValidator::assertArguments
 			['DateTime.fromTimestamp src', ['src' => 'abc'],
 				ScriptRuntimeException::class,
 				'Invalid arguments of DateTime.fromTimestamp: Expected int, got string'],
 
-		];
-	}
-
-
-
-	/**
-	 * @return array<array<mixed>>
-	 */
-	static function dataRuntimeErrors(): array
-	{
-		return [
 			// Modulo by zero → ScriptRuntimeException (wraps DivisionByZeroError from PHP runtime)
 			['10 mod a', ['a' => 0],
 				ScriptRuntimeException::class,
@@ -245,6 +229,7 @@ class HayoEngineTest extends TestCase
 			['10 div a', ['a' => 0],
 				ScriptRuntimeException::class,
 				'Division by zero'],
+
 		];
 	}
 
