@@ -37,6 +37,13 @@ interface BuildinFunc extends Applicable
 {
 
 	/**
+	 * Fully-qualified name used in error messages, e.g. "Math.+" or "Str.len".
+	 */
+	function getQualifiedName(): string;
+
+
+
+	/**
 	 * Which arguments are required.
 	 * @return list<BindValue>
 	 */

@@ -237,7 +237,7 @@ xs = (Str.split src ",")
 //~ dump($call);
 		$this->assertSame("Dict", $call->type());
 		$this->assertEquals([
-			new BindValue('src', '?'),
+			new BindValue('src', 'Str'),
 		], $call->getBinds());
 		$this->assertEquals(new FinalValue((object) [
 			'une' => new FinalValue('Lorem ipsum', 'a'),
@@ -716,45 +716,45 @@ content = [
 			['40 + a', ParametricValue::Expr_(Expr::Bin_(
 					new FinalValue(40, 'Int'),
 					new MathOperator('+'),
-					new BindValue('a', '?')
+					new BindValue('a', 'Num')
 					)
-				, '?'
-				, [ new BindValue('a', '?'),
+				, 'Num'
+				, [ new BindValue('a', 'Num'),
 					])],
 
 			["b = 13\ncalc = a + 1 * b\ncalc", ParametricValue::Expr_(Expr::Bin_(
-				new BindValue('a', '?'),
+				new BindValue('a', 'Num'),
 				new MathOperator('+'),
 				new FinalValue(13, 'Num')
-				), '?', [
-					new BindValue('a', '?'),
+				), 'Num', [
+					new BindValue('a', 'Num'),
 				])],
 
 			['40 + (a + a)', ParametricValue::Expr_(Expr::Bin_(
 					new FinalValue(40, 'Int'),
 					new MathOperator('+'),
 					Expr::Bin_(
-						new BindValue('a', '?'),
+						new BindValue('a', 'Num'),
 						new MathOperator('+'),
-						new BindValue('a', '?')
+						new BindValue('a', 'Num')
 						)
 					)
-				, '?'
-				, [ new BindValue('a', '?'),
+				, 'Num'
+				, [ new BindValue('a', 'Num'),
 				])],
 
 			['40 + (a + b)', ParametricValue::Expr_(Expr::Bin_(
 					new FinalValue(40, 'Int'),
 					new MathOperator('+'),
 					Expr::Bin_(
-						new BindValue('a', '?'),
+						new BindValue('a', 'Num'),
 						new MathOperator('+'),
-						new BindValue('b', '?')
+						new BindValue('b', 'Num')
 						)
 					)
-				, '?'
-				, [ new BindValue('a', '?'),
-					new BindValue('b', '?'),
+				, 'Num'
+				, [ new BindValue('a', 'Num'),
+					new BindValue('b', 'Num'),
 					])],
 
 			["List.at 2 [\"une\", a, \"trois\"]", ParametricValue::Expr_(Expr::Func_(new ListFunc('at'), [
@@ -801,9 +801,9 @@ content = [
 				ParametricValue::Expr_(Expr::Bin_(
 					new FinalValue(41, 'Int'),
 					new MathOperator('+'),
-					new BindValue("b", '?')
-				), '?', [
-					new BindValue("b", '?'),
+					new BindValue("b", 'Num')
+				), 'Num', [
+					new BindValue("b", 'Num'),
 				]),
 				],
 
@@ -1168,7 +1168,7 @@ content = [
 						),
 					new PredicateFunction('&&'),
 					new FinalValue(True, 'Bool')
-					), '?', [
+					), 'Bool', [
 						new BindValue('a', '?'),
 					]),
 				],

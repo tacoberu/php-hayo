@@ -66,6 +66,34 @@ final class TypeValidator
 
 
 	/**
+	 * Validates only the resolved (FinalValue) arguments in a partial function application.
+	 * Skips any argument that is not a FinalValue (unresolved parameters, sub-expressions, etc.).
+	 * Call this during compilation when some arguments are known and some are not yet.
+	 *
+	 * @param list<BindValue> $signature
+	 * @param array<int, mixed> $args positional — mix of FinalValue and unresolved nodes
+	 */
+	static function assertPartialArgTypes(string $fnName, array $signature, array $args): void
+	{
+		$errors = [];
+		foreach ($signature as $i => $bind) {
+			$val = $args[$i] ?? Null;
+			if (!$val instanceof FinalValue) {
+				continue;
+			}
+			$error = self::checkTypeValue($bind->getTypeName(), $val->unpack());
+			if ($error !== Null) {
+				$errors[] = $error;
+			}
+		}
+		if ($errors !== []) {
+			throw new InvalidArgumentException("Invalid arguments of {$fnName}: " . implode(', ', $errors));
+		}
+	}
+
+
+
+	/**
 	 * @param mixed $val
 	 */
 	static function assertStr($val): void
