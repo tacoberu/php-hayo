@@ -513,7 +513,10 @@ class Compiler
 	{
 		$context2 = clone $context;
 		foreach ($src->getArgs() as $id) {
-			if ($id === false || $id === null) { // @phpstan-ignore identical.alwaysFalse, identical.alwaysFalse, booleanOr.alwaysFalse
+			if ($id === false) { // @phpstan-ignore identical.alwaysFalse
+				throw CompileException::UnsupportedZeroArgLambda();
+			}
+			if ($id === null) { // @phpstan-ignore identical.alwaysFalse
 				throw CompileException::UnsupportedZeroArgLambda();
 			}
 			if ( ! is_string($id)) { // @phpstan-ignore function.alreadyNarrowedType
@@ -954,7 +957,7 @@ class Compiler
 
 
 	/**
-	 * @param FinalValue|ParametricValue  $term
+	 * @param FinalValue|ParametricValue $term
 	 */
 	private static function assertMissingSymbols($term): void
 	{
