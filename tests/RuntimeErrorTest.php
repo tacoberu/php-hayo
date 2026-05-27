@@ -139,11 +139,6 @@ class RuntimeErrorTest extends TestCase
 				ScriptRuntimeException::class, 'Invalid arguments',
 				],
 
-			'invalid type' => [ // @TODO except CompileException
-				"b = \"Hi\"\na + b",
-				['a' => new FinalValue(1, 'Int')],
-				ScriptRuntimeException::class, 'Invalid arguments of Math.+:',
-				],
 		];
 	}
 

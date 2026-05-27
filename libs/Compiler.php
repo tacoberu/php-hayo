@@ -282,6 +282,15 @@ class Compiler
 					}
 				}
 
+				// Validate types of resolved operands against the operator signature
+				if ($items[1] instanceof BuildinFunc) { // @phpstan-ignore instanceof.alwaysTrue
+					TypeValidator::assertPartialArgTypes(
+						$items[1]->getQualifiedName(),
+						$items[1]->getBinds(),
+						[self::castAny($items[0], False)[0], self::castAny($items[2], False)[0]],
+					);
+				}
+
 				// There are some arguments
 				return $term;
 
@@ -314,6 +323,18 @@ class Compiler
                     $context = new Context(array_combine($fn->getArgs(), $args));
                     return self::partialEvaluateExpr($context, $fn->getExpr());
                 }
+
+				// Validate types of resolved args against the function signature (only full arity calls)
+				if ($items[0] instanceof BuildinFunc) {
+					$callArgs = array_values(array_slice($items, 1));
+					if (count($callArgs) === count($items[0]->getBinds())) {
+						TypeValidator::assertPartialArgTypes(
+							$items[0]->getQualifiedName(),
+							$items[0]->getBinds(),
+							array_map(static function($x) { return self::castAny($x, False)[0]; }, $callArgs),
+						);
+					}
+				}
 
 				// There are some arguments
 				return $term;
@@ -544,7 +565,7 @@ class Compiler
 				return ParametricValue::ShortLinkBind($val);
 
 			case $val instanceof Expr:
-				return ParametricValue::Expr_($val, '?', array_values($binds));
+				return ParametricValue::Expr_($val, self::inferExprReturnType($val), array_values($binds));
 
 			case $val instanceof Form:
 				return ParametricValue::Form_($val, '?', array_values($binds));
@@ -560,6 +581,35 @@ class Compiler
 
 			default:
 				throw CompileException::UnsupportedException('compile value', $val);
+		}
+	}
+
+
+
+	/**
+	 * Infers the return type of a partially-evaluated expression from the operator's signature.
+	 * Returns '?' when the operator is unknown or has a generic/polymorphic return type.
+	 */
+	private static function inferExprReturnType(Expr $expr): string
+	{
+		$items = $expr->getItems();
+		switch ($expr->getNotation()) {
+			case Expr::NotationInfix:
+				if (isset($items[1]) && $items[1] instanceof BuildinFunc) {
+					$t = $items[1]->type();
+					return ($t !== '' && $t !== 'a') ? $t : '?';
+				}
+				return '?';
+
+			case Expr::NotationPrefix:
+				if (isset($items[0]) && $items[0] instanceof BuildinFunc) {
+					$t = $items[0]->type();
+					return ($t !== '' && $t !== 'a') ? $t : '?';
+				}
+				return '?';
+
+			default:
+				return '?';
 		}
 	}
 
@@ -709,7 +759,8 @@ class Compiler
 	 */
 	private static function castExpr(Expr $src, bool $packref): array
 	{
-		list($items, $lets) = self::castCompositeItems($src->getItems(), $packref);
+		$typeHints = self::buildTypeHints($src);
+		list($items, $lets) = self::castCompositeItems($src->getItems(), $packref, $typeHints);
 		if ($src->refs() === []) {
 			throw CompileException::Unexpected();
 		}
@@ -722,6 +773,47 @@ class Compiler
 
 			default:
 				throw CompileException::Unexpected();
+		}
+	}
+
+
+
+	/**
+	 * Builds a position-keyed map of expected parameter types from the operator/function
+	 * in the expression. Used to annotate unresolved BindValues with inferred types.
+	 *
+	 * Infix:  position 0 = left arg, position 1 = operator (skip), position 2 = right arg
+	 * Prefix: position 0 = function  (skip), positions 1..n = args 0..n-1
+	 *
+	 * @return array<int, BindValue|null>
+	 */
+	private static function buildTypeHints(Expr $src): array
+	{
+		$rawItems = $src->getItems();
+		switch ($src->getNotation()) {
+			case Expr::NotationInfix:
+				if (isset($rawItems[1]) && $rawItems[1] instanceof BuildinFunc) {
+					$sig = $rawItems[1]->getBinds();
+					return [
+						0 => $sig[0] ?? Null,
+						2 => $sig[1] ?? Null,
+					];
+				}
+				return [];
+
+			case Expr::NotationPrefix:
+				if (isset($rawItems[0]) && $rawItems[0] instanceof BuildinFunc) {
+					$sig = $rawItems[0]->getBinds();
+					$hints = [];
+					foreach ($sig as $i => $bind) {
+						$hints[$i + 1] = $bind;
+					}
+					return $hints;
+				}
+				return [];
+
+			default:
+				return [];
 		}
 	}
 
@@ -753,16 +845,18 @@ class Compiler
 
 	/**
 	 * @param array<string|int, string | Value> $src
+	 * @param array<int|string, BindValue|null> $typeHints expected parameter types keyed by item position
 	 * @return array{0: array<Value>, 1: array<string, BindValue>}
 	 */
-	private static function castCompositeItems(array $src, bool $packref): array
+	private static function castCompositeItems(array $src, bool $packref, array $typeHints = []): array
 	{
 		$lets = [];
 		$items = [];
 		foreach ($src as $k => $x) {
 			if (is_string($x)) {
+				$inferredType = isset($typeHints[$k]) ? $typeHints[$k]->getTypeName() : '?';
 				$items[$k] = $packref
-					? $lets[$x] = new BindValue($x, '?')
+					? $lets[$x] = new BindValue($x, $inferredType)
 					: $x;
 			}
 			elseif ($x instanceof BuildinFunc) {

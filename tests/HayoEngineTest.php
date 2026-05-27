@@ -155,11 +155,11 @@ class HayoEngineTest extends TestCase
 			// Too few positional arguments → Taco\Hayo\InvalidArgumentException from HayoEngine::combineBindWithValues
 			['List.first xs', [],
 				InvalidArgumentException::class,
-				'Too few arguments to function CallableValue: <List.first> <?xs> :: ? [xs], 0 passed and exactly 1 expected.'],
+				'Too few arguments to function CallableValue: <List.first> <?xs> :: List<a> [xs], 0 passed and exactly 1 expected.'],
 			// Too many positional arguments → Taco\Hayo\InvalidArgumentException from HayoEngine::combineBindWithValues
 			['1 + a', [10, 99],
 				InvalidArgumentException::class,
-				'Too few arguments to function CallableValue: 1 <Math.+> <?a> :: ? [a], 2 passed and exactly 1 expected.'],
+				'Too few arguments to function CallableValue: 1 <Math.+> <?a> :: Num [a], 2 passed and exactly 1 expected.'],
 			// Unsupported PHP argument type → Taco\Hayo\InvalidArgumentException from HayoEngine::gauseType
 			['a', [new DateInterval('P1D')],
 				InvalidArgumentException::class,

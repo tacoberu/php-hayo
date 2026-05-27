@@ -94,22 +94,22 @@ class ScriptSignatureTest extends TestCase
 		return [
 			'single param' => [
 				'a + 1',
-				[new BindValue('a', '?')],
+				[new BindValue('a', 'Num')],
 				],
 
 			'two params' => [
 				'a + b',
-				[new BindValue('a', '?'), new BindValue('b', '?')],
+				[new BindValue('a', 'Num'), new BindValue('b', 'Num')],
 				],
 
 			'local var shadows outer' => [
 				"vat = 1.23\nprice * vat",
-				[new BindValue('price', '?')],
+				[new BindValue('price', 'Num')],
 				],
 
 			'alias for param' => [
 				"x = a\nx + x",
-				[new BindValue('a', '?')],
+				[new BindValue('a', 'Num')],
 				],
 
 			'dict with params' => [
@@ -129,12 +129,12 @@ class ScriptSignatureTest extends TestCase
 
 			'if-then-else with param' => [
 				'if a > 0 then "pos" else "neg"',
-				[new BindValue('a', '?')],
+				[new BindValue('a', 'a')],
 				],
 
 			'pipe chain' => [
 				"xs\n\t|> List.map (x -> x * x)\n\t|> List.fold 0 (prev curr -> prev + curr)",
-				[new BindValue('xs', '?')],
+				[new BindValue('xs', 'List<a>')],
 				],
 
 			'nested dict with param' => [
@@ -160,12 +160,12 @@ class ScriptSignatureTest extends TestCase
 			'empty List' => ['[]', 'List'],
 			'empty Dict' => ['{}', 'Dict'],
 			'empty Tuple' => ['()', 'Tuple'],
-			'Num from add' => ['1 + 1', 'Num'],
+			'Num from add' => ['1 + 1', 'Int'],
 			'Dict static' => ['{a: 1, b: 2}', 'Dict'],
 			'List static' => ['[1, 2, 3]', 'List'],
 
-			// Expressions with unresolved params → type is '?'
-			'expr with param' => ['a + 1', '?'],
+			// Expressions with unresolved params → type inferred from operator signature
+			'expr with param' => ['a + 1', 'Num'],
 			'if-then-else with param' => ['if a > 0 then 1 else 2', '?'],
 
 			// Composite structures with unresolved params keep their structural type
@@ -185,8 +185,8 @@ class ScriptSignatureTest extends TestCase
 		return [
 			'price calculation' => [
 				"vat = 1.23\nprice * vat",
-				[new BindValue('price', '?')],
-				'?',
+				[new BindValue('price', 'Num')],
+				'Num',
 				],
 
 			'address parsing' => [
@@ -197,14 +197,14 @@ xs = (Str.split src ",")
 	city:    (List.at xs 1 "") |> Str.trim
 	country: (List.at xs 2 "") |> Str.trim
 }'),
-				[new BindValue('src', '?')],
+				[new BindValue('src', 'Str')],
 				'Dict',
 				],
 
 			'list squaring' => [
 				"List.map xs (x -> x * x)",
-				[new BindValue('xs', '?')],
-				'?',
+				[new BindValue('xs', 'List<a>')],
+				'List<a>',
 				],
 
 			'constant result, no params' => [
@@ -219,7 +219,7 @@ if score < 50 then "F"
 elif score < 70 then "C"
 elif score < 90 then "B"
 else "A"'),
-				[new BindValue('score', '?')],
+				[new BindValue('score', 'a')],
 				'?',
 				],
 

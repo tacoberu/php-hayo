@@ -97,6 +97,13 @@ a + x', [10]);
 						return new class implements BuildinFunc
 						{
 
+							function getQualifiedName(): string
+							{
+								return 'my_fns.calculate';
+							}
+
+
+
 							function type(): string
 							{
 								return '?';
