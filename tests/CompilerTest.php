@@ -713,9 +713,6 @@ content = [
 
 			["a = 5\nb = 13\ncalc = a + 1 * b\ncalc", new FinalValue(18, 'Num')],
 
-			// Silent reassignment: the second binding silently overwrites the first
-			["xs = 1\nxs = 2\nxs", new FinalValue(2, 'Int')],
-
 			// @TODO
 		];
 	}
@@ -1001,7 +998,6 @@ content = [
 
 			// `List.concat`
 			[""
-			. "xs = [1, 2, 3, 4]\n"
 			. "xs = [1, 2, 3, 4]\n"
 			. "List.concat xs xs",
 				new FinalValue([
@@ -1399,6 +1395,9 @@ content = [
 				[],
 				CompileException::class, 'Invalid arguments of Math.+:',
 				],
+
+			// Reassignment is not allowed
+			'reassign symbol' => ["xs = 1\nxs = 2\nxs", [], CompileException::class, "Symbol 'xs' is already defined"],
 
 			// AND/OR/NOT require Bool operands
 			'int OR int' => [
