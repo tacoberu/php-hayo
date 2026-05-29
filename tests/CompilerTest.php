@@ -652,17 +652,17 @@ content = [
 
 			["a = 554\n{a: 42, b: a + 1}", new FinalValue((object) [
 				'a' => new FinalValue(42, 'Int'),
-				'b' => new FinalValue(555, 'Num'),
+				'b' => new FinalValue(555, 'Int'),
 				], 'Dict')],
 
 			["a = 554\n{a: 42, b: (a + a) + 1}", new FinalValue((object) [
 				'a' => new FinalValue(42, 'Int'),
-				'b' => new FinalValue(1109, 'Num'),
+				'b' => new FinalValue(1109, 'Int'),
 				], 'Dict')],
 
 			["a = 100 + 454\n{a: 42, b: a + 1}", new FinalValue((object) [
 				'a' => new FinalValue(42, 'Int'),
-				'b' => new FinalValue(555, 'Num'),
+				'b' => new FinalValue(555, 'Int'),
 				], 'Dict')],
 
 			// @TODO
@@ -677,18 +677,18 @@ content = [
 	static function dataOperations(): array
 	{
 		return [
-			['40 + 2', new FinalValue(42, 'Num')],
-			['40 + (1 + 1)', new FinalValue(42, 'Num')],
-			['(10 + 30) + (1 + 1)', new FinalValue(42, 'Num')],
-			['2 * ((10 + 30) + (1 + 1))', new FinalValue(84, 'Num')],
-			['2 * 10 + 30 + 1 + 1', new FinalValue(52, 'Num')],
-			['(2 * 10) + 30 + 1 + 1', new FinalValue(52, 'Num')],
-			['2 * 10 div 30 + 1 + 1', new FinalValue(2, 'Num')],
-			['(2 * 10) div 30 + 1 + 1', new FinalValue(2, 'Num')],
-			['((2 * 10) div 30) + 1 + 1', new FinalValue(2, 'Num')],
-			['2 * 10 mod 30 + 1 + 1', new FinalValue(22, 'Num')],
-			['(2 * 10) mod 30 + 1 + 1', new FinalValue(22, 'Num')],
-			['((2 * 10) mod 30) + 1 + 1', new FinalValue(22, 'Num')],
+			['40 + 2', new FinalValue(42, 'Int')],
+			['40 + (1 + 1)', new FinalValue(42, 'Int')],
+			['(10 + 30) + (1 + 1)', new FinalValue(42, 'Int')],
+			['2 * ((10 + 30) + (1 + 1))', new FinalValue(84, 'Int')],
+			['2 * 10 + 30 + 1 + 1', new FinalValue(52, 'Int')],
+			['(2 * 10) + 30 + 1 + 1', new FinalValue(52, 'Int')],
+			['2 * 10 div 30 + 1 + 1', new FinalValue(2, 'Int')],
+			['(2 * 10) div 30 + 1 + 1', new FinalValue(2, 'Int')],
+			['((2 * 10) div 30) + 1 + 1', new FinalValue(2, 'Int')],
+			['2 * 10 mod 30 + 1 + 1', new FinalValue(22, 'Int')],
+			['(2 * 10) mod 30 + 1 + 1', new FinalValue(22, 'Int')],
+			['((2 * 10) mod 30) + 1 + 1', new FinalValue(22, 'Int')],
 
 			// @TODO
 		];
@@ -702,19 +702,16 @@ content = [
 	static function dataFinalValueWithSymbol(): array
 	{
 		return [
-			["a = 2\n40 + a", new FinalValue(42, 'Num')],
-			["a = 2\nb = 40\nb + a", new FinalValue(42, 'Num')],
-			["a = 2\nb = 20\n(b + b) + a", new FinalValue(42, 'Num')],
+			["a = 2\n40 + a", new FinalValue(42, 'Int')],
+			["a = 2\nb = 40\nb + a", new FinalValue(42, 'Int')],
+			["a = 2\nb = 20\n(b + b) + a", new FinalValue(42, 'Int')],
 
 			["a = 554\n{a: 42, b: a + 1}", new FinalValue((object) [
 					'a' => new FinalValue(42, 'Int'),
-					'b' => new FinalValue(555, 'Num'),
+					'b' => new FinalValue(555, 'Int'),
 				], 'Dict')],
 
-			["a = 5\nb = 13\ncalc = a + 1 * b\ncalc", new FinalValue(18, 'Num')],
-
-			// Silent reassignment: the second binding silently overwrites the first
-			["xs = 1\nxs = 2\nxs", new FinalValue(2, 'Int')],
+			["a = 5\nb = 13\ncalc = a + 1 * b\ncalc", new FinalValue(18, 'Int')],
 
 			// @TODO
 		];
@@ -740,7 +737,7 @@ content = [
 			["b = 13\ncalc = a + 1 * b\ncalc", ParametricValue::Expr_(Expr::Bin_(
 				new BindValue('a', 'Num'),
 				new MathOperator('+'),
-				new FinalValue(13, 'Num')
+				new FinalValue(13, 'Int')
 				), 'Num', [
 					new BindValue('a', 'Num'),
 				])],
@@ -801,12 +798,12 @@ content = [
 			. "b = 13\n"
 			. "inc = a -> a + 1 * b\n"
 			. "inc 29",
-				new FinalValue(42, 'Num'),
+				new FinalValue(42, 'Int'),
 				],
 
 			["inc = a -> a + 1\n"
 			."inc 41",
-				new FinalValue(42, 'Num'),
+				new FinalValue(42, 'Int'),
 				],
 
 			[""
@@ -1002,7 +999,6 @@ content = [
 			// `List.concat`
 			[""
 			. "xs = [1, 2, 3, 4]\n"
-			. "xs = [1, 2, 3, 4]\n"
 			. "List.concat xs xs",
 				new FinalValue([
 					new FinalValue(1, 'Int'),
@@ -1021,10 +1017,10 @@ content = [
 			. "xs = [1, 2, 3, 4]\n"
 			. "List.map xs (x -> x * x)",
 				new FinalValue([
-					new FinalValue(1, 'Num'),
-					new FinalValue(4, 'Num'),
-					new FinalValue(9, 'Num'),
-					new FinalValue(16, 'Num'),
+					new FinalValue(1, 'Int'),
+					new FinalValue(4, 'Int'),
+					new FinalValue(9, 'Int'),
+					new FinalValue(16, 'Int'),
 					], 'List'),
 				],
 
@@ -1042,7 +1038,7 @@ content = [
 			[""
 			. "xs = [1, 2, 3, 4]\n"
 			. "List.fold xs 0 (prev x -> prev + x)",
-				new FinalValue(10, 'Num'),
+				new FinalValue(10, 'Int'),
 				],
 
 			// `List.split`
@@ -1179,12 +1175,12 @@ content = [
 				ParametricValue::Expr_(Expr::Bin_(Expr::Bin_(
 						new FinalValue(6, 'Int'),
 						new PredicateFunction('=='),
-						new BindValue('a', '?')
+						new BindValue('a', 'a')
 						),
 					new PredicateFunction('&&'),
 					new FinalValue(True, 'Bool')
 					), 'Bool', [
-						new BindValue('a', '?'),
+						new BindValue('a', 'a'),
 					]),
 				],
 		];
@@ -1199,13 +1195,13 @@ content = [
 	{
 		return [
 			["x = { foo: { doo: 41 } }\n1 + x.foo.doo",
-				new FinalValue(42, 'Num'),
+				new FinalValue(42, 'Int'),
 				],
 			["x = { foo: { doo: 41 } }\ny = x.foo.doo\n1 + y",
-				new FinalValue(42, 'Num'),
+				new FinalValue(42, 'Int'),
 				],
 			["x = { foo: { doo: 41 } }\ny = x.foo\n1 + y.doo",
-				new FinalValue(42, 'Num'),
+				new FinalValue(42, 'Int'),
 				],
 		];
 	}
@@ -1292,13 +1288,13 @@ content = [
 			// Dict.get
 			["xs = {  }\n"
 			.'Dict.get xs "foo" "noop"',
-				new FinalValue("noop", '?'),
+				new FinalValue("noop", 'Str'),
 				],
 			["xs = { foo: { doo: 41 }, groooo: 43 }\n"
 			.'Dict.get xs "foo" ""',
 				new FinalValue((object) [
 					'doo' => 41,
-					], '?'),
+					], 'a'),
 				],
 
 			// Dict.merge
@@ -1399,6 +1395,9 @@ content = [
 				[],
 				CompileException::class, 'Invalid arguments of Math.+:',
 				],
+
+			// Reassignment is not allowed
+			'reassign symbol' => ["xs = 1\nxs = 2\nxs", [], CompileException::class, "Symbol 'xs' is already defined"],
 
 			// AND/OR/NOT require Bool operands
 			'int OR int' => [
