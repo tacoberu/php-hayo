@@ -481,6 +481,10 @@ Registrace probíhá přes `registerLibrary()` — jeden příkaz pokryje funkce
 ***Comming soon...***
 
 
+
+
+
+
 ## Příklady
 
 ```

@@ -95,7 +95,8 @@ class FinalValue implements Value
 
 	private static function allowedBaseObject(object $inst): bool
     {
-        return $inst instanceof DateTimeInterface;
+        return $inst instanceof DateTimeInterface
+            || $inst instanceof HayoValue;
     }
 
 
