@@ -1377,9 +1377,9 @@ content = [
 				CompileException::class, 'Lambda arguments must be simple names',
 				],
 
-			// Compile-time type mismatch: `b` is Str but `+` requires Num
+			// Compile-time type mismatch: both operands are known, `+` requires Num
 			'type mismatch at compile' => [
-				"b = \"Hi\"\na + b",
+				"b = \"Hi\"\n1 + b",
 				[],
 				CompileException::class, 'Invalid arguments of Math.+:',
 				],
