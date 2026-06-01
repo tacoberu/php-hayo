@@ -86,6 +86,9 @@ class Compiler
 		$lets = [];
 		if ($src instanceof HasRefs) {
 			foreach ($src->refs() as $x) {
+				if (isset($lets[$x])) {
+					continue;
+				}
 				if ($pair = $this->lookupGlobalSymbol($x)) {
 					$lets[$pair[0]] = $pair[1];
 				}
