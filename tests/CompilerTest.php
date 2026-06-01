@@ -769,18 +769,6 @@ content = [
 					new BindValue('b', 'Num'),
 					])],
 
-			["List.at 2 [\"une\", a, \"trois\"]", ParametricValue::Expr_(Expr::Func_(new ListFunc('at'), [
-					new FinalValue(2, 'Int'),
-					Composite::List_([
-						new FinalValue("une", 'Str'),
-						new BindValue("a", '?'),
-						new FinalValue("trois", 'Str'),
-						]),
-					]),
-				'?',
-				[ new BindValue('a', '?') ]
-				)],
-
 			// @TODO
 		];
 	}
@@ -1434,6 +1422,14 @@ content = [
 				'0 OR 0',
 				[],
 				CompileException::class, 'Expected bool',
+				],
+
+			// Phase 2: type inference catches wrong-typed arguments
+			// List.at expects src:List<a> as first arg, but Int (2) is passed
+			'List.at with wrong arg types' => [
+				'List.at 2 ["une", a, "trois"]',
+				[],
+				CompileException::class, "Cannot unify",
 				],
 
 			// Unsupported lambda forms

@@ -631,6 +631,10 @@ else "D"
 	{
 		$msg = 'Lambda arguments must be simple names, not expressions. Use `(a b -> ...)` instead of `((a b) -> ...)` or `((a) -> ...)`.';
 		return [
+			// Phase 2: (10 + a) returns Int, `or` expects Bool — caught at compile time
+			['(10 + a) or (a + 1)',
+				CompileException::class, 'Cannot unify'],
+
 			['List.sort xs ((a b) -> a + b)',
 				CompileException::class,
 				$msg],
@@ -651,9 +655,6 @@ else "D"
 	static function dataApplyErrors(): array
 	{
 		return [
-			['(10 + a) or (a + 1)',
-				['a' => new FinalValue(8, 'Int')],
-				ScriptRuntimeException::class, 'Expected bool'],
 			['a || 2',
 				['a' => new FinalValue(41, 'Int')],
 				CompileException::class, 'Expected bool'],

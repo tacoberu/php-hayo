@@ -72,7 +72,10 @@ class Compiler
 		// First phase: evaluate bound symbols. Compute everything that can be resolved statically.
 		$term = self::partialEvaluate($context, $term);
 
-		// Second phase: convert term -> val
+		// Second phase: type inference — catches type errors at compile time.
+		self::runTypeInference($term);
+
+		// Third phase: convert term -> val
 		$term = self::compileRuntimeValue($term);
 		self::assertMissingSymbols($term);
 
@@ -135,6 +138,17 @@ class Compiler
 		}
 
 		return $this->short[strtolower($x)] ?? $x;
+	}
+
+
+
+	/**
+	 * @param Value|string $term
+	 */
+	private static function runTypeInference($term): void
+	{
+		$inferrer = new TypeInferrer(new Unifier());
+		$inferrer->infer(new TypeEnv(), $term);
 	}
 
 
