@@ -441,6 +441,27 @@ xs = (Str.split src ",")
 | `Dict.values xs` | Dict | List\<?\> | seznam hodnot |
 
 
+### Introspekce (Introspect)
+
+| Funkce | Argumenty | Výsledek | Popis |
+|---|---|---|---|
+| `Introspect.of src` | ? | Str | název typu hodnoty jako řetězec |
+| `Introspect.is src type` | ? Str | Bool | vrátí True, pokud je hodnota daného typu |
+
+Vrácené hodnoty `Introspect.of`: `"Int"`, `"Real"`, `"Str"`, `"Bool"`, `"Null"`, `"List"`, `"Dict"`, `"Tuple"`, `"DateTime"`, nebo název vlastního typu (např. `"Money"`).
+
+```
+Introspect.of 42              -- "Int"
+Introspect.of "hello"         -- "Str"
+Introspect.of src             -- "Money"  (pro vlastní typ)
+
+Introspect.is src "Money"     -- True / False
+
+if (Introspect.of src) == "Money" then "je to peníze" else "jiný typ"
+if Introspect.is src "Int" then "číslo" else "jiný typ"
+```
+
+
 ### Datum a čas (DateTime)
 
 | Funkce | Argumenty | Výsledek | Popis |

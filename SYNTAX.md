@@ -442,6 +442,27 @@ xs = (Str.split src ",")
 | `Dict.values xs` | Dict | List\<?\> | list of values |
 
 
+### Introspection (Introspect)
+
+| Function | Arguments | Result | Description |
+|---|---|---|---|
+| `Introspect.of src` | ? | Str | type name of a value as a string |
+| `Introspect.is src type` | ? Str | Bool | returns True if the value is of the given type |
+
+Returned values of `Introspect.of`: `"Int"`, `"Real"`, `"Str"`, `"Bool"`, `"Null"`, `"List"`, `"Dict"`, `"Tuple"`, `"DateTime"`, or the name of a custom type (e.g. `"Money"`).
+
+```
+Introspect.of 42              -- "Int"
+Introspect.of "hello"         -- "Str"
+Introspect.of src             -- "Money"  (for a custom type)
+
+Introspect.is src "Money"     -- True / False
+
+if (Introspect.of src) == "Money" then "it is money" else "other type"
+if Introspect.is src "Int" then "number" else "other type"
+```
+
+
 ### Date and Time (DateTime)
 
 | Function | Arguments | Result | Description |

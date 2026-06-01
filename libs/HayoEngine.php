@@ -41,6 +41,7 @@ final class HayoEngine
 			'List' => new ListsProvider(),
 			'Dict' => new DictsProvider(),
 			'DateTime' => new DateTimeProvider(),
+			'Introspect' => new IntrospectProvider(),
 		]);
 	}
 
