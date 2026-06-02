@@ -191,6 +191,17 @@ class CompileException extends LogicException
 		return new self("Occurs check: '{$var}' occurs in '{$type}'.");
 	}
 
+
+
+	/**
+	 * @param list<string> $missing
+	 */
+	static function NonExhaustiveMatch(string $typeName, array $missing): self
+	{
+		$list = implode(', ', $missing);
+		return new self("Non-exhaustive match on type '{$typeName}': missing variant(s) {$list}.");
+	}
+
 }
 
 

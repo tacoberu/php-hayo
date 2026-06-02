@@ -19,7 +19,7 @@ namespace Taco\Hayo;
  * Also implements TypeDescriptor so HayoEngine::gauseType() can identify a SumTypeValue
  * passed as an external argument.
  */
-class SumTypeProvider implements SymbolProvider, TypeDescriptor
+class SumTypeProvider implements SymbolProvider, TypeDescriptor, SumTypeDescriptor
 {
 
 	/**
@@ -57,6 +57,17 @@ class SumTypeProvider implements SymbolProvider, TypeDescriptor
 			return new SumTypeConstructor($this->typeName, $symbol, $this->variants[$symbol]);
 		}
 		return Null;
+	}
+
+
+
+	/**
+	 * Names of all variants of this type, used for exhaustiveness checking.
+	 * @return list<string>
+	 */
+	function getVariantNames(): array
+	{
+		return array_keys($this->variants);
 	}
 
 }

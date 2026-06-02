@@ -76,7 +76,7 @@ class Compiler
 		$term = self::partialEvaluate($context, $term);
 
 		// Second phase: type inference — catches type errors at compile time.
-		self::runTypeInference($term);
+		$this->runTypeInference($term);
 
 		// Third phase: convert term -> val
 		$term = self::compileRuntimeValue($term);
@@ -271,10 +271,29 @@ class Compiler
 	/**
 	 * @param Value|string $term
 	 */
-	private static function runTypeInference($term): void
+	private function runTypeInference($term): void
 	{
-		$inferrer = new TypeInferrer(new Unifier());
+		$inferrer = new TypeInferrer(new Unifier(), $this->collectSumTypes());
 		$inferrer->infer(new TypeEnv(), $term);
+	}
+
+
+
+	/**
+	 * Collects sum-type declarations from registered libraries — used by
+	 * the type inferrer for exhaustiveness checking on match expressions.
+	 *
+	 * @return array<string, list<string>> typeName => variant names
+	 */
+	private function collectSumTypes(): array
+	{
+		$result = [];
+		foreach ($this->libs as $lib) {
+			if ($lib instanceof SumTypeDescriptor) {
+				$result[$lib->getTypeName()] = $lib->getVariantNames();
+			}
+		}
+		return $result;
 	}
 
 

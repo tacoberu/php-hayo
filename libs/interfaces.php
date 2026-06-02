@@ -124,3 +124,33 @@ interface TypeDescriptor
 	function getTypeName(): string;
 
 }
+
+
+
+/**
+ * Optional interface for providers that declare a sum type (discriminated union).
+ *
+ * When a provider implements this, the compiler can perform exhaustiveness
+ * checking on `match` expressions whose subject has this type: every variant
+ * must be covered by some pattern, or a wildcard `_` must be present.
+ *
+ * SumTypeProvider and BoolProvider implement this. User-declared types via
+ * `type X = A | B | …` are registered as SumTypeProvider instances.
+ */
+interface SumTypeDescriptor
+{
+
+	/**
+	 * Type name as it appears in Hayo (e.g. "Color", "Shape", "Bool").
+	 */
+	function getTypeName(): string;
+
+
+
+	/**
+	 * Names of all variants declared by this type.
+	 * @return list<string>
+	 */
+	function getVariantNames(): array;
+
+}

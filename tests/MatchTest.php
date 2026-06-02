@@ -385,11 +385,12 @@ else "other"',
 
 
 	/**
-	 * Chybový scénář: žádné rameno neodpovídá (runtime error)
+	 * Chybový scénář: žádné rameno neodpovídá — caught at compile time
+	 * (subject type inferred from patterns; missing variants reported).
 	 */
 	function testNonExhaustiveMatchThrows(): void
 	{
-		$this->expectException(ScriptRuntimeException::class);
+		$this->expectException(CompileException::class);
 		$this->expectExceptionMessageMatches('/Non-exhaustive match/');
 
 		$this->engine()->evaluate(

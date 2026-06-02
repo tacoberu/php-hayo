@@ -29,9 +29,34 @@ class TypeInferrer
 	 */
 	private $unifier;
 
-	function __construct(Unifier $unifier)
+	/**
+	 * Registry of sum types: typeName => list of variant names.
+	 * Used for exhaustiveness checking of match expressions.
+	 * @var array<string, list<string>>
+	 */
+	private $sumTypes;
+
+	/**
+	 * Reverse index: bare variant name => owning type name (e.g. 'True' => 'Bool').
+	 * Built from $sumTypes; used to resolve unqualified patterns (`case True then …`).
+	 * @var array<string, string>
+	 */
+	private $variantToType;
+
+	/**
+	 * @param array<string, list<string>> $sumTypes
+	 */
+	function __construct(Unifier $unifier, array $sumTypes = [])
 	{
 		$this->unifier = $unifier;
+		$this->sumTypes = $sumTypes;
+
+		$this->variantToType = [];
+		foreach ($sumTypes as $typeName => $variants) {
+			foreach ($variants as $variant) {
+				$this->variantToType[$variant] = $typeName;
+			}
+		}
 	}
 
 
@@ -261,6 +286,10 @@ class TypeInferrer
 	 */
 	private function inferForm(TypeEnv $env, Form $form): array
 	{
+		if ($form->getName() === 'match') {
+			return $this->inferMatch($env, $form);
+		}
+
 		if ($form->getName() !== 'if-then-else') {
 			return [$this->unifier->fresh(), Substitution::empty_()];
 		}
@@ -290,6 +319,126 @@ class TypeInferrer
 		}
 
 		return [$branchType ?? $this->unifier->fresh(), $s];
+	}
+
+
+
+	/**
+	 * match subject | Pat binds -> e1 | …
+	 *
+	 * Rules:
+	 *   - all arms must produce the same type (the result type of match)
+	 *   - if subject type is a known sum type, every variant must be covered
+	 *     by some arm (exhaustiveness) — unless a wildcard '_' is present
+	 *
+	 * @return array{0: Type_, 1: Substitution}
+	 */
+	private function inferMatch(TypeEnv $env, Form $form): array
+	{
+		$items = $form->getItems();
+		$subject = $items[0];
+		$arms = array_slice($items, 1);
+
+		// 1. Infer subject type
+		[$tSubject, $s] = $this->infer($env, $subject);
+
+		// 2. Infer arm bodies — all must unify to the same result type.
+		//    Each non-wildcard pattern that names a known sum type forces the
+		//    subject's type to be that sum type (regular HM unification).
+		$resultType = Null;
+		$hasWildcard = False;
+		$patternNames = [];
+
+		foreach ($arms as $arm) {
+			/** @var object{pattern: string, binds: list<string>, expr: mixed} $arm */
+			if ($arm->pattern === '_') {
+				$hasWildcard = True;
+			}
+			else {
+				$resolved = $this->resolvePatternType($arm->pattern);
+				if ($resolved !== Null) {
+					[$typeName, $variant] = $resolved;
+					$patternNames[] = $variant;
+
+					// Unify the subject with the pattern's declaring type. This is
+					// how an external argument c with no prior constraint becomes
+					// `Color` once a `case Color.Red …` arm is seen.
+					$sUnify = $this->unifier->unify($s->apply($tSubject), new TCon($typeName));
+					$s = $sUnify->compose($s);
+				}
+				else {
+					// Pattern is not a registered constructor — fall back to bare
+					// last-segment matching (e.g. literal-like or scalar patterns)
+					$dotPos = strrpos($arm->pattern, '.');
+					$patternNames[] = $dotPos !== False
+						? substr($arm->pattern, $dotPos + 1)
+						: $arm->pattern;
+				}
+			}
+
+			// Extend environment with bound payload variables (each a fresh var)
+			$armEnv = $env->apply($s);
+			foreach ($arm->binds as $bind) {
+				$armEnv = $armEnv->extend($bind, TScheme::mono($this->unifier->fresh()));
+			}
+
+			[$tArm, $sArm] = $this->infer($armEnv, $arm->expr);
+			$s = $sArm->compose($s);
+
+			if ($resultType === Null) {
+				$resultType = $tArm;
+			}
+			else {
+				$sUnify = $this->unifier->unify($s->apply($resultType), $s->apply($tArm));
+				$s = $sUnify->compose($s);
+				$resultType = $sUnify->apply($resultType);
+			}
+		}
+
+		// 3. Exhaustiveness check (only when no wildcard and subject is a known sum type)
+		if (!$hasWildcard) {
+			$resolvedSubject = $s->apply($tSubject);
+			if ($resolvedSubject instanceof TCon) {
+				$typeName = (string) $resolvedSubject;
+				if (isset($this->sumTypes[$typeName])) {
+					$declared = $this->sumTypes[$typeName];
+					$missing = array_values(array_diff($declared, $patternNames));
+					if ($missing !== []) {
+						throw CompileException::NonExhaustiveMatch($typeName, $missing);
+					}
+				}
+			}
+		}
+
+		return [$resultType ?? $this->unifier->fresh(), $s];
+	}
+
+
+
+	/**
+	 * Resolves a constructor pattern to its declaring sum type and variant name.
+	 *
+	 *   'Color.Red' → ['Color', 'Red'] (qualified)
+	 *   'True' → ['Bool', 'True'] (bare — found in reverse index)
+	 *   '42' → null (not a registered constructor)
+	 *
+	 * @return array{0: string, 1: string}|null
+	 */
+	private function resolvePatternType(string $pattern): ?array
+	{
+		$dotPos = strrpos($pattern, '.');
+		if ($dotPos !== False) {
+			$typeName = substr($pattern, 0, $dotPos);
+			$variant = substr($pattern, $dotPos + 1);
+			if (isset($this->sumTypes[$typeName]) && in_array($variant, $this->sumTypes[$typeName], True)) {
+				return [$typeName, $variant];
+			}
+			return Null;
+		}
+		if (isset($this->variantToType[$pattern])) {
+			return [$this->variantToType[$pattern], $pattern];
+		}
+		return Null;
 	}
 
 

@@ -25,7 +25,7 @@ namespace Taco\Hayo;
  * existing boolean operators (&&, ||, not, if-then-else) continue to work
  * against native PHP booleans without modification.
  */
-class BoolProvider implements SymbolProvider, ShortSymbolProvider
+class BoolProvider implements SymbolProvider, ShortSymbolProvider, SumTypeDescriptor
 {
 
 	/**
@@ -50,6 +50,23 @@ class BoolProvider implements SymbolProvider, ShortSymbolProvider
 			default:
 				return Null;
 		}
+	}
+
+
+
+	function getTypeName(): string
+	{
+		return 'Bool';
+	}
+
+
+
+	/**
+	 * @return list<string>
+	 */
+	function getVariantNames(): array
+	{
+		return ['True', 'False'];
 	}
 
 }
