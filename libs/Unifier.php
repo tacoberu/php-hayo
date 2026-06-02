@@ -86,6 +86,10 @@ class Unifier
 			if ($t1->getName() === $t2->getName()) {
 				return Substitution::empty_();
 			}
+			// 'Num' is a union of Int and Real — accepts either one
+			if (self::isNumericPair($t1->getName(), $t2->getName())) {
+				return Substitution::empty_();
+			}
 			throw CompileException::CannotUnify($t1, $t2);
 		}
 
@@ -152,6 +156,19 @@ class Unifier
 	private function occursIn(string $var, Type_ $type): bool
 	{
 		return in_array($var, $type->freeVars(), True);
+	}
+
+
+
+	/**
+	 * Returns true if (n1, n2) is a `Num`/`Int`/`Real` pair that should unify
+	 * by widening — `Num` accepts `Int` and `Real` (and vice versa), but
+	 * `Int` and `Real` themselves stay strictly distinct.
+	 */
+	private static function isNumericPair(string $n1, string $n2): bool
+	{
+		return ($n1 === 'Num' && ($n2 === 'Int' || $n2 === 'Real'))
+			|| ($n2 === 'Num' && ($n1 === 'Int' || $n1 === 'Real'));
 	}
 
 }

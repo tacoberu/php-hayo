@@ -270,7 +270,7 @@ class ListDictTypeTest extends TestCase
 	{
 		// filter's lambda must return Bool — returning Int fails the unification
 		$this->expectException(CompileException::class);
-		$this->expectExceptionMessage("Cannot unify 'Bool' with 'Int'.");
+		$this->expectExceptionMessage("Cannot unify 'Bool' with 'Num'.");
 
 		$this->engine()->compile('List.filter [1, 2, 3] (x -> x + 1)');
 	}

@@ -1273,7 +1273,8 @@ content = [
 				new FinalValue(True, 'Bool'),
 				],
 
-			// Dict.get
+			// Dict.get — default is passed through unchanged when key is missing
+			// (keeps its type), the actual value gets type 'a' from signature.
 			["xs = {  }\n"
 			.'Dict.get xs "foo" "noop"',
 				new FinalValue("noop", 'Str'),

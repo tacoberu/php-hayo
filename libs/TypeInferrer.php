@@ -668,7 +668,9 @@ class TypeInferrer
 				return new TCon('Tuple');
 
 			case 'Num':
-				return $getVar('num'); // numeric type variable (Math operators)
+				// Num is a union: it unifies with Int, Real, or itself.
+				// The Unifier has a special case for TCon('Num').
+				return new TCon('Num');
 
 			case 'Callable':
 				// Bare `Callable` keeps its fresh-var fallback for signatures
