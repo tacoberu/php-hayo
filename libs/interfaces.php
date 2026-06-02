@@ -153,4 +153,23 @@ interface SumTypeDescriptor
 	 */
 	function getVariantNames(): array;
 
+
+
+	/**
+	 * Names of type parameters in declaration order — empty for monomorphic types.
+	 * Example: `Result<a, b>` returns ['a', 'b']; `Color` returns [].
+	 * @return list<string>
+	 */
+	function getTypeParams(): array;
+
+
+
+	/**
+	 * Argument-type names of one variant, in positional order.
+	 * Type names may reference parameters from getTypeParams().
+	 * Example: `Result<a, b> = Ok a | Err b` → getVariantArgTypes('Ok') = ['a']
+	 * @return list<string>
+	 */
+	function getVariantArgTypes(string $variant): array;
+
 }

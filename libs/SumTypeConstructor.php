@@ -19,6 +19,10 @@ namespace Taco\Hayo;
  *
  * Zero-argument variants are handled by the same class: getBinds() returns [],
  * so the compiler evaluates them immediately without waiting for arguments.
+ *
+ * For polymorphic types (e.g. Result<a, b>), type() returns the parameterised
+ * form "Result<a, b>" so that TypeInferrer can produce a polymorphic scheme
+ * and instantiate fresh variables at every use site.
  */
 class SumTypeConstructor implements BuildinFunc
 {
@@ -27,6 +31,11 @@ class SumTypeConstructor implements BuildinFunc
 	 * @var string
 	 */
 	private $typeName;
+
+	/**
+	 * @var list<string>
+	 */
+	private $typeParams;
 
 	/**
 	 * @var string
@@ -39,11 +48,13 @@ class SumTypeConstructor implements BuildinFunc
 	private $argTypeNames;
 
 	/**
+	 * @param list<string> $typeParams
 	 * @param list<string> $argTypeNames
 	 */
-	function __construct(string $typeName, string $variant, array $argTypeNames)
+	function __construct(string $typeName, array $typeParams, string $variant, array $argTypeNames)
 	{
 		$this->typeName = $typeName;
+		$this->typeParams = $typeParams;
 		$this->variant = $variant;
 		$this->argTypeNames = $argTypeNames;
 	}
@@ -59,7 +70,10 @@ class SumTypeConstructor implements BuildinFunc
 
 	function type(): string
 	{
-		return $this->typeName;
+		if ($this->typeParams === []) {
+			return $this->typeName;
+		}
+		return $this->typeName . '<' . implode(', ', $this->typeParams) . '>';
 	}
 
 
@@ -71,7 +85,7 @@ class SumTypeConstructor implements BuildinFunc
 	{
 		$binds = [];
 		foreach ($this->argTypeNames as $i => $typeName) {
-			$binds[] = new BindValue("a{$i}", $typeName ?: '?');
+			$binds[] = new BindValue("a{$i}", $typeName !== '' ? $typeName : '?');
 		}
 		return $binds;
 	}

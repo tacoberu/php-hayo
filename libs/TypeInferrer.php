@@ -30,9 +30,9 @@ class TypeInferrer
 	private $unifier;
 
 	/**
-	 * Registry of sum types: typeName => list of variant names.
-	 * Used for exhaustiveness checking of match expressions.
-	 * @var array<string, list<string>>
+	 * Registry of sum types: typeName => SumTypeDescriptor instance.
+	 * Used for exhaustiveness checking and type-parameter resolution.
+	 * @var array<string, SumTypeDescriptor>
 	 */
 	private $sumTypes;
 
@@ -44,7 +44,7 @@ class TypeInferrer
 	private $variantToType;
 
 	/**
-	 * @param array<string, list<string>> $sumTypes
+	 * @param array<string, SumTypeDescriptor> $sumTypes
 	 */
 	function __construct(Unifier $unifier, array $sumTypes = [])
 	{
@@ -52,8 +52,8 @@ class TypeInferrer
 		$this->sumTypes = $sumTypes;
 
 		$this->variantToType = [];
-		foreach ($sumTypes as $typeName => $variants) {
-			foreach ($variants as $variant) {
+		foreach ($sumTypes as $typeName => $descriptor) {
+			foreach ($descriptor->getVariantNames() as $variant) {
 				$this->variantToType[$variant] = $typeName;
 			}
 		}
@@ -342,15 +342,21 @@ class TypeInferrer
 		// 1. Infer subject type
 		[$tSubject, $s] = $this->infer($env, $subject);
 
-		// 2. Infer arm bodies — all must unify to the same result type.
-		//    Each non-wildcard pattern that names a known sum type forces the
-		//    subject's type to be that sum type (regular HM unification).
+		// 2. Build an expected subject type from the first qualifying pattern.
+		//    For a polymorphic sum type (Result<a, b>), the parameters become
+		//    fresh type variables shared across all arms — so `match r case
+		//    Result.Ok x then … case Result.Err y then …` discovers a single
+		//    instantiation of `Result<a, b>` that all arms agree on.
 		$resultType = Null;
 		$hasWildcard = False;
 		$patternNames = [];
+		$expectedSubject = Null;
 
 		foreach ($arms as $arm) {
 			/** @var object{pattern: string, binds: list<string>, expr: mixed} $arm */
+			$armEnv = $env->apply($s);
+			$bindTypes = []; // bind name => Type_ derived from variant arg types
+
 			if ($arm->pattern === '_') {
 				$hasWildcard = True;
 			}
@@ -360,15 +366,15 @@ class TypeInferrer
 					[$typeName, $variant] = $resolved;
 					$patternNames[] = $variant;
 
-					// Unify the subject with the pattern's declaring type. This is
-					// how an external argument c with no prior constraint becomes
-					// `Color` once a `case Color.Red …` arm is seen.
-					$sUnify = $this->unifier->unify($s->apply($tSubject), new TCon($typeName));
+					if ($expectedSubject === Null) {
+						$expectedSubject = $this->instantiateSubjectType($typeName);
+					}
+					$sUnify = $this->unifier->unify($s->apply($tSubject), $s->apply($expectedSubject));
 					$s = $sUnify->compose($s);
+
+					$bindTypes = $this->bindTypesForVariant($typeName, $variant, $s->apply($expectedSubject), $arm->binds);
 				}
 				else {
-					// Pattern is not a registered constructor — fall back to bare
-					// last-segment matching (e.g. literal-like or scalar patterns)
 					$dotPos = strrpos($arm->pattern, '.');
 					$patternNames[] = $dotPos !== False
 						? substr($arm->pattern, $dotPos + 1)
@@ -376,10 +382,11 @@ class TypeInferrer
 				}
 			}
 
-			// Extend environment with bound payload variables (each a fresh var)
-			$armEnv = $env->apply($s);
+			// Extend environment with bound payload variables (typed from the variant
+			// signature when possible, fresh otherwise).
 			foreach ($arm->binds as $bind) {
-				$armEnv = $armEnv->extend($bind, TScheme::mono($this->unifier->fresh()));
+				$type = $bindTypes[$bind] ?? $this->unifier->fresh();
+				$armEnv = $armEnv->extend($bind, TScheme::mono($type));
 			}
 
 			[$tArm, $sArm] = $this->infer($armEnv, $arm->expr);
@@ -398,19 +405,101 @@ class TypeInferrer
 		// 3. Exhaustiveness check (only when no wildcard and subject is a known sum type)
 		if (!$hasWildcard) {
 			$resolvedSubject = $s->apply($tSubject);
-			if ($resolvedSubject instanceof TCon) {
-				$typeName = (string) $resolvedSubject;
-				if (isset($this->sumTypes[$typeName])) {
-					$declared = $this->sumTypes[$typeName];
-					$missing = array_values(array_diff($declared, $patternNames));
-					if ($missing !== []) {
-						throw CompileException::NonExhaustiveMatch($typeName, $missing);
-					}
+			$typeName = $this->extractTypeName($resolvedSubject);
+			if ($typeName !== Null && isset($this->sumTypes[$typeName])) {
+				$declared = $this->sumTypes[$typeName]->getVariantNames();
+				$missing = array_values(array_diff($declared, $patternNames));
+				if ($missing !== []) {
+					throw CompileException::NonExhaustiveMatch($typeName, $missing);
 				}
 			}
 		}
 
 		return [$resultType ?? $this->unifier->fresh(), $s];
+	}
+
+
+
+	/**
+	 * Returns the type-constructor name of a (possibly applied) sum type:
+	 *   TCon('Color') → 'Color'
+	 *   TApp('Result', [Int, Str]) → 'Result'
+	 *   anything else → null
+	 */
+	private function extractTypeName(Type_ $t): ?string
+	{
+		if ($t instanceof TCon) {
+			return (string) $t;
+		}
+		if ($t instanceof TApp) {
+			return $t->getName();
+		}
+		return Null;
+	}
+
+
+
+	/**
+	 * Builds the expected subject type for a sum type — TCon for monomorphic
+	 * types, TApp with fresh type variables for polymorphic ones.
+	 */
+	private function instantiateSubjectType(string $typeName): Type_
+	{
+		$params = $this->sumTypes[$typeName]->getTypeParams();
+		if ($params === []) {
+			return new TCon($typeName);
+		}
+		$args = array_map(function (string $_p): TVar {
+			return $this->unifier->fresh();
+		}, $params);
+		return new TApp($typeName, $args);
+	}
+
+
+
+	/**
+	 * Maps each bound payload name to its declared variant arg type, substituting
+	 * the sum type's parameters with the fresh variables in $instantiatedSubject.
+	 *
+	 *   variant `Ok a` with subject Result<t0, t1> → bind name → t0
+	 *
+	 * @param list<string> $binds
+	 * @return array<string, Type_>
+	 */
+	private function bindTypesForVariant(string $typeName, string $variant, Type_ $instantiatedSubject, array $binds): array
+	{
+		$descriptor = $this->sumTypes[$typeName] ?? Null;
+		if ($descriptor === Null) {
+			return [];
+		}
+
+		$argTypeNames = $descriptor->getVariantArgTypes($variant);
+		$params = $descriptor->getTypeParams();
+
+		// paramName => concrete Type_ pulled from the instantiated subject
+		$paramMap = [];
+		if ($instantiatedSubject instanceof TApp) {
+			$args = $instantiatedSubject->getArgs();
+			foreach ($params as $i => $name) {
+				if (isset($args[$i])) {
+					$paramMap[$name] = $args[$i];
+				}
+			}
+		}
+
+		$result = [];
+		foreach ($binds as $i => $bind) {
+			$argTypeName = $argTypeNames[$i] ?? '?';
+			if (isset($paramMap[$argTypeName])) {
+				$result[$bind] = $paramMap[$argTypeName];
+			}
+			else {
+				$result[$bind] = $this->typeFromNameWithVars($argTypeName, function (string $n): TVar {
+					return $this->unifier->fresh();
+				});
+			}
+		}
+		return $result;
 	}
 
 
@@ -430,7 +519,10 @@ class TypeInferrer
 		if ($dotPos !== False) {
 			$typeName = substr($pattern, 0, $dotPos);
 			$variant = substr($pattern, $dotPos + 1);
-			if (isset($this->sumTypes[$typeName]) && in_array($variant, $this->sumTypes[$typeName], True)) {
+			if (
+				isset($this->sumTypes[$typeName])
+				&& in_array($variant, $this->sumTypes[$typeName]->getVariantNames(), True)
+			) {
 				return [$typeName, $variant];
 			}
 			return Null;
@@ -452,7 +544,7 @@ class TypeInferrer
 	{
 		switch ($comp->type()) {
 			case Composite::TypeList:
-				return $this->inferList($env, (array) $comp->getItems());
+				return $this->inferList($env, array_values((array) $comp->getItems()));
 
 			case Composite::TypeDict:
 				// Dict values may be heterogeneous — no element inference yet
@@ -579,16 +671,30 @@ class TypeInferrer
 				return $getVar('num'); // numeric type variable (Math operators)
 
 			case 'Callable':
-				return $this->unifier->fresh(); // TODO: function type in Phase 3+
+				// Bare `Callable` keeps its fresh-var fallback for signatures
+				// that have not been upgraded to explicit arrow types yet.
+				return $this->unifier->fresh();
 
 			case '':
 			case '?':
 				return $this->unifier->fresh();
 		}
 
-		// Single lowercase letter or 'num' — named type variable
+		// Single lowercase letter — named type variable
 		if (preg_match('/^[a-z]$/', $name)) {
 			return $getVar($name);
+		}
+
+		// Parenthesised function type: (a -> b), (a -> b -> c), (List<a> -> b)
+		// Right-associative: (a -> b -> c) = a -> (b -> c) = TFun(a, TFun(b, c))
+		if ($name[0] === '(' && substr($name, -1) === ')') {
+			return $this->parseArrowChain(substr($name, 1, -1), $getVar);
+		}
+
+		// Top-level arrow without parens (rare but support it): a -> b
+		$arrowParts = Utils::splitTopLevel($name, '->');
+		if (count($arrowParts) > 1) {
+			return $this->parseArrowChain($name, $getVar);
 		}
 
 		// Parameterised: List<a>, Result<a, b>, List<Str>, …
@@ -600,12 +706,45 @@ class TypeInferrer
 			return new TApp($m[1], $argTypes);
 		}
 
-		// Starts with uppercase — custom or built-in named type (Money, Resource, …)
+		// Starts with uppercase — custom or built-in named type (Money, Resource, …).
+		// If it is a registered polymorphic sum type, expand it with fresh type
+		// variables for each parameter so that downstream unification works.
 		if (preg_match('/^[A-Z]/', $name)) {
+			if (isset($this->sumTypes[$name])) {
+				$params = $this->sumTypes[$name]->getTypeParams();
+				if ($params !== []) {
+					$args = array_map(function (string $_p): TVar {
+						return $this->unifier->fresh();
+					}, $params);
+					return new TApp($name, $args);
+				}
+			}
 			return new TCon($name);
 		}
 
 		return $this->unifier->fresh();
+	}
+
+
+
+	/**
+	 * Parses a right-associative arrow chain into a TFun tree.
+	 *
+	 *   'a -> b' → TFun(a, b)
+	 *   'a -> b -> c' → TFun(a, TFun(b, c))
+	 *   'a -> (b, c) -> d' (not supported — would need product types)
+	 *
+	 * @param callable(string): TVar $getVar
+	 */
+	private function parseArrowChain(string $s, callable $getVar): Type_
+	{
+		$pieces = Utils::splitTopLevel($s, '->');
+		$type = $this->typeFromNameWithVars((string) array_pop($pieces), $getVar);
+		foreach (array_reverse($pieces) as $part) {
+			$argType = $this->typeFromNameWithVars(trim($part), $getVar);
+			$type = new TFun($argType, $type);
+		}
+		return $type;
 	}
 
 

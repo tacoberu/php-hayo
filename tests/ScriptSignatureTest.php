@@ -204,7 +204,7 @@ xs = (Str.split src ",")
 			'list squaring' => [
 				"List.map xs (x -> x * x)",
 				[new BindValue('xs', 'List<a>')],
-				'List<a>',
+				'List<b>',
 				],
 
 			'constant result, no params' => [

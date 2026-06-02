@@ -208,7 +208,7 @@ class ListFunc implements BuildinFunc
 
 	/**
 	 * Applies transformation `fn` to each element.
-	 * @signature "xs: List<a>, cb: Callable -> List<a>"
+	 * @signature "xs: List<a>, cb: (a -> b) -> List<b>"
 	 * @phpstan-ignore method.unused
 	 */
 	private static function applyMap(FinalValue $src, ParametricValue $cb): FinalValue
@@ -226,7 +226,7 @@ class ListFunc implements BuildinFunc
 
 	/**
 	 * Returns only elements matching the filter.
-	 * @signature "src: List<a>, cb: Callable -> List<a>"
+	 * @signature "src: List<a>, cb: (a -> Bool) -> List<a>"
 	 * @phpstan-ignore method.unused
 	 */
 	private static function applyFilter(FinalValue $src, ParametricValue $cb): FinalValue
@@ -248,7 +248,7 @@ class ListFunc implements BuildinFunc
 	 * with an initial value (init) and gradually adds each element of the
 	 * list to it, with the result of each step becoming a new accumulator
 	 * for the next step.
-	 * @signature "src: List<a>, init: a, cb: Callable -> a"
+	 * @signature "src: List<a>, init: b, cb: (b -> a -> b) -> b"
 	 * @phpstan-ignore method.unused
 	 */
 	private static function applyFold(FinalValue $src, FinalValue $init, ParametricValue $cb): FinalValue|ParametricValue
@@ -269,7 +269,7 @@ class ListFunc implements BuildinFunc
 
 	/**
 	 * Splits the list by function into `limit` parts.
-	 * @signature "src: List<a>, sep: Callable, limit: Int -> List<List<a>>"
+	 * @signature "src: List<a>, sep: (a -> Bool), limit: Int -> List<List<a>>"
 	 * @phpstan-ignore method.unused
 	 */
 	private static function applySplit(FinalValue $src, ParametricValue $sep, FinalValue $limit): FinalValue
@@ -310,7 +310,7 @@ class ListFunc implements BuildinFunc
 
 	/**
 	 * Finds the index of the desired value. Returns -1 on failure. Second argument is the offset.
-	 * @signature "src: List<a>, match: Callable, offset: Int -> Int"
+	 * @signature "src: List<a>, match: (a -> Bool), offset: Int -> Int"
 	 * @phpstan-ignore method.unused
 	 */
 	private static function applyIndexOf(FinalValue $src, ParametricValue $match, FinalValue $offset): FinalValue
@@ -338,7 +338,7 @@ class ListFunc implements BuildinFunc
 
 
 	/**
-	 * @signature "src: List<a>, fn: Callable -> List<a>"
+	 * @signature "src: List<a>, fn: (a -> a -> Int) -> List<a>"
 	 * @phpstan-ignore method.unused
 	 */
 	private static function applySort(FinalValue $src, FinalValue|ParametricValue $fn): FinalValue

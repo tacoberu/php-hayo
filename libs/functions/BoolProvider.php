@@ -69,6 +69,26 @@ class BoolProvider implements SymbolProvider, ShortSymbolProvider, SumTypeDescri
 		return ['True', 'False'];
 	}
 
+
+
+	/**
+	 * @return list<string>
+	 */
+	function getTypeParams(): array
+	{
+		return [];
+	}
+
+
+
+	/**
+	 * @return list<string>
+	 */
+	function getVariantArgTypes(string $variant): array
+	{
+		return [];
+	}
+
 }
 
 

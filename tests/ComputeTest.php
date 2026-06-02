@@ -675,7 +675,7 @@ else "D"
 				CompileException::class, "Cannot unify 'Bool' with 'Int'"],
 			['(not 1) or a',
 				['a' => new FinalValue(True, 'Bool')],
-				CompileException::class, 'Expected bool'],
+				CompileException::class, 'Cannot unify'],
 		];
 	}
 

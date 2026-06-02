@@ -872,10 +872,10 @@ content = [
 				new FinalValue(0, 'Int'),
 				],
 
-			// List.first
+			// List.first — default must unify with element type (Hindley-Milner)
 			[""
 			. "xs = [1, 2, 3, 4]\n"
-			. "List.first xs Null",
+			. "List.first xs 0",
 				new FinalValue(1, 'a'),
 				],
 			[""
@@ -907,23 +907,23 @@ content = [
 				],
 			[""
 			. "xs = [1, 2, 3, 4]\n"
-			. "List.at xs 999 Null",
-				new FinalValue(Null, 'a'),
+			. "List.at xs 999 0",
+				new FinalValue(0, 'a'),
 				],
 			[""
 			. "xs = [1, 2, 3, 4]\n"
-			. "List.at xs 0 Null",
+			. "List.at xs 0 0",
 				new FinalValue(1, 'a'),
 				],
 			[""
 			. "xs = [1, 2, 3, 4]\n"
-			. "List.at xs 3 Null",
+			. "List.at xs 3 0",
 				new FinalValue(4, 'a'),
 				],
 			[""
 			. "xs = [1, 2, 3, 4]\n"
-			. "List.at xs 4 Null",
-				new FinalValue(Null, 'a'),
+			. "List.at xs 4 0",
+				new FinalValue(0, 'a'),
 				],
 
 			// List.exists
@@ -1359,13 +1359,13 @@ content = [
 			// mod accepts only Int — passing a Real fires a type error before the zero-check
 			'float mod zero (constant)' => ['10.0 mod 0',
 				[],
-				CompileException::class, 'Expected int'],
+				CompileException::class, 'Cannot unify'],
 
 			// Wrong argument type passed to a built-in — caught at compile time
 			// when all operands are constants and the call is partially evaluated.
 			'Str.len on integer literal' => ['Str.len 42',
 				[],
-				CompileException::class, 'Expected string'],
+				CompileException::class, 'Cannot unify'],
 
 			// Syntax / parse errors
 			'incomplete if' => ['if a then',
@@ -1381,7 +1381,7 @@ content = [
 			'type mismatch at compile' => [
 				"b = \"Hi\"\n1 + b",
 				[],
-				CompileException::class, 'Invalid arguments of Math.+:',
+				CompileException::class, 'Cannot unify',
 				],
 
 			// Reassignment is not allowed
@@ -1391,37 +1391,37 @@ content = [
 			'int OR int' => [
 				'1 OR 2 OR 3',
 				[],
-				CompileException::class, 'Expected bool',
+				CompileException::class, 'Cannot unify',
 				],
 
 			'int || int' => [
 				'1 || 2 || 3',
 				[],
-				CompileException::class, 'Expected bool',
+				CompileException::class, 'Cannot unify',
 				],
 
 			'bool AND int' => [
 				'(1 == 1) && 1',
 				[],
-				CompileException::class, 'Expected bool',
+				CompileException::class, 'Cannot unify',
 				],
 
 			'str AND int' => [
 				'"hello" AND 1',
 				[],
-				CompileException::class, 'Expected bool',
+				CompileException::class, 'Cannot unify',
 				],
 
 			'str AND zero' => [
 				'"hello" AND 0',
 				[],
-				CompileException::class, 'Expected bool',
+				CompileException::class, 'Cannot unify',
 				],
 
 			'zero OR zero' => [
 				'0 OR 0',
 				[],
-				CompileException::class, 'Expected bool',
+				CompileException::class, 'Cannot unify',
 				],
 
 			// Phase 2: type inference catches wrong-typed arguments
