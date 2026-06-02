@@ -1,74 +1,99 @@
 php-hayo
 ========
 
-Lehký skriptovací runtime napsaný v PHP, který umožňuje interpretovat skripty přímo v uživatelském prostoru.
-Hodí se všude tam, kde potřebujete uživatelsky definované podmínky, transformace, rutiny, validátory a podobně.
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![PHP Version](https://img.shields.io/badge/php-%3E%3D%207.4-8892bf.svg)](https://php.net)
 
-Nejde o sandbox — jde o plnohodnotný runtime jazyka. Předáte skript jako řetězec, necháte z něj sestavit
-funkci a tu pak voláte s konkrétními daty.
+Hayo je odlehčený, čistě funkcionální skriptovací jazyk / runtime implementovaný v PHP. Je určen pro interpretaci uživatelské logiky (podmínky, transformace, byznys pravidla) ze skriptů, které chcete mít uložené (například) v databázi a uživatelsky editovatelné. Předáte skript jako řetězec, necháte z něj sestavit funkci a tu pak voláte s konkrétními daty.
 
-Proč vznikl vlastní runtime místo existujícího řešení, vysvětluje sekce [Porovnání](#porovnání-s-konkurencí).
+Přečtěte si **[kompletní popis jazyka](SYNTAX.cs.md)**.
 
-**Jazyk je čistě funkcionální.** Můžete přiřazovat do proměnných, volat funkce, přesouvat data — ale
-výsledek celého výpočtu dostanete ven pouze tak, že ho na závěr vrátíte. Žádné side-efekty nejsou možné.
-Nemůžete v průběhu výpočtu nic logovat. (Průběh si ale můžete zapisovat do proměnné a tento log pak vrátit
-jako součást výsledku — jiná cesta neexistuje.)
+---
 
-**Jazyk je staticky typovaný.** 
-V části compile se provádí kontrola typů, například aby se nesčítali čísla s textem. Cílem není zajistit typovou neprůstřelnost, jako spíše vyhnout se trapným chybám. Dělení nulou stále padne při běhu.
+## 💡 Proč Hayo?
 
+- **🛡️ Bezpečnost izolací:** Čistě funkcionální, bez side-efektů. Skripty nemají přístup k souborovému systému, síti ani globálnímu stavu PHP. Bezpečný způsob spouštění uživatelské logiky.
+- **💾 Persistence a cachování:** Zkompilovaný, optimalizovaný bytecode lze transparentně cachovat. Výsledek je už rychlá funkce.
+- **🧠 Expresivita:** Jazyk podporuje lokální proměnné, lambdy a pattern matching.
+- **🔍 Statická analýza:** Zahrnuje odvozování typů a validaci v době kompilace, což odchytí většinu tranpných chyb.
 
+---
 
-## Rychlý start
+## 🚀 Rychlý start
+
 ```bash
 composer require tacoberu/hayo
 ```
+
 ```php
-require __DIR__ . '/vendor/autoload.php';
+use Taco\Hayo\HayoEngine;
 
-use Taco\Hayo;
+$engine = HayoEngine::WithDefaultLibraries();
 
-// Prostý výraz
-Hayo\HayoEngine::WithDefaultLibraries()
-    ->evaluate("1 + 1"); // 2
+// Jednoduché vyhodnocení
+$engine->evaluate("1 + 1"); // 2
 
-// Výraz s proměnnou
-Hayo\HayoEngine::WithDefaultLibraries()
-    ->evaluate("1 + a")
-    ->apply(["a" => 1]); // 2
+// S parametry
+$engine->evaluate("a + b", ["a" => 1, "b" => 2]); // 3
 ```
 
+---
 
+## 💡 Příklad z praxe: Byznys logika
 
-## Ukázky použití
+Hayo elegantně zvládá komplexní větvení a transformacích dat:
 
-**Cachování bytecode**
-```php
-Hayo\HayoEngine::WithDefaultLibraries()
-    ->setCache(new CacheImpl)
-    ->evaluate("1 + a")
-    ->apply(["a" => 1]); // 2
+```hayo
+-- Výpočet sumy z pole slovníků
+totalPrice = order.items
+    |> List.map (i -> i.price * i.quantity)
+    |> List.fold 0 (acc curr -> acc + curr)
+
+-- Podmínka s větvením a pattern matchingem
+if totalPrice > 1000 or order.customer.isVip then
+    totalPrice * 0.9 -- 10% sleva
+else
+    totalPrice
 ```
 
-**Vlastní knihovny funkcí**
+---
+
+## ⚖ Porovnání s alternativami
+
+Nejčastější alternativou v PHP je [Symfony Expression Language](https://packagist.org/packages/symfony/expression-language). Níže je srovnání jejich možností:
+
+| Vlastnost | Hayo | Symfony Expression Language |
+|---|---|---|
+| Vlastní funkce | ✅ | ✅ |
+| Lokální proměnné v kódu | ✅ | ⚠️ jen injektáž |
+| Lambdy / Uzávěry | ✅ | ❌ |
+| Map / fold / filter | ✅ | ⚠️ přes rozšíření |
+| Větvení (if-else) | ✅ | ⚠️ jen ternární op. |
+| Pattern Matching (match) | ✅ | ❌ |
+| Type Inference | ✅ | ❌ |
+
+
+---
+
+## 🏗 Použití a integrace
+
+### Cachování bytecode
+
+Pro opakované spouštění použijte cache adaptér, nebude třeba znova kompilovat skript:
 ```php
-Hayo\HayoEngine::WithDefaultLibraries()
-    ->registerLibrary("MyStrings", new MyOwnImplementationOfStringsProvider())
-    ->evaluate('MyStrings.format("calculate: {0}", [1 + a])')
-    ->apply(["a" => 1]); // "calculate: 2"
+$engine->setCache(new MyCacheAdapter())
+    ->evaluate("1 + a", ["a" => 1]);
 ```
 
-**Lokální proměnné**
+### Vlastní knihovny funkcí
+Hayo můžete rozšířit o vlastní funkce definované v PHP.
 ```php
-Hayo\HayoEngine::WithDefaultLibraries()
-    ->evaluate("
-vat = 1.23
-price * vat
-    ")
-    ->apply(["price" => 100]); // 123
+$engine->registerLibrary("MyStrings", new MyStringsProvider())
+    ->evaluate('MyStrings.format("výsledek: ${0}", [1 + a])', ["a" => 1]);
 ```
 
-**Lokální funkce a lambdy**
+### Lokální funkce a lambdy
+Funkce můžete definovat ve vlastním scriptu:
 ```php
 Hayo\HayoEngine::WithDefaultLibraries()
     ->evaluate("
@@ -78,7 +103,7 @@ inc counter
     ->apply(["counter" => 41]); // 42
 ```
 
-**Funkce vyššího řádu — map, fold a další**
+### Funkce vyššího řádu — map, fold a další
 ```php
 Hayo\HayoEngine::WithDefaultLibraries()
     ->evaluate("
@@ -87,7 +112,8 @@ List.map xs (x -> x * x)
     ->apply(["xs" => [1, 2, 3]]); // [1, 4, 9]
 ```
 
-**Pipe chains operátor**
+
+### Pipe chains operátor
 ```php
 Hayo\HayoEngine::WithDefaultLibraries()
     ->evaluate("
@@ -100,150 +126,45 @@ xs
 
 
 
-## Charakteristiky
+---
 
-- Čistě funkcionální jazyk
-- Type inference
-- Lokální proměnné ve skriptu
-- Lokální funkce a lambdy definované přímo ve skriptu
-- Výraz if-then-else
-- Funkce vyššího řádu: map, fold, filter a další
-- Možnost cachování sestaveného bytecode
-- Registrace vlastních knihoven funkcí
-- Volitelný vlastní parser (při zachování stávajícího AST)
+## ⚠️ Výjimky
 
-
-
-## Vestavěné funkce
-
-### Aritmetika
-Základní operátory: `+`, `-`, `*`, `div`, `mod`
-
-Zaokrouhlování:
-
-- `Math.ceil` — zaokrouhlení nahoru
-- `Math.floor` — zaokrouhlení dolů
-- `Math.round` — matematické zaokrouhlení, na zadanou přesnost
-
-
-### Logické operátory
-`and`, `or`, `not`
-
-
-### Porovnávací operátory
-Základní: `==`, `!=`, `<`, `>`, `<=`, `>=`
-
-Množinové operátory:
-
-- `IN` — hodnota vlevo se nachází v množině napravo
-- `HAS` — množina nalevo obsahuje hodnotu napravo
-- `SUPERSET` — levá množina obsahuje všechny prvky pravé
-- `SUBSET` — pravá množina obsahuje všechny prvky levé
-- `INTERSECTS` — obě množiny mají alespoň jeden společný prvek
-
-
-### Řetězce
-- `Str.len` — délka řetězce
-- `Str.split` — rozdělení podle separátoru
-- `Str.concat` — spojení dvou řetězců
-- `Str.format` — formátování podle masky (`{0}`, `{1}`, …)
-- `Str.indexOf` — pozice podřetězce, nebo -1
-- `Str.contains` — zda řetězec obsahuje podřetězec
-- `Str.startsWith` — zda řetězec začíná zadaným fragmentem
-- `Str.endsWith` — zda řetězec končí zadaným fragmentem
-- `Str.sub` — podřetězec od `index` o délce `len`
-- `Str.toUpper` — převod na velká písmena
-- `Str.toLower` — převod na malá písmena
-
-
-### Seznamy (List)
-- `List.len` — počet prvků
-- `List.first` — první prvek
-- `List.at` — prvek na zadaném indexu, nebo výchozí hodnota
-- `List.exist` — zda na daném indexu prvek existuje
-- `List.concat` — spojení dvou seznamů
-- `List.push` — přidání prvku na konec
-- `List.indexOf` — index hledané hodnoty (od volitelného offsetu), nebo -1
-- `List.slice` — podseznamu od `start` o maximální délce `length`
-- `List.split` — rozdělení seznamu podle predikátu na nejvýše `limit` dílů
-- `List.map` — aplikace funkce na každý prvek
-- `List.fold` — redukce seznamu na jednu hodnotu
-- `List.filter` — filtrování prvků podle predikátu
-- `List.sort` — řazení: `List.Asc`, `List.Desc`
-
-
-### Slovníky (Dict)
-- `Dict.has` — zda existuje klíč
-- `Dict.get` — hodnota podle klíče
-- `Dict.merge` — sloučení dvou slovníků
-- `Dict.keys` — seznam klíčů
-- `Dict.values` — seznam hodnot
-
-
-### Datum a čas (DateTime)
-- `DateTime.toTimestamp` — převod na Unix timestamp
-- `DateTime.fromTimestamp` — sestavení hodnoty z timestampu
-- `DateTime.fromDate` — sestavení z částí data: `(DateTime.fromDate 2025 1 5)`
-- `DateTime.fromDateTime` — sestavení z data i času: `(DateTime.fromDateTime 2025 1 5 12 24 55)`
-- `DateTime.format` — formátování podle masky: `DateTime.format "%y. %j. %d" src`
-
-
-
-## Výjimky
-
-Runtime rozlišuje tři fáze, ve kterých může dojít k chybě, a pro každou používá jiný typ výjimky.
+Engine rozlišuje tři fáze, ve kterých může dojít k chybě:
 
 ### Chyby při kompilaci
-
 Nastávají při volání `evaluate()` nebo `compile()`.
 
-| Výjimka | Kdy |
-|---|---|
-| `CompileException` | Syntaktická chyba ve skriptu — neplatný zdrojový kód, nerozpoznaný token, neúplný výraz, nevyřešený výraz. |
-| `SymbolNotFound` | Skript odkazuje na symbol, vestavěnou nebo knihovní funkci, která v runtime není dostupná (není zaregistrovaná nebo je překlep v názvu). |
+- `CompileException`: Syntaktická chyba ve skriptu — neplatný zdrojový kód, nerozpoznaný token, neúplný výraz, nevyřešený výraz.
+- `SymbolNotFound`: Skript odkazuje na symbol, vestavěnou nebo knihovní funkci, která v runtime není dostupná (není zaregistrovaná nebo je překlep v názvu).
 
 ### Chyby při předání parametrů
-
 Nastávají při volání zkompilovaného skriptu s konkrétními daty.
 
-| Výjimka | Kdy |
-|---|---|
-| `ArgumentsException` | Skript byl zavolán se špatnými parametry — špatné jméno, špatný počet, nebo špatný typ hodnoty. |
+- `ArgumentsException`: Skript byl zavolán se špatnými parametry — špatné jméno, špatný počet, nebo špatný typ hodnoty.
 
 ### Chyby při vyhodnocení
+Nastávají za běhu skriptu.
 
-Nastávají za běhu, typicky v průběhu volání vestavěných funkcí.
+- `ScriptRuntimeException`: Jakákoliv chyba za běhu — špatný typ argumentu vestavěné funkce, dělení nulou (div, mod) a podobně. Obaluje všechny Throwable, které nastaly při vyhodnocení. Původní příčina je dostupná přes getPrevious().
 
-| Výjimka | Kdy |
-|---|---|
-| `ScriptRuntimeException` | Jakákoliv chyba za běhu — špatný typ argumentu vestavěné funkce, dělení nulou (`div`, `mod`) a podobně. Obaluje všechny `Throwable`, které nastaly při vyhodnocení. Původní příčina je dostupná přes `getPrevious()`. |
+---
 
+## 📐 Vestavěné funkce
 
+Přečtěte si **[kompletní seznam funkcí a podrobný popis jejich parametrů](SYNTAX.cs.md#vestavěné-funkce)**.
+
+- **Matematika:** `+`, `-`, `*`, `div`, `mod`, `Math.ceil`, `Math.floor`, `Math.round`.
+- **Řetězce (Str):** `len`, `split`, `concat`, `format`, `indexOf`, `contains`, `startsWith`, `endsWith`, `sub`, `toUpper`, `toLower`, `trim`.
+- **Seznamy (List):** `len`, `first`, `at`, `exist`, `concat`, `push`, `indexOf`, `slice`, `split`, `map`, `fold`, `filter`, `sort`.
+- **Slovníky (Dict):** `has`, `get`, `merge`, `keys`, `values`.
+- **DateTime:** `fromDate`, `fromDateTime`, `fromTimestamp`, `toTimestamp`, `format`.
+- **Introspekce:** `of`, `is`.
+
+---
 
 ## Architektura
 
-Runtime se skládá ze tří balíčků:
-
-- `hayo-ast` — definice AST uzlů
-- `hayo-parser` — výchozí parser; pokud vám syntaxe nevyhovuje, napište vlastní parser vracející stejné AST
-- `hayo` — samotný runtime pro PHP
-
-
-
-## Porovnání s konkurencí
-
-Nejčastějším kandidátem na vestavěný skriptovací jazyk v PHP bývá
-[Symfony Expression Language](https://packagist.org/packages/symfony/expression-language).
-Níže je přehled, kde se obě řešení liší:
-
-| Vlastnost | Hayo | Symfony Expression Language |
-|---|---|---|
-| Vlastní funkce (import) | ✅ | ✅ |
-| Lokální proměnné v kódu | ✅ | ⚠️ pouze předáním zvenčí, ne definicí uvnitř skriptu |
-| Lokální funkce a lambdy v kódu | ✅ | ❌ pouze předáním zvenčí, ne definicí uvnitř skriptu |
-| Map / fold / filter | ✅ | ⚠️ jen přes vlastní registrované funkce, ne nativně |
-| if-then-elseif-then-else | ✅ | ⚠️ pouze ternární operátor `?:` |
-| Vlastní syntaxe / parser | ✅ | ❌ |
-
-Symfony Expression Language je kvalitní a dobře otestovaná knihovna. Pokud vám ale chybí lokální
-proměnné, lambdy nebo větvení s více podmínkami, Hayo tyto mezery vyplňuje.
+- `hayo-ast`: definice AST uzlů.
+- `hayo-parser`: výchozí recursive descent parser.
+- `hayo`: runtime a kompilátor pro PHP.

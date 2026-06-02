@@ -47,13 +47,16 @@ The format mask in `Str.format` uses `${name}`:
 Str.format "Lorem ${a} doler ist." {a: "ipsum"}
 ```
 
-### Booleans and Null (Symbol)
+### Booleans and Null
 
 ```
 True
 False
 Null
 ```
+
+`True` and `False` are variants of the built-in sum type `Bool`.
+`Null` is a special value representing an absent result.
 
 ### Empty tuple (Tuple)
 
@@ -327,6 +330,9 @@ else "D"
 
 
 
+
+
+
 ## Pipe Operator `|>`
 
 The value on the left is passed as the first argument to the function on the right:
@@ -446,6 +452,14 @@ xs = (Str.split src ",")
 | `DateTime.toTimestamp src` | DateTime | Int | to Unix timestamp |
 | `DateTime.format mask src` | Str DateTime | Str | formatting (PHP `date()` format) |
 
+
+## Extension: Custom Types and Functions
+
+Hayo can be extended with custom types and functions on the PHP side without modifying
+the engine. Registration is done via `registerLibrary()` — a single call covers both
+functions and the type.
+
+***Comming soon...***
 
 
 ## Examples

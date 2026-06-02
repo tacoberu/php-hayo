@@ -47,13 +47,16 @@ Formátovací maska ve funkci `Str.format` používá `${jméno}`:
 Str.format "Lorem ${a} doler ist." {a: "ipsum"}
 ```
 
-### Logické hodnoty a Null (Symbol)
+### Logické hodnoty a Null
 
 ```
 True
 False
 Null
 ```
+
+`True` a `False` jsou varianty vestavěného sum typu `Bool`.
+`Null` je speciální hodnota prázdného výsledku.
 
 ### Prázdná n-tice (Tuple)
 
@@ -327,6 +330,8 @@ else "D"
 
 
 
+
+
 ## Pipe operátor `|>`
 
 Hodnota vlevo se předá jako první argument funkce vpravo:
@@ -446,6 +451,13 @@ xs = (Str.split src ",")
 | `DateTime.toTimestamp src` | DateTime | Int | na Unix timestamp |
 | `DateTime.format mask src` | Str DateTime | Str | formátování (PHP `date()` formát) |
 
+
+## Rozšíření: vlastní typy a funkce
+
+Hayo lze rozšířit o vlastní typy a funkce na straně PHP bez nutnosti upravovat engine.
+Registrace probíhá přes `registerLibrary()` — jeden příkaz pokryje funkce i typ.
+
+***Comming soon...***
 
 
 ## Příklady

@@ -1,76 +1,98 @@
 php-hayo
 ========
 
-A lightweight scripting runtime written in PHP that allows you to interpret scripts directly in user space.
-It is useful anywhere you need user-defined conditions, transformations, routines, validators, and similar things.
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![PHP Version](https://img.shields.io/badge/php-%3E%3D%207.4-8892bf.svg)](https://php.net)
 
-This is not a sandbox — it is a fully featured language runtime. You pass a script as a string, compile it
-into a function, and then call that function with concrete data.
+Hayo is a lightweight, purely functional scripting language / runtime implemented in PHP. It is designed for interpreting user-defined logic (conditions, transformations, business rules) from scripts that you may want to store (for example) in a database and keep user-editable. You pass a script as a string, compile it into a function, and then call that function with concrete data.
 
-The reason for building a custom runtime instead of using an existing solution is explained in the
-[Comparison](#comparison-with-alternatives) section.
+Read the **[complete language reference](SYNTAX.md)**.
 
-**The language is purely functional.** You can assign variables, call functions, and move data around — but
-the result of the entire computation can only be retrieved by returning it at the end. No side effects are
-possible. You cannot log anything during the computation. (You can, however, accumulate a log in a variable
-and return it as part of the result — that is the only way.)
+---
 
-**The language is statically typed.** Type checking is performed during the compile phase, for example to
-prevent adding numbers to strings. The goal is not to guarantee complete type safety, but rather to avoid
-embarrassing errors. Division by zero will still fail at runtime.
+## 💡 Why Hayo?
 
+- **🛡️ Security by Isolation:** Purely functional, no side-effects. Scripts have zero access to the filesystem, network, or global PHP state. It is a safe way to run user-provided logic.
+- **💾 Persistence & Caching:** Compiled, optimized bytecode can be transparently cached. The result is already a fast function.
+- **🧠 Expressiveness:** The language supports local variables, lambdas, and pattern matching.
+- **🔍 Static Analysis:** Includes type inference and compile-time validation to catch most embarrassing errors.
 
+---
 
-## Quick Start
+## 🚀 Quick Start
+
 ```bash
 composer require tacoberu/hayo
 ```
+
 ```php
-require __DIR__ . '/vendor/autoload.php';
+use Taco\Hayo\HayoEngine;
 
-use Taco\Hayo;
+$engine = HayoEngine::WithDefaultLibraries();
 
-// Simple expression
-Hayo\HayoEngine::WithDefaultLibraries()
-    ->evaluate("1 + 1"); // 2
+// Simple evaluation
+$engine->evaluate("1 + 1"); // 2
 
-// Expression with a variable
-Hayo\HayoEngine::WithDefaultLibraries()
-    ->evaluate("1 + a")
-    ->apply(["a" => 1]); // 2
+// With arguments
+$engine->evaluate("a + b", ["a" => 1, "b" => 2]); // 3
 ```
 
+---
 
+## 💡 Real-world Example: Business Logic
 
-## Usage Examples
+Hayo elegantly handles complex branching and data transformations:
 
-**Bytecode caching**
-```php
-Hayo\HayoEngine::WithDefaultLibraries()
-    ->setCache(new CacheImpl)
-    ->evaluate("1 + a")
-    ->apply(["a" => 1]); // 2
+```hayo
+-- Calculate total from an array of dictionaries
+totalPrice = order.items
+    |> List.map (i -> i.price * i.quantity)
+    |> List.fold 0 (acc curr -> acc + curr)
+
+-- Condition with branching and pattern matching
+if totalPrice > 1000 or order.customer.isVip then
+    totalPrice * 0.9 -- 10% discount
+else
+    totalPrice
 ```
 
-**Custom function libraries**
+---
+
+## ⚖ Comparison with Alternatives
+
+The most common alternative for PHP is [Symfony Expression Language](https://packagist.org/packages/symfony/expression-language). Below is how they compare:
+
+| Feature | Hayo | Symfony Expression Language |
+|---|---|---|
+| Custom functions | ✅ | ✅ |
+| Local variables in script | ✅ | ⚠️ injection only |
+| Lambdas / Closures | ✅ | ❌ |
+| Map / fold / filter | ✅ | ⚠️ via extensions |
+| Branching (if-else) | ✅ | ⚠️ ternary only |
+| Pattern Matching (match) | ✅ | ❌ |
+| Type Inference | ✅ | ❌ |
+
+---
+
+## 🏗 Usage & Integration
+
+### Bytecode caching
+
+For repeated execution, use a cache adapter to avoid re-compiling the script:
 ```php
-Hayo\HayoEngine::WithDefaultLibraries()
-    ->registerLibrary("MyStrings", new MyOwnImplementationOfStringsProvider())
-    ->evaluate('MyStrings.format("calculate: {0}", [1 + a])')
-    ->apply(["a" => 1]); // "calculate: 2"
+$engine->setCache(new MyCacheAdapter())
+    ->evaluate("1 + a", ["a" => 1]);
 ```
 
-**Local variables**
+### Custom function libraries
+You can extend Hayo with your own PHP-defined functions.
 ```php
-Hayo\HayoEngine::WithDefaultLibraries()
-    ->evaluate("
-vat = 1.23
-price * vat
-    ")
-    ->apply(["price" => 100]); // 123
+$engine->registerLibrary("MyStrings", new MyStringsProvider())
+    ->evaluate('MyStrings.format("result: ${0}", [1 + a])', ["a" => 1]);
 ```
 
-**Local functions and lambdas**
+### Local functions and lambdas
+You can define functions within your script:
 ```php
 Hayo\HayoEngine::WithDefaultLibraries()
     ->evaluate("
@@ -80,16 +102,16 @@ inc counter
     ->apply(["counter" => 41]); // 42
 ```
 
-**Higher-order functions — map, fold, and more**
+### Higher-order functions — map, fold, and more
 ```php
 Hayo\HayoEngine::WithDefaultLibraries()
     ->evaluate("
-list.map (x -> x * x) xs
+List.map xs (x -> x * x)
     ")
     ->apply(["xs" => [1, 2, 3]]); // [1, 4, 9]
 ```
 
-**Pipe chain operator**
+### Pipe chains operator
 ```php
 Hayo\HayoEngine::WithDefaultLibraries()
     ->evaluate("
@@ -101,120 +123,45 @@ xs
 ```
 
 
+---
 
-## Features
+## ⚠️ Exceptions
 
-- Purely functional language
-- Type inference
-- Local variables in scripts
-- Local functions and lambdas defined directly in scripts
-- if-then-else expressions
-- Higher-order functions: map, fold, filter, and more
-- Optional bytecode caching
-- Register custom function libraries
-- Optional custom parser (while keeping the existing AST)
+The engine distinguishes between three phases where an error can occur:
 
+### Compilation Errors
+Occur during `evaluate()` or `compile()`.
 
+- `CompileException`: Syntax error in the script — invalid source code, unrecognized token, incomplete expression, or unresolved expression.
+- `SymbolNotFound`: Script refers to a symbol, built-in, or library function that is not available in the runtime (not registered or a typo in the name).
 
-## Built-in Functions
+### Argument Errors
+Occur when calling a compiled script with concrete data.
 
-### Arithmetic
-Basic operators: `+`, `-`, `*`, `div`, `mod`
+- `ArgumentsException`: Script was called with wrong parameters — wrong name, count, or value type.
 
-Rounding:
+### Runtime Errors
+Occur during script execution.
 
-- `Math.ceil` — round up
-- `Math.floor` — round down
-- `Math.round` — mathematical rounding, to a given precision
+- `ScriptRuntimeException`: Any error during execution — wrong argument type for a built-in function, division by zero (div, mod), etc. Wraps all Throwables that occurred during evaluation. The original cause is available via getPrevious().
 
+---
 
-### Logical Operators
-`and`, `or`, `not`
+## 📐 Built-in Functions
 
+Read the **[complete list of functions and detailed description of their parameters](SYNTAX.md#built-in-functions)**.
 
-### Comparison Operators
-Basic: `==`, `!=`, `<`, `>`, `<=`, `>=`
+- **Math:** `+`, `-`, `*`, `div`, `mod`, `Math.ceil`, `Math.floor`, `Math.round`.
+- **Strings (Str):** `len`, `split`, `concat`, `format`, `indexOf`, `contains`, `startsWith`, `endsWith`, `sub`, `toUpper`, `toLower`, `trim`.
+- **Lists (List):** `len`, `first`, `at`, `exist`, `concat`, `push`, `indexOf`, `slice`, `split`, `map`, `fold`, `filter`, `sort`.
+- **Dictionaries (Dict):** `has`, `get`, `merge`, `keys`, `values`.
+- **DateTime:** `fromDate`, `fromDateTime`, `fromTimestamp`, `toTimestamp`, `format`.
+- **Introspect:** `of`, `is`.
 
-Set operators:
-
-- `IN` — the left-hand value is found in the right-hand set
-- `HAS` — the left-hand set contains the right-hand value
-- `SUPERSET` — the left set contains all elements of the right set
-- `SUBSET` — the right set contains all elements of the left set
-- `INTERSECTS` — both sets share at least one common element
-
-
-### Strings
-- `Str.len` — string length
-- `Str.split` — split by separator
-- `Str.concat` — concatenate two strings
-- `Str.format` — format using a mask (`{0}`, `{1}`, …)
-- `Str.indexOf` — position of a substring, or -1
-- `Str.contains` — whether the string contains a substring
-- `Str.startsWith` — whether the string starts with a given fragment
-- `Str.endsWith` — whether the string ends with a given fragment
-- `Str.sub` — substring starting at `index` with length `len`
-- `Str.toUpper` — convert to uppercase
-- `Str.toLower` — convert to lowercase
-
-
-### Lists
-- `List.len` — number of elements
-- `List.first` — first element
-- `List.at` — element at a given index, or a default value
-- `List.exist` — whether an element exists at the given index
-- `List.concat` — concatenate two lists
-- `List.push` — append an element to the end
-- `List.indexOf` — index of a searched value (from an optional offset), or -1
-- `List.slice` — sub-list starting at `start` with maximum length `length`
-- `List.split` — split a list by a predicate into at most `limit` parts
-- `List.map` — apply a function to each element
-- `List.fold` — reduce a list to a single value
-- `List.filter` — filter elements by a predicate
-- `List.sort` — sorting: `List.Asc`, `List.Desc`
-
-
-### Dictionaries (Dict)
-- `Dict.has` — whether a key exists
-- `Dict.get` — value by key
-- `Dict.merge` — merge two dictionaries
-- `Dict.keys` — list of keys
-- `Dict.values` — list of values
-
-
-### Date and Time (DateTime)
-- `DateTime.toTimestamp` — convert to Unix timestamp
-- `DateTime.fromTimestamp` — construct a value from a timestamp
-- `DateTime.fromDate` — construct from date parts: `(DateTime.fromDate 2025 1 5)`
-- `DateTime.fromDateTime` — construct from date and time: `(DateTime.fromDateTime 2025 1 5 12 24 55)`
-- `DateTime.format` — format using a mask: `DateTime.format "%y. %j. %d" src`
-
-
+---
 
 ## Architecture
 
-The runtime consists of three packages:
-
-- `hayo-ast` — AST node definitions
-- `hayo-parser` — the default parser; if the syntax does not suit you, write your own parser returning the same AST
-- `hayo` — the PHP runtime itself
-
-
-
-## Comparison with Alternatives
-
-The most common candidate for an embedded scripting language in PHP is
-[Symfony Expression Language](https://packagist.org/packages/symfony/expression-language).
-Below is an overview of where the two solutions differ:
-
-| Feature | Hayo | Symfony Expression Language |
-|---|---|---|
-| Custom functions (import) | ✅ | ✅ |
-| Local variables in code | ✅ | ⚠️ only by passing from outside, not by defining inside the script |
-| Local functions and lambdas in code | ✅ | ❌ only by passing from outside, not by defining inside the script |
-| Map / fold / filter | ✅ | ⚠️ only via custom registered functions, not natively |
-| if-then-elseif-then-else | ✅ | ⚠️ only the ternary operator `?:` |
-| Custom syntax / parser | ✅ | ❌ |
-
-Symfony Expression Language is a solid and well-tested library. However, if you need local variables,
-lambdas, or branching with multiple conditions, Hayo fills those gaps.
+- `hayo-ast`: AST node definitions.
+- `hayo-parser`: Default recursive descent parser.
+- `hayo`: Runtime and compiler for PHP.

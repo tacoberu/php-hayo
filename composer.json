@@ -2,6 +2,16 @@
 	"name": "tacoberu/hayo",
 	"type": "library",
 	"description": "Lightweight purely functional scripting runtime with static typing and type inference.",
+	"keywords": [
+		"scripting",
+		"language",
+		"functional",
+		"expression-language",
+		"runtime",
+		"interpreter",
+		"static-typing",
+		"type-inference"
+	],
 	"license": [
 		"MIT"
 	],
@@ -12,7 +22,8 @@
 		}
 	],
 	"require": {
-		"tacoberu/hayo-decoder": "~0.3.11"
+		"php" : ">=7.4",
+		"tacoberu/hayo-decoder": "~0.3.12"
 	},
 	"require-dev": {
 		"tracy/tracy": "^2.7",
