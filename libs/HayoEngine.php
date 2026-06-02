@@ -41,6 +41,7 @@ final class HayoEngine
 	{
 		return new self([
 			'predicate' => new PredicatesProvider(),
+			'Bool' => new BoolProvider(),
 			'Math' => new MathsProvider(),
 			'Str' => new StringsProvider(),
 			'List' => new ListsProvider(),

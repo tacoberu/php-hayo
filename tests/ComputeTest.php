@@ -713,6 +713,7 @@ xs = (Str.split src \",\")
 	{
 		return (new Compiler([
 			'predicate' => new PredicatesProvider(),
+			'Bool' => new BoolProvider(),
 			'Math' => new MathsProvider(),
 			'Str' => new StringsProvider(),
 			'List' => new ListsProvider(),

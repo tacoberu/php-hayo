@@ -611,8 +611,8 @@ content = [
 			['"Sinead O\'Connor"', new FinalValue("Sinead O'Connor", 'Str')],
 			['"""Sinead O\'Connor"""', new FinalValue("Sinead O'Connor", 'Str')],
 
-			['True', new FinalValue(true, 'Symbol')],
-			['False', new FinalValue(false, 'Symbol')],
+			['True', new FinalValue(true, 'Bool')],
+			['False', new FinalValue(false, 'Bool')],
 			['Null', new FinalValue(null, 'Symbol')],
 		];
 	}
@@ -1140,7 +1140,7 @@ content = [
 	{
 		return [
 			["True",
-				new FinalValue(true, 'Symbol'),
+				new FinalValue(true, 'Bool'),
 				],
 
 			["1 == 2",
@@ -1453,6 +1453,7 @@ content = [
 	{
 		return (new Compiler([
 			'predicate' => new PredicatesProvider(),
+			'Bool' => new BoolProvider(),
 			'Math' => new MathsProvider(),
 			'Str' => new StringsProvider(),
 			'List' => new ListsProvider(),

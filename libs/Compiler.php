@@ -127,7 +127,7 @@ class Compiler
 
 		if ($src instanceof Scalar && $src->type() === 'Symbol') {
 			$val = $src->getValue();
-			if (strpos($val, '.') !== False && $this->lookupGlobalSymbol($val)) {
+			if ($this->lookupGlobalSymbol($val)) {
 				$symbols[] = $val;
 			}
 			return $symbols;
@@ -229,7 +229,11 @@ class Compiler
 			return $x;
 		}
 
-		return $this->short[strtolower($x)] ?? $x;
+		// Case-sensitive lookup first — preserves uppercase symbol/constructor names
+		// (True, False, …) per Hayo convention: types start uppercase, functions lowercase.
+		// Falls back to case-insensitive lookup for operators and word-style operators
+		// (and, or, not, AND, OR, NOT, …).
+		return $this->short[$x] ?? $this->short[strtolower($x)] ?? $x;
 	}
 
 
@@ -327,9 +331,9 @@ class Compiler
 			case $term instanceof BuildinFunc:
 				return $term;
 
-			// A Symbol scalar with a dot (e.g. Color.Red, Shape.Circle) may be a
-			// constructor reference — try to resolve it through the context first.
-			case $term instanceof Scalar && $term->type() === 'Symbol' && strpos($term->getValue(), '.') !== False:
+			// A Symbol scalar (e.g. Color.Red, True, False) may be a constructor
+			// reference — try to resolve it through the context first.
+			case $term instanceof Scalar && $term->type() === 'Symbol':
 				$resolved = self::partialEvaluateSymbol($context, $term->getValue());
 				if ($resolved instanceof BuildinFunc && $resolved->getBinds() === []) {
 					// Zero-arg constructor: evaluate immediately
@@ -908,18 +912,9 @@ class Compiler
 	 */
 	private static function castScalar(Scalar $val): array
 	{
-		if ($val->type() === 'Symbol' && $val->getValue() === 'True') {
-			$value = True;
-		}
-		elseif ($val->type() === 'Symbol' && $val->getValue() === 'False') {
-			$value = False;
-		}
-		elseif ($val->type() === 'Symbol' && $val->getValue() === 'Null') {
-			$value = Null;
-		}
-		else {
-			$value = $val->getValue();
-		}
+		$value = $val->type() === 'Symbol' && $val->getValue() === 'Null'
+			? Null
+			: $val->getValue();
 		return [new FinalValue($value, self::castType($val->type())), []];
 	}
 
