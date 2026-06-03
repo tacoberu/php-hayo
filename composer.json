@@ -23,7 +23,7 @@
 	],
 	"require": {
 		"php" : ">=7.4",
-		"tacoberu/hayo-decoder": "~0.3.12"
+		"tacoberu/hayo-decoder": "~0.3.13"
 	},
 	"require-dev": {
 		"tracy/tracy": "^2.7",
