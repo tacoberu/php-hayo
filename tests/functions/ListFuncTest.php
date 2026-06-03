@@ -182,7 +182,7 @@ class ListFuncTest extends TestCase
 		$this->assertSame('List<a>', $inst->type());
 		$this->assertEquals([
 			new BindValue('src', 'List<a>'),
-			new BindValue('fn', 'Callable'),
+			new BindValue('fn', '(a -> a -> Int)'),
 		], $inst->getBinds());
 		$this->assertSame('<List.sort>', (string) $inst);
 	}

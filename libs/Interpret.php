@@ -48,6 +48,9 @@ final class Interpret
 			case $src instanceof Form && $src->getName() === 'if-then-else':
 				return self::applyFormIfThenElse($src, $lets);
 
+			case $src instanceof Form && $src->getName() === 'match':
+				return self::applyFormMatch($src, $lets);
+
 			case $src instanceof Composite && $src->type() === Composite::TypeDict:
 				return self::applyStructDict($src, $lets);
 
@@ -107,6 +110,90 @@ final class Interpret
 		throw new LogicException("oops.");
 		// The result can be an expression, but also a value
 		//~ return $items[0];
+	}
+
+
+
+	/**
+	 * @param array<string, FinalValue | ParametricValue> $lets
+	 */
+	private static function applyFormMatch(Form $src, array $lets): FinalValue
+	{
+		$items = $src->getItems();
+		$subject = self::applyAny($items[0], $lets);
+		assert($subject instanceof FinalValue);
+
+		$val = $subject->getValue();
+
+		foreach (array_slice($items, 1) as $arm) {
+			/** @var object{pattern: string, binds: list<string>, expr: Value|string} $arm */
+			// Wildcard arm
+			if ($arm->pattern === '_') {
+				$result = self::applyAny($arm->expr, $lets);
+				assert($result instanceof FinalValue);
+				return $result;
+			}
+
+			if ($val instanceof SumTypeValue) {
+				// Match variant name (last segment after the last dot, e.g. 'Shape.Circle' → 'Circle')
+				$dotPos = strrpos($arm->pattern, '.');
+				$variant = $dotPos !== False
+					? substr($arm->pattern, $dotPos + 1)
+					: $arm->pattern;
+
+				if ($val->getVariant() === $variant) {
+					// Bind payload fields to the bound variable names
+					$armLets = $lets;
+					$payload = $val->getPayload();
+					foreach ($arm->binds as $i => $bindName) {
+						$armLets[$bindName] = $payload[$i] ?? new FinalValue(Null, 'Null');
+					}
+					$result = self::applyAny($arm->expr, $armLets);
+					assert($result instanceof FinalValue);
+					return $result;
+				}
+			}
+			else {
+				// Scalar value matching: int, float, string, bool
+				if (self::scalarPatternMatches($arm->pattern, $val)) {
+					$result = self::applyAny($arm->expr, $lets);
+					assert($result instanceof FinalValue);
+					return $result;
+				}
+			}
+		}
+
+		$label = $val instanceof SumTypeValue
+			? "variant '{$val->getVariant()}' of type '{$val->getTypeName()}'"
+			: (string) $val;
+		throw new LogicException("Non-exhaustive match: no arm matched {$label}.");
+	}
+
+
+
+	/**
+	 * @param mixed $val
+	 */
+	private static function scalarPatternMatches(string $pattern, $val): bool
+	{
+		if (is_int($val)) {
+			return is_numeric($pattern) && (int) $pattern === $val;
+		}
+		if (is_float($val)) {
+			return is_numeric($pattern) && (float) $pattern === $val;
+		}
+		if (is_string($val)) {
+			// String literal patterns are stored with surrounding quotes
+			$len = strlen($pattern);
+			if ($len >= 2 && ($pattern[0] === '"' || $pattern[0] === "'")) {
+				return substr($pattern, 1, $len - 2) === $val;
+			}
+			return $pattern === $val;
+		}
+		if (is_bool($val)) {
+			return ($pattern === 'True' && $val === True) || ($pattern === 'False' && $val === False);
+		}
+		return False;
 	}
 
 

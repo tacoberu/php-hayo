@@ -54,6 +54,9 @@ class Compiler
 	 */
 	function compile(string $source)
 	{
+		// Phase 0: extract type declarations, register constructors in this compiler instance
+		$source = $this->extractTypeDeclarations($source);
+
 		$term = self::decodeSource($source);
 
 		// @TODO Přesunout do decodeSource()
@@ -70,9 +73,12 @@ class Compiler
 		$context = $this->createGlobalSymbols($term);
 
 		// First phase: evaluate bound symbols. Compute everything that can be resolved statically.
-		$term = self::partialEvaluate($context, $term);
+		$term = $this->partialEvaluate($context, $term);
 
-		// Second phase: convert term -> val
+		// Second phase: type inference — catches type errors at compile time.
+		$this->runTypeInference($term);
+
+		// Third phase: convert term -> val
 		$term = self::compileRuntimeValue($term);
 		self::assertMissingSymbols($term);
 
@@ -94,7 +100,96 @@ class Compiler
 				}
 			}
 		}
+
+		// Also resolve constructor Symbol scalars (e.g. Color.Red, Shape.Circle)
+		// which are not visible via refs() since Scalar does not implement HasRefs.
+		foreach ($this->scanForConstructors($src) as $x) {
+			if (!isset($lets[$x]) && $pair = $this->lookupGlobalSymbol($x)) {
+				$lets[$pair[0]] = $pair[1];
+			}
+		}
+
 		return new Context($lets);
+	}
+
+
+
+	/**
+	 * Recursively collects Symbol scalar values that look like constructor references
+	 * (e.g. 'Color.Red', 'Shape.Circle') — they contain a dot and every segment
+	 * starts with an uppercase letter.
+	 *
+	 * @return list<string>
+	 */
+	private function scanForConstructors(Value $src): array
+	{
+		$symbols = [];
+
+		if ($src instanceof Scalar && $src->type() === 'Symbol') {
+			$val = $src->getValue();
+			if ($this->lookupGlobalSymbol($val)) {
+				$symbols[] = $val;
+			}
+			return $symbols;
+		}
+
+		if ($src instanceof Expr) {
+			foreach ($src->getItems() as $item) {
+				if ($item instanceof Value) {
+					$symbols = array_merge($symbols, $this->scanForConstructors($item));
+				}
+			}
+			return $symbols;
+		}
+
+		if ($src instanceof Lambda) {
+			$expr = $src->getExpr();
+			if ($expr instanceof Value) {
+				$symbols = array_merge($symbols, $this->scanForConstructors($expr));
+			}
+			return $symbols;
+		}
+
+		if ($src instanceof Scope) {
+			foreach ($src->getLets() as $let) {
+				if ($let instanceof Value) {
+					$symbols = array_merge($symbols, $this->scanForConstructors($let));
+				}
+			}
+			$expr = $src->getExpr();
+			if ($expr instanceof Value) {
+				$symbols = array_merge($symbols, $this->scanForConstructors($expr));
+			}
+			return $symbols;
+		}
+
+		if ($src instanceof Form) {
+			foreach ($src->getItems() as $item) {
+				if ($item instanceof Value) {
+					$symbols = array_merge($symbols, $this->scanForConstructors($item));
+				}
+				elseif (is_object($item)) { // @phpstan-ignore function.impossibleType
+					// if-then-else blocks: {cond, expr} — match arms: {pattern, binds, expr}
+					foreach (['subject', 'cond', 'expr'] as $field) {
+						if (isset($item->$field) && $item->$field instanceof Value) {
+							$symbols = array_merge($symbols, $this->scanForConstructors($item->$field));
+						}
+					}
+				}
+			}
+			return $symbols;
+		}
+
+		if ($src instanceof Composite) {
+			foreach ((array) $src->getItems() as $item) {
+				if ($item instanceof Value) {
+					$symbols = array_merge($symbols, $this->scanForConstructors($item));
+				}
+			}
+			return $symbols;
+		}
+
+		return $symbols;
 	}
 
 
@@ -134,23 +229,107 @@ class Compiler
 			return $x;
 		}
 
-		return $this->short[strtolower($x)] ?? $x;
+		// Case-sensitive lookup first — preserves uppercase symbol/constructor names
+		// (True, False, …) per Hayo convention: types start uppercase, functions lowercase.
+		// Falls back to case-insensitive lookup for operators and word-style operators
+		// (and, or, not, AND, OR, NOT, …).
+		return $this->short[$x] ?? $this->short[strtolower($x)] ?? $x;
 	}
 
 
 
 	/**
-	 * @return Value|string|null
+	 * Extracts type declarations from the source, registers constructors in
+	 * $this->libs, and returns the stripped source.
+	 *
+	 * Supported forms:
+	 *   type Color = Red | Green | Blue (no parameters)
+	 *   type Shape = Circle Real | Rectangle Real Real | Point
+	 *   type Result<a, b> = Ok a | Err b (Rust-style params)
+	 *   type Maybe<a> = Just a | Nothing
+	 *
+	 * Type parameters use `<a, b>` Rust-style; constructor arguments stay
+	 * positional Haskell-style for consistency with builtin signatures.
+	 *
+	 * Only single-line declarations are supported in this phase.
 	 */
-	private static function decodeSource(string $source)
+	private function extractTypeDeclarations(string $source): string
 	{
-		$decoder = new HayoDecoder();
-		try {
-			return $decoder->decode($source);
+		return (string) preg_replace_callback(
+			'/^type\s+([A-Z]\w*)(?:<([^>]+)>)?\s*=\s*(.+)$/m',
+			function (array $m): string {
+				$typeName = $m[1];
+				$typeParams = $m[2] !== ''
+					? array_values(array_filter(array_map('trim', explode(',', $m[2]))))
+					: [];
+				$variantsStr = $m[3];
+				$variants = [];
+
+				foreach (explode('|', $variantsStr) as $part) {
+					$tokens = preg_split('/\s+/', trim($part)) ?: [];
+					$varName = (string) array_shift($tokens);
+					$variants[$varName] = $tokens; // remaining = arg type names
+				}
+
+				$this->libs[$typeName] = new SumTypeProvider($typeName, $typeParams, $variants);
+				return ''; // strip from source
+			},
+			$source
+		);
+	}
+
+
+
+	/**
+	 * @param Value|string $term
+	 */
+	private function runTypeInference($term): void
+	{
+		$this->getInferrer()->infer(new TypeEnv(), $term);
+	}
+
+
+
+	/**
+	 * Returns a fresh TypeInferrer wired to this compiler's sum-type registry.
+	 * Used both by the main inference pass and by per-Expr pre-fold validation.
+	 */
+	private function getInferrer(): TypeInferrer
+	{
+		return new TypeInferrer(new Unifier(), $this->collectSumTypes());
+	}
+
+
+
+	/**
+	 * Runs inference on a single Expr that partial evaluation is about to fold.
+	 * Catches typing mistakes between fully-resolved constants — without this
+	 * check, expressions like `List.concat [1,2] ["a","b"]` would be silently
+	 * evaluated before the main inference pass got a chance to look at them.
+	 */
+	private function validateFoldableExpr(Expr $term): void
+	{
+		$this->getInferrer()->infer(new TypeEnv(), $term);
+	}
+
+
+
+	/**
+	 * Collects sum-type declarations from registered libraries — used by
+	 * the type inferrer for exhaustiveness checking and instantiation of
+	 * polymorphic types.
+	 *
+	 * @return array<string, SumTypeDescriptor> typeName => descriptor
+	 */
+	private function collectSumTypes(): array
+	{
+		$result = [];
+		foreach ($this->libs as $lib) {
+			if ($lib instanceof SumTypeDescriptor) {
+				$result[$lib->getTypeName()] = $lib;
+			}
 		}
-		catch (HayoParserException $e) {
-			throw CompileException::HayoParser($e);
-		}
+		return $result;
 	}
 
 
@@ -180,46 +359,63 @@ class Compiler
 	 * @param Value | string $term
 	 * @return Value | string
 	 */
-	private static function partialEvaluate(Context $context, $term)
+	private function partialEvaluate(Context $context, $term)
 	{
 		switch (True) {
 			case is_string($term):
-				return self::partialEvaluateSymbol($context, $term);
+				return $this->partialEvaluateSymbol($context, $term);
 
 			// Numbers, final values, and builtin functions have nothing to process
-			case $term instanceof Scalar:
 			case $term instanceof FinalValue:
 			case $term instanceof BuildinFunc:
 				return $term;
 
+			// A Symbol scalar (e.g. Color.Red, True, False) may be a constructor
+			// reference — try to resolve it through the context first.
+			case $term instanceof Scalar && $term->type() === 'Symbol':
+				$resolved = $this->partialEvaluateSymbol($context, $term->getValue());
+				if ($resolved instanceof BuildinFunc && $resolved->getBinds() === []) {
+					// Zero-arg constructor: evaluate immediately
+					try {
+						return $resolved->apply([]);
+					}
+					catch (DivisionByZeroError | ScriptTypeException | InvalidArgumentException $e) {
+						throw CompileException::EvaluationError($e);
+					}
+				}
+				if ($resolved instanceof Value) {
+					return $resolved; // Non-zero-arg constructor or other value
+				}
+				return $term;
+
+			case $term instanceof Scalar:
+				return $term;
+
 			// Dicts etc. may contain bound symbols or function calls, but those must be handled one level up, in Scope.
 			case $term instanceof Composite:
-				return self::partialEvaluateComposite($context, $term);
+				return $this->partialEvaluateComposite($context, $term);
 
 			//~ case $term instanceof BuildinFunc:
 			// @TODO Room for optimization: Lambda cannot be fully executed because it depends on argument state.
 			// But parts of the Expr might be. Depends on how complex the lambda is.
 			case $term instanceof Lambda:
-				return self::partialEvaluateLambda($context, $term);
+				return $this->partialEvaluateLambda($context, $term);
 
 			// Move all symbols from the local scope to their usage site; the symbol and scope then cease to exist.
 			// Performs **partial evaluation** of an expression expected to produce a value.
 			case $term instanceof Scope:
-				return self::partialEvaluateScope($context, $term);
+				return $this->partialEvaluateScope($context, $term);
 
-			// Could be a function call: `format(1 2 3)`, return value
-			// Could be an operation: `1 + 1`, return value
-			case $term instanceof Expr && $term->refs() === []:
-				throw CompileException::UnsupportedException('partial evaluate', $term);
-
-			// Could be a function call: `format(1 a 3)`, since "a" is unknown, return a function.
-			// Could be an operation: `1 + a`, since "a" is unknown, return a function.
-			// Could be a predicate: `equals(1, 1) and a == 42`, since "a" is unknown, return a function.
-			case $term instanceof Expr && $term->refs() !== []:
-				return self::partialEvaluateExpr($context, $term);
+			// Function call or operator. Dispatches to immediate evaluation when
+			// all operands are known; preserves expression when some remain free.
+			case $term instanceof Expr:
+				return $this->partialEvaluateExpr($context, $term);
 
 			case $term instanceof Form && $term->getName() === 'if-then-else':
-				return self::partialEvaluateFormIfThenElse($context, $term);
+				return $this->partialEvaluateFormIfThenElse($context, $term);
+
+			case $term instanceof Form && $term->getName() === 'match':
+				return $this->partialEvaluateFormMatch($context, $term);
 
 			default:
 				throw CompileException::UnsupportedException('partial evaluate', $term);
@@ -231,7 +427,7 @@ class Compiler
 	/**
 	 * @return Value|string
 	 */
-	private static function partialEvaluateSymbol(Context $context, string $term)
+	private function partialEvaluateSymbol(Context $context, string $term)
 	{
 		// Check whether we have a Dict stored in the context; select by the first key in the path x.foo.doo
 		$id = new BindValue($term, '?');
@@ -268,42 +464,49 @@ class Compiler
 	 *
 	 * We pull bound symbols from the context. Before executing them, we must evaluate nested expressions.
 	 */
-	private static function partialEvaluateExpr(Context $context, Expr $term): Value
+	private function partialEvaluateExpr(Context $context, Expr $term): Value
 	{
 		$items = $term->getItems();
 
 		switch (True) {
 			case $term->getNotation() === Expr::NotationInfix:
 				foreach ($items as $k => $x) {
-					$items[$k] = self::partialEvaluate($context, $x);
+					$items[$k] = $this->partialEvaluate($context, $x);
 				}
 
 				$term = Expr::Bin_($items[0], $items[1], $items[2]);
 
-				// Rovnou vyhodnotit
+				// Rovnou vyhodnotit — only when operands are fully resolved FinalValues
 				if ($term->refs() === []) {
-					try {
-						return $items[1]->apply([ // @phpstan-ignore method.nonObject
-							self::castAny($items[0], False)[0],
-							self::castAny($items[2], False)[0],
-							]);
-					}
-					catch (DivisionByZeroError | ScriptTypeException | InvalidArgumentException $e) {
-						throw CompileException::EvaluationError($e);
+					$left = self::castAny($items[0], False)[0];
+					$right = self::castAny($items[2], False)[0];
+					if ($left instanceof FinalValue && $right instanceof FinalValue) {
+						// Type-check before folding so constant-only mismatches are caught
+						$this->validateFoldableExpr($term);
+						try {
+							return $items[1]->apply([$left, $right]); // @phpstan-ignore method.nonObject
+						}
+						catch (DivisionByZeroError | ScriptTypeException | InvalidArgumentException $e) {
+							throw CompileException::EvaluationError($e);
+						}
 					}
 				}
 
 				// Validate types of resolved operands against the operator signature
 				if ($items[1] instanceof BuildinFunc) {
-					try {
-						TypeValidator::assertPartialArgTypes(
-							$items[1]->getQualifiedName(),
-							$items[1]->getBinds(),
-							[self::castAny($items[0], False)[0], self::castAny($items[2], False)[0]]
-						);
-					}
-					catch (InvalidArgumentException $e) {
-						throw CompileException::EvaluationError($e);
+					$left = self::castAny($items[0], False)[0];
+					$right = self::castAny($items[2], False)[0];
+					if ($left instanceof FinalValue && $right instanceof FinalValue) {
+						try {
+							TypeValidator::assertPartialArgTypes(
+								$items[1]->getQualifiedName(),
+								$items[1]->getBinds(),
+								[$left, $right]
+							);
+						}
+						catch (InvalidArgumentException $e) {
+							throw CompileException::EvaluationError($e);
+						}
 					}
 				}
 
@@ -312,33 +515,37 @@ class Compiler
 
 			case $term->getNotation() === Expr::NotationPrefix:
 				foreach ($items as $k => $x) {
-					$items[$k] = self::partialEvaluate($context, $x);
+					$items[$k] = $this->partialEvaluate($context, $x);
 				}
 
 				$term = Expr::Func_($items[0], array_slice($items, 1));
-                // Rovnou vyhodnotit
-                if ($term->refs() === []) {
-                    $args = array_map(static function($x) {
+				// Rovnou vyhodnotit
+				if ($term->refs() === []) {
+					$args = array_map(static function($x) {
 						return self::castAny($x, False)[0];
 					}, array_slice($items, 1));
-                    // phpcs:ignore SlevomatCodingStandard.Operators.DisallowEqualOperators.DisallowedEqualOperator
-                    if ($items[0] instanceof Scalar && $items[1] == Composite::Tuple_([])) {
+					// phpcs:ignore SlevomatCodingStandard.Operators.DisallowEqualOperators.DisallowedEqualOperator
+					if ($items[0] instanceof Scalar && $items[1] == Composite::Tuple_([])) {
 						return $items[0];
 					}
-                    $expr = self::partialEvaluateApplicable($items[0], $args); // @phpstan-ignore argument.type
-                    if (is_string($expr)) {
+					// Type-check before folding so constant-only mismatches are caught
+					if ($items[0] instanceof BuildinFunc) {
+						$this->validateFoldableExpr($term);
+					}
+					$expr = $this->partialEvaluateApplicable($items[0], $args); // @phpstan-ignore argument.type
+					if (is_string($expr)) {
 						throw CompileException::UnresolvedExpression($term);
 					}
-                    return $expr;
-                }
+					return $expr;
+				}
 
 				// Rovnou vyhodnotit
 				if ($items[0] instanceof Lambda && count($items[0]->getArgs()) === count($items) - 1) {
-                    $args = array_slice($items, 1);
-                    $fn = $items[0];
-                    $context = new Context(array_combine($fn->getArgs(), $args));
-                    return self::partialEvaluateExpr($context, $fn->getExpr()); // @phpstan-ignore argument.type
-                }
+					$args = array_slice($items, 1);
+					$fn = $items[0];
+					$context = new Context(array_combine($fn->getArgs(), $args));
+					return $this->partialEvaluateExpr($context, $fn->getExpr()); // @phpstan-ignore argument.type
+				}
 
 				// Validate types of resolved args against the function signature (only full arity calls)
 				if ($items[0] instanceof BuildinFunc) {
@@ -372,14 +579,14 @@ class Compiler
 	 * 2/ Condition is final and false -> only branch B is processed
 	 * 3/ Condition is not final -> ....? both branches are processed, relying on absence of side-effects.
 	 */
-	private static function partialEvaluateFormIfThenElse(Context $context, Form $term): Value
+	private function partialEvaluateFormIfThenElse(Context $context, Form $term): Value
 	{
 		$chains = [];
 		foreach ($term->getItems() as $usecase) {
 			/** @var object{cond: mixed, expr: mixed} $usecase */
 			$chains[] = (object) [
-				'cond' => $usecase->cond ? self::partialEvaluate($context, $usecase->cond) : Null,
-				'expr' => self::partialEvaluate($context, $usecase->expr),
+				'cond' => $usecase->cond ? $this->partialEvaluate($context, $usecase->cond) : Null,
+				'expr' => $this->partialEvaluate($context, $usecase->expr),
 			];
 		}
 		$else = array_pop($chains);
@@ -388,11 +595,35 @@ class Compiler
 
 
 
+	private function partialEvaluateFormMatch(Context $context, Form $term): Form
+	{
+		$items = $term->getItems();
+		$subject = $this->partialEvaluate($context, $items[0]);
+
+		$arms = [];
+		foreach (array_slice($items, 1) as $arm) {
+			/** @var object{pattern: string, binds: list<string>, expr: Value|string} $arm */
+			$armContext = clone $context;
+			foreach ($arm->binds as $bind) {
+				$armContext->shadowByArg($bind);
+			}
+			$arms[] = (object) [
+				'pattern' => $arm->pattern,
+				'binds' => $arm->binds,
+				'expr' => $this->partialEvaluate($armContext, $arm->expr),
+			];
+		}
+
+		return Form::Match_($subject, $arms);
+	}
+
+
+
 	/**
 	 * @param list<string | Value> $args
 	 * @return Value | string
 	 */
-	private static function partialEvaluateApplicable(Applicable $fn, array $args)
+	private function partialEvaluateApplicable(Applicable $fn, array $args)
 	{
 		switch (True) {
 			case $fn instanceof Lambda:
@@ -400,7 +631,7 @@ class Compiler
 				foreach ($fn->getArgs() as $i => $id) {
 					$context->shadow($id, $args[$i]);
 				}
-				return self::partialEvaluate($context, $fn->getExpr());
+				return $this->partialEvaluate($context, $fn->getExpr());
 
 			case $fn instanceof BuildinFunc:
 				try {
@@ -421,7 +652,7 @@ class Compiler
 	 * Performs **partial evaluation** of an expression.
 	 * @return Value | string
 	 */
-	private static function partialEvaluateScope(Context $context, Scope $src)
+	private function partialEvaluateScope(Context $context, Scope $src)
 	{
 		switch (True) {
 			case is_string($src->getExpr()):
@@ -448,10 +679,10 @@ class Compiler
 						$context2->shadowAnotherSymbol($id, $value);
 					}
 					elseif ( ! $value instanceof HasRefs) {
-						$context2->shadow($id, self::partialEvaluate($context, $value)); // @phpstan-ignore argument.type
+						$context2->shadow($id, $this->partialEvaluate($context, $value)); // @phpstan-ignore argument.type
 					}
 					elseif ($value->refs() === []) {
-						$context2->shadow($id, self::partialEvaluate($context, $value)); // @phpstan-ignore argument.type
+						$context2->shadow($id, $this->partialEvaluate($context, $value)); // @phpstan-ignore argument.type
 					}
 					else {
 						$seconds[$id] = $value;
@@ -461,11 +692,11 @@ class Compiler
 				// 2/ Values that reach into the parent scope
 				// @TODO Recurse
 				foreach ($seconds as $id => $value) {
-					$context2->shadow($id, self::partialEvaluate($context2, $value)); // @phpstan-ignore argument.type
+					$context2->shadow($id, $this->partialEvaluate($context2, $value)); // @phpstan-ignore argument.type
 				}
 
-				$term = self::partialEvaluate($context2, $src->getExpr());
-				return self::partialEvaluate($context2, $term);
+				$term = $this->partialEvaluate($context2, $src->getExpr());
+				return $this->partialEvaluate($context2, $term);
 
 			// `a = 5; (a, 5)`
 			// `a = 5; [1, a]`
@@ -482,10 +713,10 @@ class Compiler
 						$context2->shadowAnotherSymbol($id, $value);
 					}
 					elseif ( ! $value instanceof HasRefs) {
-						$context2->shadow($id, self::partialEvaluate($context, $value)); // @phpstan-ignore argument.type
+						$context2->shadow($id, $this->partialEvaluate($context, $value)); // @phpstan-ignore argument.type
 					}
 					elseif ($value->refs() === []) {
-						$context2->shadow($id, self::partialEvaluate($context, $value)); // @phpstan-ignore argument.type
+						$context2->shadow($id, $this->partialEvaluate($context, $value)); // @phpstan-ignore argument.type
 					}
 					else {
 						$seconds[$id] = $value;
@@ -495,10 +726,36 @@ class Compiler
 				// 2/ Values that reach into the parent scope
 				// @TODO Recurse
 				foreach ($seconds as $id => $value) {
-					$context2->shadow($id, self::partialEvaluate($context2, $value)); // @phpstan-ignore argument.type
+					$context2->shadow($id, $this->partialEvaluate($context2, $value)); // @phpstan-ignore argument.type
 				}
 
-				return self::partialEvaluate($context2, $src->getExpr());
+				return $this->partialEvaluate($context2, $src->getExpr());
+
+			// `c = Color.Red; match c | ...`
+			case $src->getExpr() instanceof Form: // @phpstan-ignore instanceof.alwaysFalse
+				$context2 = clone $context;
+				$seconds = [];
+				foreach ($src->getLets() as $id => $value) {
+					if (is_string($value) && strpos($value, '.')) {
+						$seconds[$id] = $value;
+					}
+					elseif (is_string($value)) {
+						$context2->shadowAnotherSymbol($id, $value);
+					}
+					elseif ( ! $value instanceof HasRefs) {
+						$context2->shadow($id, $this->partialEvaluate($context, $value)); // @phpstan-ignore argument.type
+					}
+					elseif ($value->refs() === []) {
+						$context2->shadow($id, $this->partialEvaluate($context, $value)); // @phpstan-ignore argument.type
+					}
+					else {
+						$seconds[$id] = $value;
+					}
+				}
+				foreach ($seconds as $id => $value) {
+					$context2->shadow($id, $this->partialEvaluate($context2, $value)); // @phpstan-ignore argument.type
+				}
+				return $this->partialEvaluate($context2, $src->getExpr());
 
 			default:
 				throw CompileException::UnsupportedException('partial evaluate const scope', $src->getExpr());
@@ -512,7 +769,7 @@ class Compiler
 	 * Arguments shadow the outer context, and the inner context shadows the arguments.
 	 * The result is lambda = value.
 	 */
-	private static function partialEvaluateLambda(Context $context, Lambda $src): Lambda
+	private function partialEvaluateLambda(Context $context, Lambda $src): Lambda
 	{
 		$context2 = clone $context;
 		foreach ($src->getArgs() as $id) {
@@ -527,19 +784,18 @@ class Compiler
 			}
 			$context2->shadowByArg($id);
 		}
-		return new Lambda($src->getArgs(), self::partialEvaluate($context2, $src->getExpr())); // @phpstan-ignore argument.type
+		return new Lambda($src->getArgs(), $this->partialEvaluate($context2, $src->getExpr())); // @phpstan-ignore argument.type
 	}
 
 
 
-	private static function partialEvaluateComposite(Context $context, Composite $src): Composite
+	private function partialEvaluateComposite(Context $context, Composite $src): Composite
 	{
-		if ($src->refs() === []) {
-			return $src;
-		}
+		// Cannot skip when refs()===[] — Symbol scalars (constructors like Color.Red)
+		// are not counted by refs() but still need to be resolved here.
 		$items = [];
 		foreach ($src->getItems() as $k => $x) {
-			$items[$k] = self::partialEvaluate($context, $x);
+			$items[$k] = $this->partialEvaluate($context, $x);
 		}
 
 		switch ($src->type()) {
@@ -554,6 +810,22 @@ class Compiler
 
 			default:
 				throw CompileException::Unexpected();
+		}
+	}
+
+
+
+	/**
+	 * @return Value|string|null
+	 */
+	private static function decodeSource(string $source)
+	{
+		$decoder = new HayoDecoder();
+		try {
+			return $decoder->decode($source);
+		}
+		catch (HayoParserException $e) {
+			throw CompileException::HayoParser($e);
 		}
 	}
 
@@ -674,6 +946,9 @@ class Compiler
 			case $src instanceof Form && $src->getName() === 'if-then-else':
 				return self::castFormIfThenElse($src, $packref);
 
+			case $src instanceof Form && $src->getName() === 'match':
+				return self::castFormMatch($src, $packref);
+
 			case is_string($src):
 				if ($packref) {
 					$x = new BindValue($src, "?");
@@ -699,18 +974,9 @@ class Compiler
 	 */
 	private static function castScalar(Scalar $val): array
 	{
-		if ($val->type() === 'Symbol' && $val->getValue() === 'True') {
-			$value = True;
-		}
-		elseif ($val->type() === 'Symbol' && $val->getValue() === 'False') {
-			$value = False;
-		}
-		elseif ($val->type() === 'Symbol' && $val->getValue() === 'Null') {
-			$value = Null;
-		}
-		else {
-			$value = $val->getValue();
-		}
+		$value = $val->type() === 'Symbol' && $val->getValue() === 'Null'
+			? Null
+			: $val->getValue();
 		return [new FinalValue($value, self::castType($val->type())), []];
 	}
 
@@ -794,9 +1060,6 @@ class Compiler
 	{
 		$typeHints = self::buildTypeHints($src);
 		list($items, $lets) = self::castCompositeItems($src->getItems(), $packref, $typeHints);
-		if ($src->refs() === []) {
-			throw CompileException::Unexpected();
-		}
 		switch ($src->getNotation()) {
 			case Expr::NotationInfix:
 				return [Expr::Bin_($items[0], $items[1], $items[2]), $lets]; // @phpstan-ignore argument.type, argument.type, argument.type
@@ -873,6 +1136,38 @@ class Compiler
 			$chains[] = (object)['cond' => $cond, 'expr' => $expr];
 		}
 		throw CompileException::Unexpected();
+	}
+
+
+
+	/**
+	 * @return array{0: Value, 1: array<string, BindValue>}
+	 */
+	private static function castFormMatch(Form $src, bool $packref): array
+	{
+		$items = $src->getItems();
+		$depends = [];
+
+		list($subject, $deps) = self::castAny($items[0], True);
+		$depends = array_merge($depends, $deps);
+
+		$arms = [];
+		foreach (array_slice($items, 1) as $arm) {
+			/** @var object{pattern: string, binds: list<string>, expr: Value|string} $arm */
+			list($expr, $deps) = self::castAny($arm->expr, True);
+			// Bound variable names are local to the arm — remove them from deps
+			foreach ($arm->binds as $bind) {
+				unset($deps[$bind]);
+			}
+			$depends = array_merge($depends, $deps);
+			$arms[] = (object) [
+				'pattern' => $arm->pattern,
+				'binds' => $arm->binds,
+				'expr' => $expr,
+			];
+		}
+
+		return [Form::Match_($subject, $arms), $depends];
 	}
 
 

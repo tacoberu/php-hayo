@@ -177,8 +177,32 @@ class CompileException extends LogicException
 		return new self($e->getMessage(), 0, $e);
 	}
 
-}
 
+
+	static function CannotUnify(Type_ $t1, Type_ $t2): self
+	{
+		return new self("Cannot unify '{$t1}' with '{$t2}'.");
+	}
+
+
+
+	static function OccursCheck(string $var, Type_ $type): self
+	{
+		return new self("Occurs check: '{$var}' occurs in '{$type}'.");
+	}
+
+
+
+	/**
+	 * @param list<string> $missing
+	 */
+	static function NonExhaustiveMatch(string $typeName, array $missing): self
+	{
+		$list = implode(', ', $missing);
+		return new self("Non-exhaustive match on type '{$typeName}': missing variant(s) {$list}.");
+	}
+
+}
 
 
 

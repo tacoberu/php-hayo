@@ -20,6 +20,11 @@ final class HayoEngine
 	 */
 	private array $libs;
 
+	/**
+	 * @var array<string, TypeDescriptor>
+	 */
+	private array $types = []; // @phpstan-ignore property.onlyWritten
+
 	private ?Cache $cache = Null;
 
 	/**
@@ -36,6 +41,7 @@ final class HayoEngine
 	{
 		return new self([
 			'predicate' => new PredicatesProvider(),
+			'Bool' => new BoolProvider(),
 			'Math' => new MathsProvider(),
 			'Str' => new StringsProvider(),
 			'List' => new ListsProvider(),
@@ -50,6 +56,9 @@ final class HayoEngine
 	function registerLibrary(string $ns, SymbolProvider $lib): self
 	{
 		$this->libs[$ns] = $lib;
+		if ($lib instanceof TypeDescriptor) {
+			$this->types[$lib->getTypeName()] = $lib;
+		}
 		return $this;
 	}
 
@@ -94,7 +103,7 @@ final class HayoEngine
 
 			case $expr instanceof ParametricValue: // @phpstan-ignore instanceof.alwaysTrue
 				return $expr
-					->apply(self::buildAppliableArguments($expr, $args))
+					->apply($this->buildAppliableArguments($expr, $args))
 					->unpack();
 
 			default:
@@ -127,13 +136,13 @@ final class HayoEngine
 	 * @param list<mixed> | array<string, mixed> $args
 	 * @return array<string, FinalValue>
 	 */
-	private static function buildAppliableArguments(ParametricValue $expr, array $args): array
+	private function buildAppliableArguments(ParametricValue $expr, array $args): array
 	{
 		if ( ! is_string(key($args))) {
 			$args = self::combineBindWithValues($expr, $args); // @phpstan-ignore argument.type
 		}
-		return array_map(static function ($x): FinalValue { // @phpstan-ignore return.type
-			return self::pack($x);
+		return array_map(function ($x): FinalValue { // @phpstan-ignore return.type
+			return $this->pack($x);
 		}, $args);
 	}
 
@@ -142,22 +151,22 @@ final class HayoEngine
 	/**
 	 * @param mixed $val
 	 */
-	private static function pack($val): FinalValue
+	private function pack($val): FinalValue
 	{
 		if ($val instanceof FinalValue) {
 			return $val;
 		}
-		$type = self::gauseType($val);
+		$type = $this->gauseType($val);
 		switch ($type) {
 			case 'Tuple':
 			case 'List':
-				return new FinalValue(array_map(static function ($x): FinalValue {
-					return self::pack($x);
+				return new FinalValue(array_map(function ($x): FinalValue {
+					return $this->pack($x);
 				}, $val), $type);
 
 			case 'Dict':
-				return new FinalValue((object) array_map(static function ($x): FinalValue {
-					return self::pack($x);
+				return new FinalValue((object) array_map(function ($x): FinalValue {
+					return $this->pack($x);
 				}, (array) $val), $type);
 
 			default:
@@ -170,7 +179,7 @@ final class HayoEngine
 	/**
 	 * @param mixed $src
 	 */
-	private static function gauseType($src): string
+	private function gauseType($src): string
 	{
 		switch (True) {
 			case is_null($src):
@@ -193,6 +202,9 @@ final class HayoEngine
 
 			case self::is_dict($src):
 				return 'Dict';
+
+			case $src instanceof HayoValue:
+				return $src->getHayoType();
 
 			default:
 				throw ArgumentsException::InvalidValueType($src);

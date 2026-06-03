@@ -188,7 +188,7 @@ class UtilsTest extends TestCase
 
 	function testGetSignatureFromWithGenericType()
 	{
-		// @signature "xs: Dict, key: Str, default: ? -> ?"
+		// @signature "xs: Dict, key: Str, default: a -> a"
 		$method = new ReflectionMethod(DictFunc::class, 'applyGet');
 		[$binds, $returnType] = Utils::getSignatureFrom($method);
 		$this->assertEquals([

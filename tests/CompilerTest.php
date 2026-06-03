@@ -611,8 +611,8 @@ content = [
 			['"Sinead O\'Connor"', new FinalValue("Sinead O'Connor", 'Str')],
 			['"""Sinead O\'Connor"""', new FinalValue("Sinead O'Connor", 'Str')],
 
-			['True', new FinalValue(true, 'Symbol')],
-			['False', new FinalValue(false, 'Symbol')],
+			['True', new FinalValue(true, 'Bool')],
+			['False', new FinalValue(false, 'Bool')],
 			['Null', new FinalValue(null, 'Symbol')],
 		];
 	}
@@ -769,18 +769,6 @@ content = [
 					new BindValue('b', 'Num'),
 					])],
 
-			["List.at 2 [\"une\", a, \"trois\"]", ParametricValue::Expr_(Expr::Func_(new ListFunc('at'), [
-					new FinalValue(2, 'Int'),
-					Composite::List_([
-						new FinalValue("une", 'Str'),
-						new BindValue("a", '?'),
-						new FinalValue("trois", 'Str'),
-						]),
-					]),
-				'?',
-				[ new BindValue('a', '?') ]
-				)],
-
 			// @TODO
 		];
 	}
@@ -884,10 +872,10 @@ content = [
 				new FinalValue(0, 'Int'),
 				],
 
-			// List.first
+			// List.first — default must unify with element type (Hindley-Milner)
 			[""
 			. "xs = [1, 2, 3, 4]\n"
-			. "List.first xs Null",
+			. "List.first xs 0",
 				new FinalValue(1, 'a'),
 				],
 			[""
@@ -919,23 +907,23 @@ content = [
 				],
 			[""
 			. "xs = [1, 2, 3, 4]\n"
-			. "List.at xs 999 Null",
-				new FinalValue(Null, 'a'),
+			. "List.at xs 999 0",
+				new FinalValue(0, 'a'),
 				],
 			[""
 			. "xs = [1, 2, 3, 4]\n"
-			. "List.at xs 0 Null",
+			. "List.at xs 0 0",
 				new FinalValue(1, 'a'),
 				],
 			[""
 			. "xs = [1, 2, 3, 4]\n"
-			. "List.at xs 3 Null",
+			. "List.at xs 3 0",
 				new FinalValue(4, 'a'),
 				],
 			[""
 			. "xs = [1, 2, 3, 4]\n"
-			. "List.at xs 4 Null",
-				new FinalValue(Null, 'a'),
+			. "List.at xs 4 0",
+				new FinalValue(0, 'a'),
 				],
 
 			// List.exists
@@ -1152,7 +1140,7 @@ content = [
 	{
 		return [
 			["True",
-				new FinalValue(true, 'Symbol'),
+				new FinalValue(true, 'Bool'),
 				],
 
 			["1 == 2",
@@ -1285,7 +1273,8 @@ content = [
 				new FinalValue(True, 'Bool'),
 				],
 
-			// Dict.get
+			// Dict.get — default is passed through unchanged when key is missing
+			// (keeps its type), the actual value gets type 'a' from signature.
 			["xs = {  }\n"
 			.'Dict.get xs "foo" "noop"',
 				new FinalValue("noop", 'Str'),
@@ -1371,13 +1360,13 @@ content = [
 			// mod accepts only Int — passing a Real fires a type error before the zero-check
 			'float mod zero (constant)' => ['10.0 mod 0',
 				[],
-				CompileException::class, 'Expected int'],
+				CompileException::class, 'Cannot unify'],
 
 			// Wrong argument type passed to a built-in — caught at compile time
 			// when all operands are constants and the call is partially evaluated.
 			'Str.len on integer literal' => ['Str.len 42',
 				[],
-				CompileException::class, 'Expected string'],
+				CompileException::class, 'Cannot unify'],
 
 			// Syntax / parse errors
 			'incomplete if' => ['if a then',
@@ -1389,11 +1378,11 @@ content = [
 				CompileException::class, 'Lambda arguments must be simple names',
 				],
 
-			// Compile-time type mismatch: `b` is Str but `+` requires Num
+			// Compile-time type mismatch: both operands are known, `+` requires Num
 			'type mismatch at compile' => [
-				"b = \"Hi\"\na + b",
+				"b = \"Hi\"\n1 + b",
 				[],
-				CompileException::class, 'Invalid arguments of Math.+:',
+				CompileException::class, 'Cannot unify',
 				],
 
 			// Reassignment is not allowed
@@ -1403,37 +1392,45 @@ content = [
 			'int OR int' => [
 				'1 OR 2 OR 3',
 				[],
-				CompileException::class, 'Expected bool',
+				CompileException::class, 'Cannot unify',
 				],
 
 			'int || int' => [
 				'1 || 2 || 3',
 				[],
-				CompileException::class, 'Expected bool',
+				CompileException::class, 'Cannot unify',
 				],
 
 			'bool AND int' => [
 				'(1 == 1) && 1',
 				[],
-				CompileException::class, 'Expected bool',
+				CompileException::class, 'Cannot unify',
 				],
 
 			'str AND int' => [
 				'"hello" AND 1',
 				[],
-				CompileException::class, 'Expected bool',
+				CompileException::class, 'Cannot unify',
 				],
 
 			'str AND zero' => [
 				'"hello" AND 0',
 				[],
-				CompileException::class, 'Expected bool',
+				CompileException::class, 'Cannot unify',
 				],
 
 			'zero OR zero' => [
 				'0 OR 0',
 				[],
-				CompileException::class, 'Expected bool',
+				CompileException::class, 'Cannot unify',
+				],
+
+			// Phase 2: type inference catches wrong-typed arguments
+			// List.at expects src:List<a> as first arg, but Int (2) is passed
+			'List.at with wrong arg types' => [
+				'List.at 2 ["une", a, "trois"]',
+				[],
+				CompileException::class, "Cannot unify",
 				],
 
 			// Unsupported lambda forms
@@ -1457,6 +1454,7 @@ content = [
 	{
 		return (new Compiler([
 			'predicate' => new PredicatesProvider(),
+			'Bool' => new BoolProvider(),
 			'Math' => new MathsProvider(),
 			'Str' => new StringsProvider(),
 			'List' => new ListsProvider(),

@@ -6,7 +6,7 @@ php-hayo
 
 Hayo is a lightweight, purely functional scripting language / runtime implemented in PHP. It is designed for interpreting user-defined logic (conditions, transformations, business rules) from scripts that you may want to store (for example) in a database and keep user-editable. You pass a script as a string, compile it into a function, and then call that function with concrete data.
 
-Read the **[complete language reference](SYNTAX.md)**.
+Read the **[language syntax reference](docs/syntax.md)** and the **[built-in function reference](docs/libs.md)**.
 
 ---
 
@@ -94,34 +94,28 @@ $engine->registerLibrary("MyStrings", new MyStringsProvider())
 ### Local functions and lambdas
 You can define functions within your script:
 ```php
-Hayo\HayoEngine::WithDefaultLibraries()
+HayoEngine::WithDefaultLibraries()
     ->evaluate("
 inc = x -> x + 1
 inc counter
-    ")
-    ->apply(["counter" => 41]); // 42
+    ", ["counter" => 41]); // 42
 ```
 
 ### Higher-order functions — map, fold, and more
 ```php
-Hayo\HayoEngine::WithDefaultLibraries()
-    ->evaluate("
-List.map xs (x -> x * x)
-    ")
-    ->apply(["xs" => [1, 2, 3]]); // [1, 4, 9]
+HayoEngine::WithDefaultLibraries()
+    ->evaluate("List.map xs (x -> x * x)", ["xs" => [1, 2, 3]]); // [1, 4, 9]
 ```
 
 ### Pipe chains operator
 ```php
-Hayo\HayoEngine::WithDefaultLibraries()
+HayoEngine::WithDefaultLibraries()
     ->evaluate("
 xs
-	|> List.map (x -> x * x)
-	|> List.fold 0 (prev curr -> prev + curr)
-    ")
-    ->apply(["xs" => [1, 2, 3, 4]]); // 30
+    |> List.map (x -> x * x)
+    |> List.fold 0 (prev curr -> prev + curr)
+    ", ["xs" => [1, 2, 3, 4]]); // 30
 ```
-
 
 ---
 
@@ -149,7 +143,7 @@ Occur during script execution.
 
 ## 📐 Built-in Functions
 
-Read the **[complete list of functions and detailed description of their parameters](SYNTAX.md#built-in-functions)**.
+Read the **[complete built-in function reference](docs/libs.md)**.
 
 - **Math:** `+`, `-`, `*`, `div`, `mod`, `Math.ceil`, `Math.floor`, `Math.round`.
 - **Strings (Str):** `len`, `split`, `concat`, `format`, `indexOf`, `contains`, `startsWith`, `endsWith`, `sub`, `toUpper`, `toLower`, `trim`.

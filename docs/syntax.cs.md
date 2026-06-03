@@ -4,6 +4,8 @@ Hayo je čistě funkcionální skriptovací jazyk. Skript se předá jako řetě
 do funkce a ta se volá s konkrétními daty. Výsledkem je vždy poslední vyhodnocený výraz.
 Žádné side-efekty nejsou možné.
 
+Viz také: **[Vestavěné funkce](libs.cs.md)**
+
 
 
 ## Komentáře
@@ -39,12 +41,6 @@ do funkce a ta se volá s konkrétními daty. Výsledkem je vždy poslední vyho
 "Sinead O'Connor"       -- apostrof uvnitř dvojitých uvozovek
 'Sinead O\'Connor'      -- uvnitř jednoduchých uvozovek je třeba escapovat
 """Sinead O'Connor"""   -- trojité uvozovky, apostrof uvnitř bez escapování
-```
-
-Formátovací maska ve funkci `Str.format` používá `${jméno}`:
-
-```
-Str.format "Lorem ${a} doler ist." {a: "ipsum"}
 ```
 
 ### Logické hodnoty a Null
@@ -162,7 +158,6 @@ Prvky oddělené čárkami nebo novými řádky, uzavřené do `[ ]`:
 ```
 []
 [1, 2, 3]
-[1, 2, 3, 4]
 ["une", "deux", "trois"]
 [
     "une"
@@ -330,8 +325,6 @@ else "D"
 
 
 
-
-
 ## Pipe operátor `|>`
 
 Hodnota vlevo se předá jako první argument funkce vpravo:
@@ -365,150 +358,8 @@ price * vat
 ```
 
 ```
-xs = (Str.split src ",")
-{
-    street: (List.first xs "")
-    city:   (List.at xs 1 "") |> Str.trim
-    country:(List.at xs 2 "") |> Str.trim
-}
-```
-
-
-
-## Vestavěné funkce
-
-### Matematika (Math / krátká forma bez prefixu)
-
-| Zápis | Popis | Typy |
-|---|---|---|
-| `a + b` | součet | Int/Real |
-| `a - b` | rozdíl | Int/Real |
-| `a * b` | součin | Int/Real |
-| `a div b` | celočíselné dělení | Int/Real |
-| `a mod b` | zbytek po dělení | Int |
-| `Math.ceil a` | zaokrouhlení nahoru | Real → Int |
-| `Math.floor a` | zaokrouhlení dolů | Real → Int |
-| `Math.round a precision` | matematické zaokrouhlení | Real Int → Real |
-
-
-### Řetězce (Str)
-
-| Funkce | Argumenty | Výsledek | Popis |
-|---|---|---|---|
-| `Str.len src` | Str | Int | délka řetězce |
-| `Str.split src sep` | Str Str | List\<Str\> | rozdělení řetězce |
-| `Str.concat list sep` | List\<Str\> Str | Str | spojení seznamu řetězců |
-| `Str.format src dict` | Str Dict\<Str\> | Str | formátování (`${jméno}`) |
-| `Str.indexOf src fragment` | Str Str | Int | pozice podřetězce, nebo -1 |
-| `Str.contains src fragment` | Str Str | Bool | zda obsahuje podřetězec |
-| `Str.startsWith src fragment` | Str Str | Bool | začíná daným fragmentem |
-| `Str.endsWith src fragment` | Str Str | Bool | končí daným fragmentem |
-| `Str.sub src start len` | Str Int Int | Str | podřetězec (Unicode) |
-| `Str.toUpper src` | Str | Str | převod na velká písmena |
-| `Str.toLower src` | Str | Str | převod na malá písmena |
-| `Str.trim src` | Str | Str | oříznutí bílých znaků |
-
-
-### Seznamy (List)
-
-| Funkce | Argumenty | Výsledek | Popis |
-|---|---|---|---|
-| `List.len src` | List\<a\> | Int | počet prvků |
-| `List.first src default` | List\<a\> a | a | první prvek, nebo výchozí |
-| `List.at src index default` | List\<a\> Int a | a | prvek na indexu (0-based), nebo výchozí |
-| `List.exist src index` | List\<a\> Int | Bool | zda existuje prvek na indexu |
-| `List.push xs x` | List\<a\> a | List\<a\> | přidání prvku na konec |
-| `List.concat xs ys` | List\<a\> List\<a\> | List\<a\> | spojení dvou seznamů |
-| `List.slice src start length` | List\<a\> Int Int | List\<a\> | výřez |
-| `List.indexOf src fn offset` | List\<a\> Callable Int | Int | index prvního prvku splňujícího predikát, nebo -1 |
-| `List.map src fn` | List\<a\> Callable | List\<b\> | transformace každého prvku |
-| `List.filter src fn` | List\<a\> Callable | List\<a\> | filtrování dle predikátu |
-| `List.fold src init fn` | List\<a\> b Callable | b | redukce na jednu hodnotu |
-| `List.split src fn limit` | List\<a\> Callable Int | List\<List\<a\>\> | rozdělení dle predikátu |
-| `List.sort src fn` | List\<a\> Callable | List\<a\> | řazení komparátorem |
-| `List.sort src "List.Asc"` | List\<a\> | List\<a\> | vzestupné řazení |
-| `List.sort src "List.Desc"` | List\<a\> | List\<a\> | sestupné řazení |
-
-
-### Slovníky (Dict)
-
-| Funkce | Argumenty | Výsledek | Popis |
-|---|---|---|---|
-| `Dict.has xs key` | Dict Str | Bool | zda klíč existuje |
-| `Dict.get xs key default` | Dict Str a | a | hodnota dle klíče, nebo výchozí |
-| `Dict.merge xs ys` | Dict Dict | Dict | sloučení dvou slovníků |
-| `Dict.keys xs` | Dict | List\<Str\> | seznam klíčů |
-| `Dict.values xs` | Dict | List\<?\> | seznam hodnot |
-
-
-### Introspekce (Introspect)
-
-| Funkce | Argumenty | Výsledek | Popis |
-|---|---|---|---|
-| `Introspect.of src` | ? | Str | název typu hodnoty jako řetězec |
-| `Introspect.is src type` | ? Str | Bool | vrátí True, pokud je hodnota daného typu |
-
-Vrácené hodnoty `Introspect.of`: `"Int"`, `"Real"`, `"Str"`, `"Bool"`, `"Null"`, `"List"`, `"Dict"`, `"Tuple"`, `"DateTime"`, nebo název vlastního typu (např. `"Money"`).
-
-```
-Introspect.of 42              -- "Int"
-Introspect.of "hello"         -- "Str"
-Introspect.of src             -- "Money"  (pro vlastní typ)
-
-Introspect.is src "Money"     -- True / False
-
-if (Introspect.of src) == "Money" then "je to peníze" else "jiný typ"
-if Introspect.is src "Int" then "číslo" else "jiný typ"
-```
-
-
-### Datum a čas (DateTime)
-
-| Funkce | Argumenty | Výsledek | Popis |
-|---|---|---|---|
-| `DateTime.fromDate year month day` | Int Int Int | DateTime | sestavení z data |
-| `DateTime.fromDateTime year month day hour minute sec` | Int×6 | DateTime | sestavení z data a času |
-| `DateTime.fromTimestamp src` | Int | DateTime | z Unix timestampu |
-| `DateTime.toTimestamp src` | DateTime | Int | na Unix timestamp |
-| `DateTime.format mask src` | Str DateTime | Str | formátování (PHP `date()` formát) |
-
-
-## Rozšíření: vlastní typy a funkce
-
-Hayo lze rozšířit o vlastní typy a funkce na straně PHP bez nutnosti upravovat engine.
-Registrace probíhá přes `registerLibrary()` — jeden příkaz pokryje funkce i typ.
-
-***Comming soon...***
-
-
-## Příklady
-
-```
-1 + 1
-```
-
-```
-price * 1.23
-```
-
-```
-vat = 1.23
-price * vat
-```
-
-```
 inc = x -> x + 1
 inc counter
-```
-
-```
-List.map xs (x -> x * x)
-```
-
-```
-xs
-    |> List.map (x -> x * x)
-    |> List.fold 0 (prev curr -> prev + curr)
 ```
 
 ```
@@ -516,13 +367,4 @@ if score < 50 then "F"
 elif score < 70 then "C"
 elif score < 90 then "B"
 else "A"
-```
-
-```
-xs = (Str.split src ",")
-{
-    street:  (List.first xs "")
-    city:    (List.at xs 1 "") |> Str.trim
-    country: (List.at xs 2 "") |> Str.trim
-}
 ```

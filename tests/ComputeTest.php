@@ -631,6 +631,10 @@ else "D"
 	{
 		$msg = 'Lambda arguments must be simple names, not expressions. Use `(a b -> ...)` instead of `((a b) -> ...)` or `((a) -> ...)`.';
 		return [
+			// Phase 2: (10 + a) returns Int, `or` expects Bool — caught at compile time
+			['(10 + a) or (a + 1)',
+				CompileException::class, 'Cannot unify'],
+
 			['List.sort xs ((a b) -> a + b)',
 				CompileException::class,
 				$msg],
@@ -651,15 +655,12 @@ else "D"
 	static function dataApplyErrors(): array
 	{
 		return [
-			['(10 + a) or (a + 1)',
-				['a' => new FinalValue(8, 'Int')],
-				ScriptRuntimeException::class, 'Expected bool'],
 			['a || 2',
 				['a' => new FinalValue(41, 'Int')],
-				CompileException::class, 'Expected bool'],
+				CompileException::class, "Cannot unify 'Bool' with 'Int'"],
 			['a && 2',
 				['a' => new FinalValue(41, 'Int')],
-				CompileException::class, 'Expected bool'],
+				CompileException::class, "Cannot unify 'Bool' with 'Int'"],
 			['a && False',
 				['a' => new FinalValue(41, 'Int')],
 				ScriptRuntimeException::class, 'Expected bool'],
@@ -671,10 +672,10 @@ else "D"
 				ScriptRuntimeException::class, 'Expected bool'],
 			['not (1 or a)',
 				['a' => new FinalValue(False, 'Bool')],
-				CompileException::class, 'Expected bool'],
+				CompileException::class, "Cannot unify 'Bool' with 'Int'"],
 			['(not 1) or a',
 				['a' => new FinalValue(True, 'Bool')],
-				CompileException::class, 'Expected bool'],
+				CompileException::class, 'Cannot unify'],
 		];
 	}
 
@@ -712,6 +713,7 @@ xs = (Str.split src \",\")
 	{
 		return (new Compiler([
 			'predicate' => new PredicatesProvider(),
+			'Bool' => new BoolProvider(),
 			'Math' => new MathsProvider(),
 			'Str' => new StringsProvider(),
 			'List' => new ListsProvider(),
