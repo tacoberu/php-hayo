@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    Konfigurace pro PHPUnit 9 a 10 (PHP 7.4 - 8.1).
+    Neobsahuje atributy specifické pro PHPUnit 11 (failOnDeprecation,
+    failOnPhpunitDeprecation), aby validovala proti staršímu schématu.
+    Na PHP 8.2+ se používá phpunit.xml.dist.
+-->
+<phpunit backupGlobals="false"
+         colors="true"
+         cacheResult="false"
+         processIsolation="false"
+         stopOnFailure="false"
+         failOnWarning="true"
+         bootstrap="vendor/autoload.php">
+    <testsuites>
+        <testsuite name="Hayo Test Suite">
+            <directory suffix="Test.php">./tests</directory>
+        </testsuite>
+    </testsuites>
+</phpunit>

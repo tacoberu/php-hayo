@@ -38,6 +38,8 @@ class RuntimeErrorTest extends TestCase
 	 * @param array<string, mixed> $args
 	 * @param class-string<\Throwable> $exception
 	 * @param class-string<\Throwable>|null $cause
+	 * @dataProvider dataArgumentErrors
+	 * @dataProvider dataRuntimeErrors
 	 */
 	#[DataProvider('dataArgumentErrors')]
 	#[DataProvider('dataRuntimeErrors')]
@@ -64,6 +66,8 @@ class RuntimeErrorTest extends TestCase
 	 * @param array<mixed> $args
 	 * @param class-string<\Throwable> $exception
 	 * @param class-string<\Throwable>|null $cause
+	 * @dataProvider dataArgumentErrors
+	 * @dataProvider dataRuntimeErrors
 	 */
 	#[DataProvider('dataArgumentErrors')]
 	#[DataProvider('dataRuntimeErrors')]

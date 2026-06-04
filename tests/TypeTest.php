@@ -43,6 +43,9 @@ class TypeTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataTConToString
+	 */
 	#[DataProvider('dataTConToString')]
 	function testTConToString(string $name): void
 	{

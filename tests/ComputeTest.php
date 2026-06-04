@@ -18,6 +18,15 @@ class ComputeTest extends TestCase
 
 	/**
 	 * @param array<string, FinalValue> $args
+	 * @dataProvider dataOperations
+	 * @dataProvider dataStrings
+	 * @dataProvider dataExpressions
+	 * @dataProvider dataLists
+	 * @dataProvider dataPredicators
+	 * @dataProvider dataPaths
+	 * @dataProvider dataPipeOperator
+	 * @dataProvider dataForms
+	 * @dataProvider dataComplex
 	 */
 	#[DataProvider('dataOperations')]
 	#[DataProvider('dataStrings')]
@@ -37,6 +46,7 @@ class ComputeTest extends TestCase
 
 	/**
 	 * @param class-string<\Throwable> $exception
+	 * @dataProvider dataErrors
 	 */
 	#[DataProvider('dataErrors')]
 	function testComputeErrors(string $code, string $exception, string $message): void
@@ -51,6 +61,7 @@ class ComputeTest extends TestCase
 	/**
 	 * @param array<string, FinalValue> $args
 	 * @param class-string<\Throwable> $exception
+	 * @dataProvider dataApplyErrors
 	 */
 	#[DataProvider('dataApplyErrors')]
 	function testComputeApplyErrors(string $code, array $args, string $exception, string $message): void

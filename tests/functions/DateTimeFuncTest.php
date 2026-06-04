@@ -34,6 +34,9 @@ class DateTimeFuncTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataFromDateTimeApply
+	 */
 	#[DataProvider('dataFromDateTimeApply')]
 	function testFromDateTimeApply($year, $month, $day, $hour, $minute, $sec, $expected)
 	{
@@ -64,6 +67,9 @@ class DateTimeFuncTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataFromDateApply
+	 */
 	#[DataProvider('dataFromDateApply')]
 	function testFromDateApply($year, $month, $day, $expected)
 	{
@@ -89,6 +95,9 @@ class DateTimeFuncTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataFromToTimestampApply
+	 */
 	#[DataProvider('dataFromToTimestampApply')]
 	function testToTimestampApply(int $expected, DateTime $src)
 	{
@@ -112,6 +121,9 @@ class DateTimeFuncTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataFromToTimestampApply
+	 */
 	#[DataProvider('dataFromToTimestampApply')]
 	function testFromTimestampApply(int $src, $expected)
 	{
@@ -123,6 +135,9 @@ class DateTimeFuncTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataFormatApply
+	 */
 	#[DataProvider('dataFormatApply')]
 	function testFormatApply(string $format, DateTime $src, $expected)
 	{

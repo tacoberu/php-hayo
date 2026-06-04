@@ -20,6 +20,7 @@ class HayoEngineTest extends TestCase
 
 	/**
 	 * @param array<mixed> $args
+	 * @dataProvider dataCorrect
 	 */
 	#[DataProvider('dataCorrect')]
 	function testCorrect(string $code, array $args, $expected)
@@ -34,6 +35,10 @@ class HayoEngineTest extends TestCase
 	/**
 	 * @param class-string<\Throwable> $exception
 	 * @param array<mixed> $args
+	 * @dataProvider dataSymbolNotFoundErrors
+	 * @dataProvider dataCompileErrors
+	 * @dataProvider dataInvalidArgumentErrors
+	 * @dataProvider dataScriptRuntimeErrors
 	 */
 	#[DataProvider('dataSymbolNotFoundErrors')]
 	#[DataProvider('dataCompileErrors')]

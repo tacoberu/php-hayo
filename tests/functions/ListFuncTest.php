@@ -32,6 +32,7 @@ class ListFuncTest extends TestCase
 
 	/**
 	 * @param array<mixed> $items
+	 * @dataProvider dataLenApply
 	 */
 	#[DataProvider('dataLenApply')]
 	function testLenApply(array $items, int $expected)
@@ -61,6 +62,7 @@ class ListFuncTest extends TestCase
 
 	/**
 	 * @param array<mixed> $items
+	 * @dataProvider dataFirstApply
 	 */
 	#[DataProvider('dataFirstApply')]
 	function testFirstApply(array $items, $default, $expected)
@@ -92,6 +94,7 @@ class ListFuncTest extends TestCase
 
 	/**
 	 * @param array<mixed> $items
+	 * @dataProvider dataAtApply
 	 */
 	#[DataProvider('dataAtApply')]
 	function testAtApply(array $items, int $index, $default, $expected)
@@ -123,6 +126,7 @@ class ListFuncTest extends TestCase
 
 	/**
 	 * @param array<mixed> $items
+	 * @dataProvider dataExistApply
 	 */
 	#[DataProvider('dataExistApply')]
 	function testExistApply(int $index, array $items, bool $expected)
@@ -154,6 +158,7 @@ class ListFuncTest extends TestCase
 	/**
 	 * @param array<mixed> $xs
 	 * @param array<mixed> $expected
+	 * @dataProvider dataPushApply
 	 */
 	#[DataProvider('dataPushApply')]
 	function testPushApply(array $xs, $x, array $expected)
@@ -192,6 +197,7 @@ class ListFuncTest extends TestCase
 	/**
 	 * @param array<mixed> $xs
 	 * @param array<mixed> $expected
+	 * @dataProvider dataSortApply
 	 */
 	#[DataProvider('dataSortApply')]
 	function testSortApply(array $xs, string $direction, array $expected)

@@ -16,6 +16,20 @@ use PHPUnit\Framework\Attributes\DataProvider;
 class CompilerTest extends TestCase
 {
 
+	/**
+	 * @dataProvider dataScalar
+	 * @dataProvider dataCompositeFinal
+	 * @dataProvider dataOperations
+	 * @dataProvider dataFunctions
+	 * @dataProvider dataLambdas
+	 * @dataProvider dataFinalValueWithSymbol
+	 * @dataProvider dataParametricValue
+	 * @dataProvider dataLists
+	 * @dataProvider dataPredicators
+	 * @dataProvider dataShortLinkBind
+	 * @dataProvider dataPaths
+	 * @dataProvider dataDicts
+	 */
 	#[DataProvider('dataScalar')]
 	#[DataProvider('dataCompositeFinal')]
 	#[DataProvider('dataOperations')]
@@ -535,6 +549,7 @@ content = [
 	/**
 	 * @param array<mixed> $_args
 	 * @param class-string<Throwable> $exception
+	 * @dataProvider dataErrors
 	 */
 	#[DataProvider('dataErrors')]
 	function testCompileWithErrors(string $code, array $_args, string $exception, string $message): void
@@ -550,6 +565,7 @@ content = [
 	 * convenience: errors surfaced through HayoEngine::evaluate
 	 * @param array<mixed> $args
 	 * @param class-string<Throwable> $exception
+	 * @dataProvider dataErrors
 	 */
 	#[DataProvider('dataErrors')]
 	function testEvaluateWithErrors(string $code, array $args, string $exception, string $messageFragment): void

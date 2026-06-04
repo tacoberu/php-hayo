@@ -38,6 +38,9 @@ class PredicateFunctionTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataEqApply
+	 */
 	#[DataProvider('dataEqApply')]
 	function testEqApply($a, $b, bool $expected)
 	{
@@ -65,6 +68,9 @@ class PredicateFunctionTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataNeqApply
+	 */
 	#[DataProvider('dataNeqApply')]
 	function testNeqApply($a, $b, bool $expected)
 	{
@@ -92,6 +98,9 @@ class PredicateFunctionTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataLtApply
+	 */
 	#[DataProvider('dataLtApply')]
 	function testLtApply($a, $b, bool $expected)
 	{
@@ -119,6 +128,9 @@ class PredicateFunctionTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataGtApply
+	 */
 	#[DataProvider('dataGtApply')]
 	function testGtApply($a, $b, bool $expected)
 	{
@@ -146,6 +158,9 @@ class PredicateFunctionTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataLteApply
+	 */
 	#[DataProvider('dataLteApply')]
 	function testLteApply($a, $b, bool $expected)
 	{
@@ -173,6 +188,9 @@ class PredicateFunctionTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataGteApply
+	 */
 	#[DataProvider('dataGteApply')]
 	function testGteApply($a, $b, bool $expected)
 	{
@@ -213,6 +231,9 @@ class PredicateFunctionTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataAndApply
+	 */
 	#[DataProvider('dataAndApply')]
 	function testAndApply(bool $a, bool $b, bool $expected)
 	{
@@ -253,6 +274,9 @@ class PredicateFunctionTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataOrApply
+	 */
 	#[DataProvider('dataOrApply')]
 	function testOrApply(bool $a, bool $b, bool $expected)
 	{
@@ -279,6 +303,9 @@ class PredicateFunctionTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataNotApply
+	 */
 	#[DataProvider('dataNotApply')]
 	function testNotApply(bool $a, bool $expected)
 	{
@@ -307,6 +334,7 @@ class PredicateFunctionTest extends TestCase
 
 	/**
 	 * @param array<mixed> $b
+	 * @dataProvider dataInApply
 	 */
 	#[DataProvider('dataInApply')]
 	function testInApply($a, array $b, bool $expected)
@@ -337,6 +365,7 @@ class PredicateFunctionTest extends TestCase
 
 	/**
 	 * @param array<mixed> $a
+	 * @dataProvider dataHasApply
 	 */
 	#[DataProvider('dataHasApply')]
 	function testHasApply(array $a, $b, bool $expected)
@@ -368,6 +397,7 @@ class PredicateFunctionTest extends TestCase
 	/**
 	 * @param array<mixed> $a
 	 * @param array<mixed> $b
+	 * @dataProvider dataSupersetApply
 	 */
 	#[DataProvider('dataSupersetApply')]
 	function testSupersetApply(array $a, array $b, bool $expected)
@@ -399,6 +429,7 @@ class PredicateFunctionTest extends TestCase
 	/**
 	 * @param array<mixed> $a
 	 * @param array<mixed> $b
+	 * @dataProvider dataSubsetApply
 	 */
 	#[DataProvider('dataSubsetApply')]
 	function testSubsetApply(array $a, array $b, bool $expected)
@@ -430,6 +461,7 @@ class PredicateFunctionTest extends TestCase
 	/**
 	 * @param array<mixed> $a
 	 * @param array<mixed> $b
+	 * @dataProvider dataIntersectsApply
 	 */
 	#[DataProvider('dataIntersectsApply')]
 	function testIntersectsApply(array $a, array $b, bool $expected)

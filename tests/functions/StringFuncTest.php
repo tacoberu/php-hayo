@@ -37,6 +37,9 @@ class StringFuncTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataLenApply
+	 */
 	#[DataProvider('dataLenApply')]
 	function testLenApply(string $src, int $expected)
 	{
@@ -65,6 +68,7 @@ class StringFuncTest extends TestCase
 
 	/**
 	 * @param array<string> $expected
+	 * @dataProvider dataSplitApply
 	 */
 	#[DataProvider('dataSplitApply')]
 	function testSplitApply(string $src, string $sep, array $expected)
@@ -95,6 +99,7 @@ class StringFuncTest extends TestCase
 
 	/**
 	 * @param array<string> $src
+	 * @dataProvider dataConcatApply
 	 */
 	#[DataProvider('dataConcatApply')]
 	function testConcatApply(string $sep, string $expected, array $src)
@@ -123,6 +128,9 @@ class StringFuncTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataIndexOfApply
+	 */
 	#[DataProvider('dataIndexOfApply')]
 	function testIndexOfApply(string $src, string $fragment, int $expected)
 	{
@@ -150,6 +158,9 @@ class StringFuncTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataContainsApply
+	 */
 	#[DataProvider('dataContainsApply')]
 	function testContainsApply(string $src, string $fragment, bool $expected)
 	{
@@ -177,6 +188,9 @@ class StringFuncTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataStartsWithApply
+	 */
 	#[DataProvider('dataStartsWithApply')]
 	function testStartsWithApply(string $src, string $fragment, bool $expected)
 	{
@@ -204,6 +218,9 @@ class StringFuncTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataEndsWithApply
+	 */
 	#[DataProvider('dataEndsWithApply')]
 	function testEndsWithApply(string $src, string $fragment, bool $expected)
 	{
@@ -232,6 +249,9 @@ class StringFuncTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataSubApply
+	 */
 	#[DataProvider('dataSubApply')]
 	function testSubApply(string $src, int $start, int $len, string $expected)
 	{
@@ -259,6 +279,9 @@ class StringFuncTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataToLowerApply
+	 */
 	#[DataProvider('dataToLowerApply')]
 	function testToLowerApply(string $src, string $expected)
 	{
@@ -284,6 +307,9 @@ class StringFuncTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataToUpperApply
+	 */
 	#[DataProvider('dataToUpperApply')]
 	function testToUpperApply(string $src, string $expected)
 	{
@@ -312,6 +338,7 @@ class StringFuncTest extends TestCase
 
 	/**
 	 * @param array<string> $args
+	 * @dataProvider dataFormatApply
 	 */
 	#[DataProvider('dataFormatApply')]
 	function testFormatApply(string $src, array $args, string $expected)
@@ -339,6 +366,9 @@ class StringFuncTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataTrimApply
+	 */
 	#[DataProvider('dataTrimApply')]
 	function testTrimApply(string $src, string $expected)
 	{

@@ -21,6 +21,7 @@ class TypeValidatorTest extends TestCase
 	/**
 	 * @param list<BindValue> $signature
 	 * @param array<mixed> $args
+	 * @dataProvider dataCorrect
 	 */
 	#[DataProvider('dataCorrect')]
 	function testCorrect(array $signature, array $args): void
@@ -34,6 +35,7 @@ class TypeValidatorTest extends TestCase
 	 * @param list<BindValue> $signature
 	 * @param array<mixed> $args
 	 * @param list<string> $expectedErrors
+	 * @dataProvider dataErrors
 	 */
 	#[DataProvider('dataErrors')]
 	function testErrors(array $signature, array $args, array $expectedErrors): void

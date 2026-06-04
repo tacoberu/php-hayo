@@ -39,6 +39,7 @@ class DictFuncTest extends TestCase
 
 	/**
 	 * @param array<mixed> $expected
+	 * @dataProvider dataKeysApply
 	 */
 	#[DataProvider('dataKeysApply')]
 	function testKeysApply($src, array $expected)
@@ -67,6 +68,7 @@ class DictFuncTest extends TestCase
 
 	/**
 	 * @param array<mixed> $expected
+	 * @dataProvider dataValuesApply
 	 */
 	#[DataProvider('dataValuesApply')]
 	function testValuesApply($src, array $expected)
@@ -94,6 +96,9 @@ class DictFuncTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataHasApply
+	 */
 	#[DataProvider('dataHasApply')]
 	function testHasApply($src, string $key, bool $expected)
 	{
@@ -122,6 +127,9 @@ class DictFuncTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataGetApply
+	 */
 	#[DataProvider('dataGetApply')]
 	function testGetApply($src, string $key, $default, $expected)
 	{
@@ -150,6 +158,9 @@ class DictFuncTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataMergeApply
+	 */
 	#[DataProvider('dataMergeApply')]
 	function testMergeApply($base, $exts, $expected)
 	{

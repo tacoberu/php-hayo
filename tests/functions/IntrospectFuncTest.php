@@ -18,6 +18,7 @@ class IntrospectFuncTest extends TestCase
 
 	/**
 	 * @param array<mixed> $args
+	 * @dataProvider dataOf
 	 */
 	#[DataProvider('dataOf')]
 	function testOf(string $code, array $args, string $expected): void
@@ -32,6 +33,7 @@ class IntrospectFuncTest extends TestCase
 
 	/**
 	 * @param array<mixed> $args
+	 * @dataProvider dataIs
 	 */
 	#[DataProvider('dataIs')]
 	function testIs(string $code, array $args, bool $expected): void

@@ -38,6 +38,9 @@ class MathOperatorTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataPlusApply
+	 */
 	#[DataProvider('dataPlusApply')]
 	function testPlusApply($a, $b, $expected)
 	{
@@ -65,6 +68,9 @@ class MathOperatorTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataMinusApply
+	 */
 	#[DataProvider('dataMinusApply')]
 	function testMinusApply($a, $b, $expected)
 	{
@@ -92,6 +98,9 @@ class MathOperatorTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataMultiplyApply
+	 */
 	#[DataProvider('dataMultiplyApply')]
 	function testMultiplyApply($a, $b, $expected)
 	{
@@ -119,6 +128,9 @@ class MathOperatorTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataDivApply
+	 */
 	#[DataProvider('dataDivApply')]
 	function testDivApply($a, $b, $expected)
 	{
@@ -146,6 +158,9 @@ class MathOperatorTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataModApply
+	 */
 	#[DataProvider('dataModApply')]
 	function testModApply(int $a, int $b, int $expected)
 	{
@@ -172,6 +187,9 @@ class MathOperatorTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataCeilApply
+	 */
 	#[DataProvider('dataCeilApply')]
 	function testCeilApply(float $val, int $expected)
 	{
@@ -197,6 +215,9 @@ class MathOperatorTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataFloorApply
+	 */
 	#[DataProvider('dataFloorApply')]
 	function testFloorApply(float $val, int $expected)
 	{
@@ -223,6 +244,9 @@ class MathOperatorTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataRoundApply
+	 */
 	#[DataProvider('dataRoundApply')]
 	function testRoundApply(float $val, int $precision, float $expected)
 	{

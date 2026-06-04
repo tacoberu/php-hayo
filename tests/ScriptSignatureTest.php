@@ -26,6 +26,8 @@ class ScriptSignatureTest extends TestCase
 
 	/**
 	 * @param list<BindValue> $expectedBinds
+	 * @dataProvider dataNoParams
+	 * @dataProvider dataWithParams
 	 */
 	#[DataProvider('dataNoParams')]
 	#[DataProvider('dataWithParams')]
@@ -37,6 +39,9 @@ class ScriptSignatureTest extends TestCase
 
 
 
+	/**
+	 * @dataProvider dataReturnType
+	 */
 	#[DataProvider('dataReturnType')]
 	function testReturnType(string $code, string $expectedType): void
 	{
@@ -48,6 +53,7 @@ class ScriptSignatureTest extends TestCase
 
 	/**
 	 * @param list<BindValue> $expectedBinds
+	 * @dataProvider dataContract
 	 */
 	#[DataProvider('dataContract')]
 	function testContract(string $code, array $expectedBinds, string $expectedType): void
