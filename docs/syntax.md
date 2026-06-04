@@ -303,6 +303,143 @@ Lambda arguments must be plain identifiers — `(a b -> ...)` is correct,
 
 
 
+## Sum Types
+
+A sum type is a type with a fixed set of named variants. Each variant may optionally carry payload fields:
+
+```
+type Color = Red | Green | Blue
+type Shape = Circle Real | Rectangle Real Real | Point
+type Expr  = Add Int Int | Neg Int | Lit Int
+```
+
+Variants are constructed with `TypeName.VariantName` followed by the payload values:
+
+```
+Color.Green
+Shape.Circle 5.0
+Shape.Rectangle 3.0 4.0
+Expr.Add 3 4
+```
+
+
+
+## Pattern Matching (match)
+
+`match` dispatches on the value of a sum type or a scalar. Each `case` specifies a pattern and the expression to evaluate when that pattern matches.
+
+### Basic syntax
+
+```
+match subject
+	case Pattern1 then expr1
+	case Pattern2 then expr2
+```
+
+### Sum type variants
+
+```
+type Color = Red | Green | Blue
+c = Color.Green
+
+match c
+	case Color.Red   then "red"
+	case Color.Green then "green"
+	case Color.Blue  then "blue"
+```
+
+### Binding payload fields
+
+Payload fields are bound to local names directly in the `case` pattern:
+
+```
+type Shape = Circle Real | Rectangle Real Real | Point
+s = Shape.Rectangle 3.0 4.0
+
+match s
+	case Shape.Circle r      then r * r * 3.0
+	case Shape.Rectangle w h then w * h
+	case Shape.Point         then 0.0
+```
+
+### Default section (`else`)
+
+The `else` section catches any variant not handled by an explicit `case`:
+
+```
+match c
+	case Color.Red then "red"
+	else           "other"
+```
+
+### Scalar matching
+
+`match` works on plain scalar values too:
+
+```
+match n
+	case 1 then "one"
+	case 2 then "two"
+	else   "other"
+```
+
+### Multi-pattern (`case P1 | P2 then`)
+
+Multiple patterns can share a single `case` using `|`:
+
+```
+match c
+	case Color.Red | Color.Green then "warm"
+	case Color.Blue              then "cool"
+```
+
+```
+match n
+	case 1 | 2 then "low"
+	case 3 | 4 then "high"
+	else        "other"
+```
+
+### Inline syntax
+
+All cases can be written on one line:
+
+```
+match c case Color.Red then 1 case Color.Green then 2 case Color.Blue then 3
+```
+
+### match in a let binding
+
+The result of `match` can be assigned to a variable:
+
+```
+result = match c
+    case Color.Red   then 1
+    case Color.Green then 2
+    case Color.Blue  then 3
+```
+
+### match inside a lambda
+
+```
+toInt = c ->  match c
+    case Color.Red   then 1
+    case Color.Green then 2
+    case Color.Blue  then 3
+
+List.map colors (c -> match c
+    case Color.Red   then 1
+    case Color.Green then 2
+    case Color.Blue  then 3)
+```
+
+### Exhaustiveness
+
+`match` on a sum type must cover all variants (or include an `else` section).
+A non-exhaustive `match` is caught at compile time.
+
+
+
 ## Conditionals (if-then-elif-then-else)
 
 ```

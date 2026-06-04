@@ -303,6 +303,144 @@ Argumenty lambdy musí být prosté identifikátory — `(a b -> ...)` je správ
 
 
 
+## Součtové typy (Sum Types)
+
+Součtový typ je typ s pevnou sadou pojmenovaných variant. Každá varianta může volitelně nést payload:
+
+```
+type Color = Red | Green | Blue
+type Shape = Circle Real | Rectangle Real Real | Point
+type Expr  = Add Int Int | Neg Int | Lit Int
+```
+
+Varianty se konstruují jako `NázevTypu.NázevVarianty` s hodnotami payloadu:
+
+```
+Color.Green
+Shape.Circle 5.0
+Shape.Rectangle 3.0 4.0
+Expr.Add 3 4
+```
+
+
+
+## Pattern Matching (match)
+
+`match` větví podle hodnoty součtového typu nebo skaláru. Každá `case` uvádí vzor a výraz, který se vyhodnotí, pokud vzor odpovídá.
+
+### Základní syntaxe
+
+```
+match výraz
+	case Vzor1 then výraz1
+	case Vzor2 then výraz2
+```
+
+### Varianty součtového typu
+
+```
+type Color = Red | Green | Blue
+c = Color.Green
+
+match c
+	case Color.Red   then "red"
+	case Color.Green then "green"
+	case Color.Blue  then "blue"
+```
+
+### Vazba polí payloadu
+
+Pole payloadu se svážou s lokálními jmény přímo ve vzoru `case`:
+
+```
+type Shape = Circle Real | Rectangle Real Real | Point
+s = Shape.Rectangle 3.0 4.0
+
+match s
+	case Shape.Circle r      then r * r * 3.0
+	case Shape.Rectangle w h then w * h
+	case Shape.Point         then 0.0
+```
+
+### Výchozí rameno (`else`)
+
+Sekce `else` zachytí všechny varianty, které nepokrývá žádné explicitní `case`:
+
+```
+match c
+	case Color.Red then "red"
+	else           "other"
+```
+
+
+### Matching skalárních hodnot
+
+`match` funguje i na prostých skalárních hodnotách:
+
+```
+match n
+	case 1 then "one"
+	case 2 then "two"
+	else   "other"
+```
+
+### Více vzorů najednou (`case P1 | P2 then`)
+
+Více vzorů může sdílet jedno `case` pomocí `|`:
+
+```
+match c
+	case Color.Red | Color.Green then "warm"
+	case Color.Blue              then "cool"
+```
+
+```
+match n
+	case 1 | 2 then "low"
+	case 3 | 4 then "high"
+	else        "other"
+```
+
+### Inline syntaxe
+
+Vše lze zapsat na jeden řádek:
+
+```
+match c case Color.Red then 1 case Color.Green then 2 case Color.Blue then 3
+```
+
+### match v přiřazení
+
+Výsledek `match` lze přiřadit do proměnné:
+
+```
+result = match c
+    case Color.Red   then 1
+    case Color.Green then 2
+    case Color.Blue  then 3
+```
+
+### match uvnitř lambdy
+
+```
+toInt = c ->  match c
+    case Color.Red   then 1
+    case Color.Green then 2
+    case Color.Blue  then 3
+
+List.map colors (c -> match c
+    case Color.Red   then 1
+    case Color.Green then 2
+    case Color.Blue  then 3)
+```
+
+### Úplnost vzorů
+
+`match` na součtovém typu musí pokrýt všechny varianty (nebo obsahovat sekci `else`).
+Neúplný `match` je zachycen při kompilaci.
+
+
+
 ## Podmínky (if-then-elif-then-else)
 
 ```
