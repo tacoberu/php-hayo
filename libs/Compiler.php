@@ -145,8 +145,8 @@ class Compiler
 		if ($src instanceof Lambda) {
 			$expr = $src->getExpr();
 			if ($expr instanceof Value) {
-				$symbols = array_merge($symbols, $this->scanForConstructors($expr));
-			}
+                return array_merge($symbols, $this->scanForConstructors($expr));
+            }
 			return $symbols;
 		}
 
@@ -158,8 +158,8 @@ class Compiler
 			}
 			$expr = $src->getExpr();
 			if ($expr instanceof Value) {
-				$symbols = array_merge($symbols, $this->scanForConstructors($expr));
-			}
+                return array_merge($symbols, $this->scanForConstructors($expr));
+            }
 			return $symbols;
 		}
 
@@ -702,6 +702,9 @@ class Compiler
 			// `a = 5; [1, a]`
 			// `a = 5; {a: a}`
 			case $src->getExpr() instanceof Composite: // @phpstan-ignore instanceof.alwaysFalse
+
+			// `c = Color.Red; match c | ...`
+			case $src->getExpr() instanceof Form: // @phpstan-ignore instanceof.alwaysFalse
 				$context2 = clone $context;
 				$seconds = [];
 				// 1/ First process safe values
@@ -722,36 +725,8 @@ class Compiler
 						$seconds[$id] = $value;
 					}
 				}
-
 				// 2/ Values that reach into the parent scope
 				// @TODO Recurse
-				foreach ($seconds as $id => $value) {
-					$context2->shadow($id, $this->partialEvaluate($context2, $value)); // @phpstan-ignore argument.type
-				}
-
-				return $this->partialEvaluate($context2, $src->getExpr());
-
-			// `c = Color.Red; match c | ...`
-			case $src->getExpr() instanceof Form: // @phpstan-ignore instanceof.alwaysFalse
-				$context2 = clone $context;
-				$seconds = [];
-				foreach ($src->getLets() as $id => $value) {
-					if (is_string($value) && strpos($value, '.')) {
-						$seconds[$id] = $value;
-					}
-					elseif (is_string($value)) {
-						$context2->shadowAnotherSymbol($id, $value);
-					}
-					elseif ( ! $value instanceof HasRefs) {
-						$context2->shadow($id, $this->partialEvaluate($context, $value)); // @phpstan-ignore argument.type
-					}
-					elseif ($value->refs() === []) {
-						$context2->shadow($id, $this->partialEvaluate($context, $value)); // @phpstan-ignore argument.type
-					}
-					else {
-						$seconds[$id] = $value;
-					}
-				}
 				foreach ($seconds as $id => $value) {
 					$context2->shadow($id, $this->partialEvaluate($context2, $value)); // @phpstan-ignore argument.type
 				}
@@ -944,10 +919,10 @@ class Compiler
 				return self::castExpr($src, $packref);
 
 			case $src instanceof Form && $src->getName() === 'if-then-else':
-				return self::castFormIfThenElse($src, $packref);
+				return self::castFormIfThenElse($src);
 
 			case $src instanceof Form && $src->getName() === 'match':
-				return self::castFormMatch($src, $packref);
+				return self::castFormMatch($src);
 
 			case is_string($src):
 				if ($packref) {
@@ -1118,7 +1093,7 @@ class Compiler
 	/**
 	 * @return array{0: Value, 1: array<string, BindValue>}
 	 */
-	private static function castFormIfThenElse(Form $src, bool $packref): array
+	private static function castFormIfThenElse(Form $src): array
 	{
 		$chains = [];
 		$depends = [];
@@ -1143,7 +1118,7 @@ class Compiler
 	/**
 	 * @return array{0: Value, 1: array<string, BindValue>}
 	 */
-	private static function castFormMatch(Form $src, bool $packref): array
+	private static function castFormMatch(Form $src): array
 	{
 		$items = $src->getItems();
 		$depends = [];

@@ -163,6 +163,9 @@ class StringFunc implements BuildinFunc
 		$fragment = $fragment->unpack();
 		TypeValidator::assertStr($src);
 		TypeValidator::assertStr($fragment);
+		if ($fragment === '') {
+			return new FinalValue(0, 'Int');
+		}
 		$index = mb_strpos($src, $fragment);
 		return new FinalValue($index === False ? -1 : $index, 'Int');
 	}
@@ -180,6 +183,9 @@ class StringFunc implements BuildinFunc
 		$fragment = $fragment->unpack();
 		TypeValidator::assertStr($src);
 		TypeValidator::assertStr($fragment);
+		if ($fragment === '') {
+			return new FinalValue(True, 'Bool');
+		}
 		return new FinalValue(mb_strpos($src, $fragment) !== False, 'Bool');
 	}
 

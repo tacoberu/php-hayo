@@ -19,10 +19,7 @@ namespace Taco\Hayo;
 class Unifier
 {
 
-	/**
-	 * @var int
-	 */
-	private $counter = 0;
+	private int $counter = 0;
 
 	/**
 	 * Returns a fresh type variable with an optional name prefix.

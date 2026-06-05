@@ -249,9 +249,10 @@ class ListFunc implements BuildinFunc
 	 * list to it, with the result of each step becoming a new accumulator
 	 * for the next step.
 	 * @signature "src: List<a>, init: b, cb: (b -> a -> b) -> b"
+	 * @return FinalValue|ParametricValue
 	 * @phpstan-ignore method.unused
 	 */
-	private static function applyFold(FinalValue $src, FinalValue $init, ParametricValue $cb): FinalValue|ParametricValue
+	private static function applyFold(FinalValue $src, FinalValue $init, ParametricValue $cb)
 	{
 		$value = $init;
 		$args = $cb->getArgs();
@@ -339,9 +340,10 @@ class ListFunc implements BuildinFunc
 
 	/**
 	 * @signature "src: List<a>, fn: (a -> a -> Int) -> List<a>"
+	 * @param FinalValue|ParametricValue $fn
 	 * @phpstan-ignore method.unused
 	 */
-	private static function applySort(FinalValue $src, FinalValue|ParametricValue $fn): FinalValue
+	private static function applySort(FinalValue $src, $fn): FinalValue
 	{
 		$out = $src->getValue();
 

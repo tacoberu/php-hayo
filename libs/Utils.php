@@ -109,7 +109,7 @@ final class Utils
 			// so that delimiters that share characters with brackets
 			// (e.g. `->` shares `>` with closing angle brackets) are not
 			// miscounted.
-			if ($depthRound === 0 && $depthAngle === 0 && substr($s, $i, $delimLen) === $delim) {
+			if ($depthRound === 0 && $depthAngle === 0 && (string) substr($s, $i, $delimLen) === $delim) {
 				$parts[] = $current;
 				$current = '';
 				$i += $delimLen - 1;
@@ -117,9 +117,15 @@ final class Utils
 			}
 
 			$c = $s[$i];
-			if ($c === '(') $depthRound++;
-			elseif ($c === ')') $depthRound--;
-			elseif ($c === '<') $depthAngle++;
+			if ($c === '(') {
+				$depthRound++;
+			}
+			elseif ($c === ')') {
+				$depthRound--;
+			}
+			elseif ($c === '<') {
+				$depthAngle++;
+			}
 			elseif ($c === '>') {
 				// Skip `>` that is the tail of an arrow `->`
 				if (!($i > 0 && $s[$i - 1] === '-')) {

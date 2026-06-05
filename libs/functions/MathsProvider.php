@@ -9,6 +9,9 @@
 
 namespace Taco\Hayo;
 
+use DivisionByZeroError;
+
+
 class MathsProvider implements SymbolProvider, ShortSymbolProvider
 {
 
@@ -157,6 +160,10 @@ class MathOperator implements BuildinFunc
 		$b = $b->unpack();
 		if (is_int($a) && is_int($b)) {
 			return new FinalValue(intdiv($a, $b), 'Int');
+		}
+		if ($b === 0 || $b === 0.0) {
+			// PHP 7.4 vrací jen warning + false; sjednocujeme s chováním PHP 8+
+			throw new DivisionByZeroError('Division by zero');
 		}
 		return new FinalValue($a / $b, 'Real');
 	}

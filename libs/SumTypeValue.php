@@ -36,20 +36,14 @@ namespace Taco\Hayo;
 class SumTypeValue implements HayoValue
 {
 
-	/**
-	 * @var string
-	 */
-	private $typeName;
+	private string $typeName;
 
-	/**
-	 * @var string
-	 */
-	private $variant;
+	private string $variant;
 
 	/**
 	 * @var list<FinalValue>
 	 */
-	private $payload;
+	private array $payload;
 
 	/**
 	 * @param list<FinalValue> $payload
@@ -99,7 +93,7 @@ class SumTypeValue implements HayoValue
 		$args = implode(' ', array_map(static function (FinalValue $v): string {
 			return (string) $v->unpack();
 		}, $this->payload));
-		return $args
+		return $args !== '' && $args !== '0'
 			? "{$this->typeName}.{$this->variant} {$args}"
 			: "{$this->typeName}.{$this->variant}";
 	}

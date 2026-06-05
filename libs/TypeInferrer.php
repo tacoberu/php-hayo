@@ -24,24 +24,21 @@ namespace Taco\Hayo;
 class TypeInferrer
 {
 
-	/**
-	 * @var Unifier
-	 */
-	private $unifier;
+	private Unifier $unifier;
 
 	/**
 	 * Registry of sum types: typeName => SumTypeDescriptor instance.
 	 * Used for exhaustiveness checking and type-parameter resolution.
 	 * @var array<string, SumTypeDescriptor>
 	 */
-	private $sumTypes;
+	private array $sumTypes;
 
 	/**
 	 * Reverse index: bare variant name => owning type name (e.g. 'True' => 'Bool').
 	 * Built from $sumTypes; used to resolve unqualified patterns (`case True then …`).
 	 * @var array<string, string>
 	 */
-	private $variantToType;
+	private $variantToType = [];
 
 	/**
 	 * @param array<string, SumTypeDescriptor> $sumTypes
@@ -50,8 +47,6 @@ class TypeInferrer
 	{
 		$this->unifier = $unifier;
 		$this->sumTypes = $sumTypes;
-
-		$this->variantToType = [];
 		foreach ($sumTypes as $typeName => $descriptor) {
 			foreach ($descriptor->getVariantNames() as $variant) {
 				$this->variantToType[$variant] = $typeName;
@@ -150,8 +145,7 @@ class TypeInferrer
 	 */
 	private function inferVar(TypeEnv $env, string $name): array
 	{
-		$scheme = $env->lookup($name);
-		if ($scheme !== Null) {
+		if ($scheme = $env->lookup($name)) {
 			return [$scheme->instantiate($this->unifier), Substitution::empty_()];
 		}
 		// External argument: type is unknown at compile time — use fresh var
@@ -366,7 +360,7 @@ class TypeInferrer
 					[$typeName, $variant] = $resolved;
 					$patternNames[] = $variant;
 
-					if ($expectedSubject === Null) {
+					if ( ! $expectedSubject) {
 						$expectedSubject = $this->instantiateSubjectType($typeName);
 					}
 					$sUnify = $this->unifier->unify($s->apply($tSubject), $s->apply($expectedSubject));
@@ -377,7 +371,7 @@ class TypeInferrer
 				else {
 					$dotPos = strrpos($arm->pattern, '.');
 					$patternNames[] = $dotPos !== False
-						? substr($arm->pattern, $dotPos + 1)
+						? (string) substr($arm->pattern, $dotPos + 1)
 						: $arm->pattern;
 				}
 			}
@@ -517,8 +511,8 @@ class TypeInferrer
 	{
 		$dotPos = strrpos($pattern, '.');
 		if ($dotPos !== False) {
-			$typeName = substr($pattern, 0, $dotPos);
-			$variant = substr($pattern, $dotPos + 1);
+			$typeName = (string) substr($pattern, 0, $dotPos);
+			$variant = (string) substr($pattern, $dotPos + 1);
 			if (
 				isset($this->sumTypes[$typeName])
 				&& in_array($variant, $this->sumTypes[$typeName]->getVariantNames(), True)
@@ -673,13 +667,12 @@ class TypeInferrer
 				return new TCon('Num');
 
 			case 'Callable':
-				// Bare `Callable` keeps its fresh-var fallback for signatures
-				// that have not been upgraded to explicit arrow types yet.
-				return $this->unifier->fresh();
 
 			case '':
 			case '?':
-				return $this->unifier->fresh();
+				// Bare `Callable` keeps its fresh-var fallback for signatures
+                // that have not been upgraded to explicit arrow types yet.
+                return $this->unifier->fresh();
 		}
 
 		// Single lowercase letter — named type variable
@@ -690,7 +683,7 @@ class TypeInferrer
 		// Parenthesised function type: (a -> b), (a -> b -> c), (List<a> -> b)
 		// Right-associative: (a -> b -> c) = a -> (b -> c) = TFun(a, TFun(b, c))
 		if ($name[0] === '(' && substr($name, -1) === ')') {
-			return $this->parseArrowChain(substr($name, 1, -1), $getVar);
+			return $this->parseArrowChain((string) substr($name, 1, -1), $getVar);
 		}
 
 		// Top-level arrow without parens (rare but support it): a -> b

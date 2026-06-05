@@ -27,25 +27,19 @@ namespace Taco\Hayo;
 class SumTypeConstructor implements BuildinFunc
 {
 
-	/**
-	 * @var string
-	 */
-	private $typeName;
+	private string $typeName;
 
 	/**
 	 * @var list<string>
 	 */
-	private $typeParams;
+	private array $typeParams;
 
-	/**
-	 * @var string
-	 */
-	private $variant;
+	private string $variant;
 
 	/**
 	 * @var list<string>
 	 */
-	private $argTypeNames;
+	private array $argTypeNames;
 
 	/**
 	 * @param list<string> $typeParams

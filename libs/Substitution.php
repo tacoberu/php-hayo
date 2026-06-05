@@ -58,7 +58,7 @@ class Substitution
 	/**
 	 * @var array<string, Type_>
 	 */
-	private $bindings;
+	private array $bindings;
 
 	/**
 	 * @param array<string, Type_> $bindings

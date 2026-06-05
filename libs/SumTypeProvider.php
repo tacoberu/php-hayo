@@ -22,22 +22,19 @@ namespace Taco\Hayo;
 class SumTypeProvider implements SymbolProvider, TypeDescriptor, SumTypeDescriptor
 {
 
-	/**
-	 * @var string
-	 */
-	private $typeName;
+	private string $typeName;
 
 	/**
 	 * Type parameter names (empty for monomorphic types).
 	 * @var list<string>
 	 */
-	private $typeParams;
+	private array $typeParams;
 
 	/**
 	 * variant name => list of argument type-name strings
 	 * @var array<string, list<string>>
 	 */
-	private $variants;
+	private array $variants;
 
 	/**
 	 * @param list<string> $typeParams

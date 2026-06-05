@@ -96,10 +96,7 @@ class BoolProvider implements SymbolProvider, ShortSymbolProvider, SumTypeDescri
 class BoolConstructor implements BuildinFunc
 {
 
-	/**
-	 * @var bool
-	 */
-	private $value;
+	private bool $value;
 
 	function __construct(bool $value)
 	{

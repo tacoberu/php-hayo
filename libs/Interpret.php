@@ -138,7 +138,7 @@ final class Interpret
 				// Match variant name (last segment after the last dot, e.g. 'Shape.Circle' → 'Circle')
 				$dotPos = strrpos($arm->pattern, '.');
 				$variant = $dotPos !== False
-					? substr($arm->pattern, $dotPos + 1)
+					? (string) substr($arm->pattern, $dotPos + 1)
 					: $arm->pattern;
 
 				if ($val->getVariant() === $variant) {
@@ -153,13 +153,11 @@ final class Interpret
 					return $result;
 				}
 			}
-			else {
+			elseif (self::scalarPatternMatches($arm->pattern, $val)) {
 				// Scalar value matching: int, float, string, bool
-				if (self::scalarPatternMatches($arm->pattern, $val)) {
-					$result = self::applyAny($arm->expr, $lets);
-					assert($result instanceof FinalValue);
-					return $result;
-				}
+				$result = self::applyAny($arm->expr, $lets);
+				assert($result instanceof FinalValue);
+				return $result;
 			}
 		}
 
@@ -186,12 +184,12 @@ final class Interpret
 			// String literal patterns are stored with surrounding quotes
 			$len = strlen($pattern);
 			if ($len >= 2 && ($pattern[0] === '"' || $pattern[0] === "'")) {
-				return substr($pattern, 1, $len - 2) === $val;
+				return (string) substr($pattern, 1, $len - 2) === $val;
 			}
 			return $pattern === $val;
 		}
 		if (is_bool($val)) {
-			return ($pattern === 'True' && $val === True) || ($pattern === 'False' && $val === False);
+			return ($pattern === 'True' && $val) || ($pattern === 'False' && $val === False);
 		}
 		return False;
 	}

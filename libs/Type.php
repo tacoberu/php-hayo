@@ -88,10 +88,7 @@ interface Type_
 class TVar implements Type_
 {
 
-	/**
-	 * @var string
-	 */
-	private $name;
+	private string $name;
 
 	function __construct(string $name)
 	{
@@ -139,10 +136,7 @@ class TVar implements Type_
 class TCon implements Type_
 {
 
-	/**
-	 * @var string
-	 */
-	private $name;
+	private string $name;
 
 	function __construct(string $name)
 	{
@@ -190,15 +184,12 @@ class TCon implements Type_
 class TApp implements Type_
 {
 
-	/**
-	 * @var string
-	 */
-	private $name;
+	private string $name;
 
 	/**
 	 * @var list<Type_>
 	 */
-	private $args;
+	private array $args;
 
 	/**
 	 * @param list<Type_> $args
@@ -271,15 +262,9 @@ class TApp implements Type_
 class TFun implements Type_
 {
 
-	/**
-	 * @var Type_
-	 */
-	private $from;
+	private Type_ $from;
 
-	/**
-	 * @var Type_
-	 */
-	private $to;
+	private Type_ $to;
 
 	function __construct(Type_ $from, Type_ $to)
 	{
@@ -352,12 +337,9 @@ class TScheme
 	/**
 	 * @var list<string>
 	 */
-	private $vars;
+	private array $vars;
 
-	/**
-	 * @var Type_
-	 */
-	private $type;
+	private Type_ $type;
 
 	/**
 	 * @param list<string> $vars bound type variables

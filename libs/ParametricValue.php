@@ -196,9 +196,6 @@ class ParametricValue implements HasRefs, Value
 		catch (ScriptRuntimeException | SymbolNotFound | ArgumentsException $e) {
 			throw $e;
 		}
-		catch (ScriptTypeException $e) {
-			throw ScriptRuntimeException::From($e);
-		}
 		catch (Throwable $e) {
 			throw ScriptRuntimeException::From($e);
 		}
@@ -249,7 +246,7 @@ class ParametricValue implements HasRefs, Value
 	{
 		if ( ! $val instanceof FinalValue // @phpstan-ignore booleanAnd.alwaysFalse
 				&& ! $val instanceof self) { // @phpstan-ignore instanceof.alwaysTrue
-			throw SymbolNotFound::InvalidArgumentWrapper($key, is_object($val) ? $val::class : gettype($val)); // @phpstan-ignore function.alreadyNarrowedType
+			throw SymbolNotFound::InvalidArgumentWrapper($key, is_object($val) ? get_class($val) : gettype($val)); // @phpstan-ignore argument.type, function.alreadyNarrowedType
 		}
 	}
 

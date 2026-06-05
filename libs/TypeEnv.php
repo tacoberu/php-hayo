@@ -25,7 +25,7 @@ class TypeEnv
 	/**
 	 * @var array<string, TScheme>
 	 */
-	private $bindings;
+	private array $bindings;
 
 	/**
 	 * @param array<string, TScheme> $bindings

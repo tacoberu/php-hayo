@@ -30,10 +30,7 @@ class IntrospectFunc implements BuildinFunc
 
 	const Name = 'Introspect';
 
-	/**
-	 * @var string
-	 */
-	private $name;
+	private string $name;
 
 	function __construct(string $name)
 	{
