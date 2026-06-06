@@ -115,36 +115,43 @@ if Introspect.is src "Int" then "number" else "other type"
 ## Custom Types and Functions
 
 Hayo can be extended with custom types and functions on the PHP side without modifying
-the engine. Registration is done via `registerLibrary()` — a single call covers both
-functions and the type.
-
-Implement `SymbolProvider` to provide functions, and optionally `TypeDescriptor` to
-declare a new type name. Values of a custom type implement `HayoValue`.
+the engine. A library declares its namespace via `getNamespace()` and implements
+`FuncProvider` (functions) and/or `TypeProvider` (types). It is registered with
+`registerLibrary()`.
 
 ```php
-class MoneyProvider implements SymbolProvider, TypeDescriptor
+class WalletLibrary implements FuncProvider, TypeProvider
 {
-    function getTypeName(): string { return 'Money'; }
+    function getNamespace(): string { return 'Wallet'; }
 
-    function lookup(string $symbol): ?BuildinFunc
+    function lookupFunc(string $symbol): ?BuildinFunc
     {
         return match ($symbol) {
-            'fromAmount' => new MoneyFunc('fromAmount'),
-            'add'        => new MoneyFunc('add'),
-            'format'     => new MoneyFunc('format'),
-            default      => null,
+            'fromAmount', 'add', 'format' => new MoneyFunc($this->getNamespace(), $symbol),
+            default => null,
         };
     }
+
+    function lookupType(string $name): ?TypeDef
+    {
+        return $name === 'Money' ? new MoneyTypeDef() : null;
+    }
+
+    /** @return list<string> */
+    function getProvidedTypeNames(): array { return ['Money']; }
 }
 
 $engine = HayoEngine::WithDefaultLibraries()
-    ->registerLibrary('Money', new MoneyProvider());
+    ->registerLibrary(new WalletLibrary());
 ```
 
 ```
-Money.fromAmount 9900 "CZK"
-Money.format (Money.add a b)
+Wallet.fromAmount 9900 "CZK"
+Wallet.format (Wallet.add a b)
 ```
+
+For the full pattern (type, functions, values, sum types) see the
+**[library reference](register-library.md)**.
 
 
 

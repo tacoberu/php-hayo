@@ -115,35 +115,43 @@ if Introspect.is src "Int" then "číslo" else "jiný typ"
 ## Vlastní typy a funkce
 
 Hayo lze rozšířit o vlastní typy a funkce na straně PHP bez nutnosti upravovat engine.
-Registrace probíhá přes `registerLibrary()` — jeden příkaz pokryje funkce i typ.
-
-Implementujte `SymbolProvider` pro poskytnutí funkcí a volitelně `TypeDescriptor` pro
-deklaraci nového názvu typu. Hodnoty vlastního typu implementují `HayoValue`.
+Knihovna deklaruje svůj jmenný prostor metodou `getNamespace()` a implementuje
+`FuncProvider` (funkce) a/nebo `TypeProvider` (typy). Registruje se přes
+`registerLibrary()`.
 
 ```php
-class MoneyProvider implements SymbolProvider, TypeDescriptor
+class WalletLibrary implements FuncProvider, TypeProvider
 {
-    function getTypeName(): string { return 'Money'; }
+    function getNamespace(): string { return 'Wallet'; }
 
-    function lookup(string $symbol): ?BuildinFunc
+    function lookupFunc(string $symbol): ?BuildinFunc
     {
         return match ($symbol) {
-            'fromAmount' => new MoneyFunc('fromAmount'),
-            'add'        => new MoneyFunc('add'),
-            'format'     => new MoneyFunc('format'),
-            default      => null,
+            'fromAmount', 'add', 'format' => new MoneyFunc($this->getNamespace(), $symbol),
+            default => null,
         };
     }
+
+    function lookupType(string $name): ?TypeDef
+    {
+        return $name === 'Money' ? new MoneyTypeDef() : null;
+    }
+
+    /** @return list<string> */
+    function getProvidedTypeNames(): array { return ['Money']; }
 }
 
 $engine = HayoEngine::WithDefaultLibraries()
-    ->registerLibrary('Money', new MoneyProvider());
+    ->registerLibrary(new WalletLibrary());
 ```
 
 ```
-Money.fromAmount 9900 "CZK"
-Money.format (Money.add a b)
+Wallet.fromAmount 9900 "CZK"
+Wallet.format (Wallet.add a b)
 ```
+
+Kompletní vzor (typ, funkce, hodnoty, sum typy) viz
+**[Registrace vlastních funkcí a typů](register-library.cs.md)**.
 
 
 
