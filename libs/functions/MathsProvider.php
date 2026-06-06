@@ -12,10 +12,17 @@ namespace Taco\Hayo;
 use DivisionByZeroError;
 
 
-class MathsProvider implements SymbolProvider, ShortSymbolProvider
+class MathsProvider implements FuncProvider, ShortSymbolProvider
 {
 
-	function lookup(string $symbol): ?BuildinFunc
+	function getNamespace(): string
+	{
+		return 'Math';
+	}
+
+
+
+	function lookupFunc(string $symbol): ?BuildinFunc
 	{
 		if (! in_array($symbol, ['+', '-', '*', 'div', 'mod', 'ceil', 'floor', 'round'], True)) {
 			return Null;
@@ -68,13 +75,6 @@ class MathOperator implements BuildinFunc
 		if (self::$functionMap === []) {
 			self::$functionMap = Utils::getApplyMethodFrom(self::class);
 		}
-	}
-
-
-
-	function getQualifiedName(): string
-	{
-		return self::Name . '.' . $this->op;
 	}
 
 

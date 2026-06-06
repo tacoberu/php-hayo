@@ -25,7 +25,7 @@ namespace Taco\Hayo;
  * existing boolean operators (&&, ||, not, if-then-else) continue to work
  * against native PHP booleans without modification.
  */
-class BoolProvider implements SymbolProvider, ShortSymbolProvider, SumTypeDescriptor
+class BoolProvider implements FuncProvider, ShortSymbolProvider, SumTypeDef
 {
 
 	/**
@@ -38,7 +38,14 @@ class BoolProvider implements SymbolProvider, ShortSymbolProvider, SumTypeDescri
 
 
 
-	function lookup(string $symbol): ?BuildinFunc
+	function getNamespace(): string
+	{
+		return 'Bool';
+	}
+
+
+
+	function lookupFunc(string $symbol): ?BuildinFunc
 	{
 		switch ($symbol) {
 			case 'True':
@@ -101,15 +108,6 @@ class BoolConstructor implements BuildinFunc
 	function __construct(bool $value)
 	{
 		$this->value = $value;
-	}
-
-
-
-	function getQualifiedName(): string
-	{
-		return $this->value
-			? 'Bool.True'
-			: 'Bool.False';
 	}
 
 

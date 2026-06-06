@@ -9,10 +9,25 @@
 
 namespace Taco\Hayo;
 
-interface SymbolProvider
+/**
+ * Common base for libraries — declares the namespace the library lives under.
+ * The namespace is fixed in the library code (it is PHP, so this is reliable),
+ * which lets functions and types speak in fully-qualified names and lets other
+ * libraries reference each other's types stably.
+ */
+interface LibraryProvider
 {
 
-	function lookup(string $symbol): ?BuildinFunc;
+	function getNamespace(): string;
+
+}
+
+
+
+interface FuncProvider extends LibraryProvider
+{
+
+	function lookupFunc(string $symbol): ?BuildinFunc;
 
 }
 
@@ -35,13 +50,6 @@ interface ShortSymbolProvider
 
 interface BuildinFunc extends Applicable
 {
-
-	/**
-	 * Fully-qualified name used in error messages, e.g. "Math.+" or "Str.len".
-	 */
-	function getQualifiedName(): string;
-
-
 
 	/**
 	 * Which arguments are required.
@@ -76,72 +84,76 @@ interface Cache
 
 
 /**
- * Implemented by PHP value classes that can live inside FinalValue and be
- * passed into Hayo scripts as typed values.
- *
- * The value itself knows its Hayo type name — no external recogniser needed.
- *
- *   class Money implements HayoValue {
- *       function getHayoType(): string { return 'Money'; }
- *       ...
- *   }
+ * Marker for a type definition returned by TypeProvider::lookupType(). It carries
+ * no name — the caller knows the name from the lookupType($name) it asked for.
+ * Structure comes from the sub-interfaces: ProductTypeDef (fields) and SumTypeDef
+ * (variants).
  */
-interface HayoValue
+interface TypeDef
 {
-
-	/**
-	 * The Hayo type name of this value, as seen by scripts and @signature annotations.
-	 */
-	function getHayoType(): string;
 
 }
 
 
 
 /**
- * Optional interface for a SymbolProvider that also introduces a new type
- * into the Hayo runtime.
- *
- * When registerLibrary() receives a provider implementing this interface,
- * it automatically registers the type so that the type name is available
- * in @signature annotations and TypeValidator.
- *
- * Value recognition in gauseType() does NOT go through this interface —
- * it is handled by HayoValue::getHayoType() on the value itself.
- *
- * A provider may implement both SymbolProvider and TypeDescriptor (one
- * registration covers functions and the type), or they can be separate.
+ * A product type: a fixed tuple of positionally-typed fields (e.g. Money = Int Str).
+ * HayoEngine::value() reads the field types to validate and build a value.
  */
-interface TypeDescriptor
+interface ProductTypeDef extends TypeDef
 {
 
 	/**
-	 * Type name as seen by Hayo scripts and @signature annotations.
-	 * Must match the string returned by HayoValue::getHayoType() for
-	 * values of this type.
-	 * Example: "Money", "Resource", "Color".
+	 * Field type names in positional order, e.g. ['Int', 'Str'].
+	 * @return list<string>
 	 */
-	function getTypeName(): string;
+	function getFieldTypes(): array;
 
 }
 
 
 
 /**
- * Optional interface for providers that declare a sum type (discriminated union).
+ * A library that provides one or more types, returned as TypeDef objects —
+ * the type-side counterpart of FuncProvider for functions.
  *
- * When a provider implements this, the compiler can perform exhaustiveness
- * checking on `match` expressions whose subject has this type: every variant
- * must be covered by some pattern, or a wildcard `_` must be present.
- *
- * SumTypeProvider and BoolProvider implement this. User-declared types via
- * `type X = A | B | …` are registered as SumTypeProvider instances.
+ * lookupType() resolves a local type name (the engine splits "Ns.Type" and asks
+ * $libs[Ns]->lookupType("Type"), just like function lookup). getProvidedTypeNames()
+ * enumerates the local names so the engine/compiler can pre-register types for the
+ * TypeInferrer and namespace-prefix the values built by the library's functions.
  */
-interface SumTypeDescriptor
+interface TypeProvider extends LibraryProvider
+{
+
+	function lookupType(string $name): ?TypeDef;
+
+
+
+	/**
+	 * Local names of all types this provider declares.
+	 * @return list<string>
+	 */
+	function getProvidedTypeNames(): array;
+
+}
+
+
+
+/**
+ * A sum type: a discriminated union of variants. The compiler uses the variants
+ * for exhaustiveness checking on `match` and for instantiating polymorphic types.
+ *
+ * BoolProvider and user-declared types (`type X = A | B | …`, via SumTypeProvider)
+ * implement this. A TypeProvider library may also return a SumTypeDef from
+ * lookupType() — the compiler collects it for the TypeInferrer like any sum type.
+ */
+interface SumTypeDef extends TypeDef
 {
 
 	/**
-	 * Type name as it appears in Hayo (e.g. "Color", "Shape", "Bool").
+	 * Type name. For a SumTypeProvider registered directly in $libs (Bool, script
+	 * `type X`) this is also its registration key; for a sum type returned from
+	 * lookupType() it is unused (the caller already knows the name).
 	 */
 	function getTypeName(): string;
 

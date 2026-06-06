@@ -17,8 +17,8 @@ namespace Taco\Hayo;
  *   - variant — the chosen variant (e.g. "Circle")
  *   - payload — the variant's data fields as FinalValues
  *
- * HayoValue::getHayoType() returns typeName so that Introspect.is and
- * the type inferrer can recognize the value without knowing its variant.
+ * getTypeName() returns typeName so that Introspect.is and the type inferrer
+ * can recognize the value (via HayoEngine::gauseType) without knowing its variant.
  *
  * Usage inside Hayo:
  *
@@ -33,7 +33,7 @@ namespace Taco\Hayo;
  *   | Shape.Rectangle w h -> w * h
  *   | Shape.Point -> 0
  */
-class SumTypeValue implements HayoValue
+class SumTypeValue
 {
 
 	private string $typeName;
@@ -77,13 +77,6 @@ class SumTypeValue implements HayoValue
 	function getPayload(): array
 	{
 		return $this->payload;
-	}
-
-
-
-	function getHayoType(): string
-	{
-		return $this->typeName;
 	}
 
 

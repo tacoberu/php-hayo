@@ -18,7 +18,7 @@ class DictFuncTest extends TestCase
 
 	function testDictsProvider()
 	{
-		$this->assertEquals(new DictFunc('keys'), (new DictsProvider())->lookup('keys'));
+		$this->assertEquals(new DictFunc('keys'), (new DictsProvider())->lookupFunc('keys'));
 	}
 
 

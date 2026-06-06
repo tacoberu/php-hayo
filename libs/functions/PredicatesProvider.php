@@ -9,10 +9,17 @@
 
 namespace Taco\Hayo;
 
-class PredicatesProvider implements SymbolProvider, ShortSymbolProvider
+class PredicatesProvider implements FuncProvider, ShortSymbolProvider
 {
 
-	function lookup(string $symbol): ?BuildinFunc
+	function getNamespace(): string
+	{
+		return 'predicate';
+	}
+
+
+
+	function lookupFunc(string $symbol): ?BuildinFunc
 	{
 		$symbol = strtolower($symbol);
 		if (! in_array($symbol, ['==', '!=', '<', '>', '<=', '>=', 'and', 'or', '&&', '||', 'not', 'in', 'has', 'superset', 'subset', 'intersects',], True)) {
@@ -93,13 +100,6 @@ class PredicateFunction implements BuildinFunc
 		if (self::$functionMap === []) {
 			self::$functionMap = Utils::getApplyMethodFrom(self::class);
 		}
-	}
-
-
-
-	function getQualifiedName(): string
-	{
-		return self::Name . '.' . $this->name;
 	}
 
 

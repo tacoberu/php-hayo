@@ -9,7 +9,7 @@
 
 namespace Taco\Hayo;
 
-class StringsProvider implements SymbolProvider
+class StringsProvider implements FuncProvider
 {
 
 	/**
@@ -17,7 +17,14 @@ class StringsProvider implements SymbolProvider
 	 */
 	private static array $functionMap = [];
 
-	function lookup(string $symbol): ?BuildinFunc
+	function getNamespace(): string
+	{
+		return 'Str';
+	}
+
+
+
+	function lookupFunc(string $symbol): ?BuildinFunc
 	{
 		if (self::$functionMap === []) {
 			self::$functionMap = Utils::getFunctionsFrom(StringFunc::class);
@@ -52,13 +59,6 @@ class StringFunc implements BuildinFunc
 		if (self::$functionMap === []) {
 			self::$functionMap = Utils::getApplyMethodFrom(self::class);
 		}
-	}
-
-
-
-	function getQualifiedName(): string
-	{
-		return self::Name . '.' . $this->name;
 	}
 
 

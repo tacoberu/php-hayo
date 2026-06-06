@@ -26,9 +26,9 @@ class ProviderLookupCachingTest extends TestCase
 	function testCorrectResultWhenFunctionUsedTwiceInScope(): void
 	{
 		$engine = new HayoEngine([
-			'Spy' => $this->makeSpy(),
-			'Math' => new MathsProvider(),
-			'predicate' => new PredicatesProvider(),
+			$this->makeSpy(),
+			new MathsProvider(),
+			new PredicatesProvider(),
 		]);
 
 		$result = $engine->evaluate(
@@ -45,9 +45,9 @@ class ProviderLookupCachingTest extends TestCase
 	{
 		$spy = $this->makeSpy();
 		$engine = new HayoEngine([
-			'Spy' => $spy,
-			'Math' => new MathsProvider(),
-			'predicate' => new PredicatesProvider(),
+			$spy,
+			new MathsProvider(),
+			new PredicatesProvider(),
 		]);
 
 		$engine->evaluate(
@@ -61,28 +61,35 @@ class ProviderLookupCachingTest extends TestCase
 
 
 
-	private function makeSpy(): SymbolProvider
+	private function makeSpy(): FuncProvider
 	{
-		return new class (new StringsProvider()) implements SymbolProvider {
+		return new class (new StringsProvider()) implements FuncProvider {
 
 			/**
 			 * @var array<string, int>
 			 */
 			private array $lookupCount = [];
 
-			private SymbolProvider $inner;
+			private FuncProvider $inner;
 
-			function __construct(SymbolProvider $inner)
+			function __construct(FuncProvider $inner)
 			{
 				$this->inner = $inner;
 			}
 
 
 
-			function lookup(string $symbol): ?BuildinFunc
+			function getNamespace(): string
+			{
+				return 'Spy';
+			}
+
+
+
+			function lookupFunc(string $symbol): ?BuildinFunc
 			{
 				$this->lookupCount[$symbol] = ($this->lookupCount[$symbol] ?? 0) + 1;
-				return $this->inner->lookup($symbol);
+				return $this->inner->lookupFunc($symbol);
 			}
 
 
