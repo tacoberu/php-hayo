@@ -18,7 +18,7 @@ class StringFuncTest extends TestCase
 
 	function testStringsProvider()
 	{
-		$this->assertEquals(new StringFunc('len'), (new StringsProvider())->lookup('len'));
+		$this->assertEquals(new StringFunc('len'), (new StringsProvider())->lookupFunc('len'));
 	}
 
 

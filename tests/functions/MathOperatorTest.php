@@ -18,7 +18,7 @@ class MathOperatorTest extends TestCase
 
 	function testMathsProvider()
 	{
-		$this->assertEquals(new MathOperator('+'), (new MathsProvider())->lookup('+'));
+		$this->assertEquals(new MathOperator('+'), (new MathsProvider())->lookupFunc('+'));
 	}
 
 

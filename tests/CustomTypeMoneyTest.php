@@ -15,7 +15,10 @@ use DateInterval;
 
 
 /**
- * Demonstrates adding a custom type (Money) via HayoValue + TypeDescriptor.
+ * Demonstrates adding a custom composite type (Money) via a TypeProvider library:
+ * the type is a product type described by a TypeDef and its values are plain
+ * FinalValue (no special value class). Values are built from PHP through
+ * HayoEngine::value(), or inside the script through the library's own functions.
  */
 class CustomTypeMoneyTest extends TestCase
 {
@@ -27,7 +30,7 @@ class CustomTypeMoneyTest extends TestCase
 	{
 		$result = $this->engine()->evaluate('TestMyMoney.fromAmount 9900 "CZK"');
 
-		$this->assertEquals(new MoneyValue(9900, 'CZK'), $result);
+		$this->assertSame([9900, 'CZK'], $result);
 	}
 
 
@@ -43,11 +46,9 @@ class CustomTypeMoneyTest extends TestCase
 
 	function testAddInsideScript(): void
 	{
-		$result = $this->engine()->evaluate(
-			'TestMyMoney.add (TestMyMoney.fromAmount 9900 "CZK") (TestMyMoney.fromAmount 2079 "CZK")'
-		);
+		$result = $this->engine()->evaluate('TestMyMoney.add (TestMyMoney.fromAmount 9900 "CZK") (TestMyMoney.fromAmount 2079 "CZK")');
 
-		$this->assertEquals(new MoneyValue(11979, 'CZK'), $result);
+		$this->assertSame([11979, 'CZK'], $result);
 	}
 
 
@@ -67,13 +68,14 @@ TestMyMoney.format total'
 
 
 	/**
-	 * Předání hodnoty z PHP do skriptu přes evaluate()
+	 * Předání hodnoty z PHP do skriptu přes value() + evaluate()
 	 */
 	function testPassFromPhp(): void
 	{
-		$result = $this->engine()->evaluate(
+		$engine = $this->engine();
+		$result = $engine->evaluate(
 			'TestMyMoney.format src',
-			['src' => new MoneyValue(9900, 'CZK')]
+			['src' => $engine->value([9900, 'CZK'], 'TestMyMoney.Money')]
 		);
 
 		$this->assertSame('9900 CZK', $result);
@@ -83,11 +85,12 @@ TestMyMoney.format total'
 
 	function testPassFromPhpAndOperate(): void
 	{
-		$result = $this->engine()->evaluate(
+		$engine = $this->engine();
+		$result = $engine->evaluate(
 			'TestMyMoney.format (TestMyMoney.add base surcharge)',
 			[
-				'base' => new MoneyValue(9900, 'CZK'),
-				'surcharge' => new MoneyValue(500, 'CZK'),
+				'base' => $engine->value([9900, 'CZK'], 'TestMyMoney.Money'),
+				'surcharge' => $engine->value([500, 'CZK'], 'TestMyMoney.Money'),
 			]
 		);
 
@@ -101,18 +104,19 @@ TestMyMoney.format total'
 	 */
 	function testPassesThroughIfElse(): void
 	{
+		$engine = $this->engine();
 		$script = 'if flag then (TestMyMoney.format a) else (TestMyMoney.format b)';
 
-		$this->assertSame('100 CZK', $this->engine()->evaluate($script, [
+		$this->assertSame('100 CZK', $engine->evaluate($script, [
 			'flag' => true,
-			'a' => new MoneyValue(100, 'CZK'),
-			'b' => new MoneyValue(200, 'CZK'),
+			'a' => $engine->value([100, 'CZK'], 'TestMyMoney.Money'),
+			'b' => $engine->value([200, 'CZK'], 'TestMyMoney.Money'),
 		]));
 
-		$this->assertSame('200 CZK', $this->engine()->evaluate($script, [
+		$this->assertSame('200 CZK', $engine->evaluate($script, [
 			'flag' => false,
-			'a' => new MoneyValue(100, 'CZK'),
-			'b' => new MoneyValue(200, 'CZK'),
+			'a' => $engine->value([100, 'CZK'], 'TestMyMoney.Money'),
+			'b' => $engine->value([200, 'CZK'], 'TestMyMoney.Money'),
 		]));
 	}
 
@@ -124,7 +128,7 @@ TestMyMoney.format total'
 
 		$this->assertEquals((object) [
 			'label' => 'cena',
-			'amount' => new MoneyValue(9900, 'CZK'),
+			'amount' => [9900, 'CZK'],
 		], $result);
 	}
 
@@ -132,12 +136,13 @@ TestMyMoney.format total'
 
 	function testListMapOverMoneyValues(): void
 	{
-		$result = $this->engine()->evaluate(
+		$engine = $this->engine();
+		$result = $engine->evaluate(
 			'List.map prices (p -> TestMyMoney.format p)',
 			['prices' => [
-				new MoneyValue(100, 'CZK'),
-				new MoneyValue(200, 'CZK'),
-				new MoneyValue(300, 'CZK'),
+				$engine->value([100, 'CZK'], 'TestMyMoney.Money'),
+				$engine->value([200, 'CZK'], 'TestMyMoney.Money'),
+				$engine->value([300, 'CZK'], 'TestMyMoney.Money'),
 			]]
 		);
 
@@ -148,16 +153,17 @@ TestMyMoney.format total'
 
 	function testListFoldSumMoneyValues(): void
 	{
-		$result = $this->engine()->evaluate(
+		$engine = $this->engine();
+		$result = $engine->evaluate(
 			'List.fold prices (TestMyMoney.fromAmount 0 "CZK") (acc p -> TestMyMoney.add acc p)',
 			['prices' => [
-				new MoneyValue(100, 'CZK'),
-				new MoneyValue(200, 'CZK'),
-				new MoneyValue(300, 'CZK'),
+				$engine->value([100, 'CZK'], 'TestMyMoney.Money'),
+				$engine->value([200, 'CZK'], 'TestMyMoney.Money'),
+				$engine->value([300, 'CZK'], 'TestMyMoney.Money'),
 			]]
 		);
 
-		$this->assertEquals(new MoneyValue(600, 'CZK'), $result);
+		$this->assertSame([600, 'CZK'], $result);
 	}
 
 
@@ -167,21 +173,23 @@ TestMyMoney.format total'
 	 */
 	function testTypeOf(): void
 	{
-		$result = $this->engine()->evaluate(
+		$engine = $this->engine();
+		$result = $engine->evaluate(
 			'Introspect.of src',
-			['src' => new MoneyValue(9900, 'CZK')]
+			['src' => $engine->value([9900, 'CZK'], 'TestMyMoney.Money')]
 		);
 
-		$this->assertSame('Money', $result);
+		$this->assertSame('TestMyMoney.Money', $result);
 	}
 
 
 
 	function testTypeOfInCondition(): void
 	{
-		$result = $this->engine()->evaluate(
-			'if (Introspect.of src) == "Money" then "je to peníze" else "něco jiného"',
-			['src' => new MoneyValue(9900, 'CZK')]
+		$engine = $this->engine();
+		$result = $engine->evaluate(
+			'if (Introspect.of src) == "TestMyMoney.Money" then "je to peníze" else "něco jiného"',
+			['src' => $engine->value([9900, 'CZK'], 'TestMyMoney.Money')]
 		);
 
 		$this->assertSame('je to peníze', $result);
@@ -190,14 +198,44 @@ TestMyMoney.format total'
 
 
 	/**
-	 * Chybový scénář: předání nesouvisejícího objektu (neimplementuje HayoValue)
+	 * Hodnota vyrobená funkcí ve skriptu i hodnota z PHP přes value() nesou
+	 * shodný plně kvalifikovaný runtime typ (prefix doplní NamespacedFunc resp. engine).
+	 */
+	function testTypeOfIsNamespacedAndConsistent(): void
+	{
+		$engine = $this->engine();
+
+		$fromFunc = $engine->evaluate('Introspect.of (TestMyMoney.fromAmount 9900 "CZK")');
+		$fromValue = $engine->evaluate(
+			'Introspect.of src',
+			['src' => $engine->value([9900, 'CZK'], 'TestMyMoney.Money')]
+		);
+
+		$this->assertSame('TestMyMoney.Money', $fromFunc);
+		$this->assertSame('TestMyMoney.Money', $fromValue);
+	}
+
+
+
+	/**
+	 * Chybový scénář: value() validuje typy polí
+	 */
+	function testValueValidatesFieldTypes(): void
+	{
+		$this->expectException(ArgumentsException::class);
+		$this->engine()->value(['not-an-int', 'CZK'], 'TestMyMoney.Money');
+	}
+
+
+
+	/**
+	 * Chybový scénář: předání objektu neznámého typu (gause() ho nerozpozná)
 	 */
 	function testPassingUnknownObjectThrows(): void
 	{
 		$this->expectException(ArgumentsException::class);
 		$this->expectExceptionMessageMatches('/Invalid type of value/');
 
-		// DateInterval není HayoValue ani stdClass → gauseType() hodí ArgumentsException
 		$this->engine()->evaluate(
 			'TestMyMoney.format src',
 			['src' => new DateInterval('P1D')]
@@ -206,10 +244,25 @@ TestMyMoney.format total'
 
 
 
+	/**
+	 * Chybová hláška používá jméno z kódu (namespace volajícího), nikoli interní
+	 * qualified name knihovny. `cur` je parametr → kontrola jde přes
+	 * assertPartialArgTypes při kompilaci.
+	 */
+	function testCompileErrorUsesCallSiteName(): void
+	{
+		$this->expectException(CompileException::class);
+		$this->expectExceptionMessageMatches('/Invalid arguments of TestMyMoney\.fromAmount/');
+
+		$this->engine()->compile('TestMyMoney.fromAmount "x" cur');
+	}
+
+
+
 	private function engine(): HayoEngine
 	{
 		return HayoEngine::WithDefaultLibraries()
-			->registerLibrary(MoneyProvider::Ns, new MoneyProvider());
+			->registerLibrary(new MoneyLibrary());
 	}
 
 }
@@ -217,84 +270,76 @@ TestMyMoney.format total'
 
 
 /**
- * Testovací typ Money — vzor pro vlastní typy s HayoValue + TypeDescriptor
+ * Testovací knihovna: poskytuje funkce a typ Money (produktový typ Money Int Str)
+ * jako objekt přes TypeProvider. Hodnota typu Money je prostá FinalValue se dvěma
+ * poli (amount: Int, currency: Str), bez zvláštní třídy. Namespace je deklarován
+ * v knihovně (getNamespace), funkce s ním prefixují vlastní typ samy.
  */
-class MoneyValue implements HayoValue
+class MoneyLibrary implements FuncProvider, TypeProvider
 {
 
+	const Ns = 'TestMyMoney';
+
+	const Type = 'Money';
+
+	function getNamespace(): string
+	{
+		return self::Ns;
+	}
+
+
+
+	// --- FuncProvider: funkce knihovny (dostanou namespace, ať prefixují typy) ---
+
+	function lookupFunc(string $symbol): ?BuildinFunc
+	{
+		switch ($symbol) {
+			case 'fromAmount': // fromAmount amount currency -> Money
+			case 'add': // add a b -> Money
+			case 'format': // format src -> Str
+				return new MoneyFunc(self::Ns, $symbol);
+			default:
+				return Null;
+		}
+	}
+
+
+
+	// --- TypeProvider: typy jako objekty ---
+
+	function lookupType(string $name): ?TypeDef
+	{
+		return $name === self::Type
+			? new MoneyTypeDef()
+			: Null;
+	}
+
+
+
 	/**
-	 * @var int
+	 * @return list<string>
 	 */
-	private $amount;
-
-	/**
-	 * @var string
-	 */
-	private $currency;
-
-	function __construct(int $amount, string $currency)
+	function getProvidedTypeNames(): array
 	{
-		$this->amount = $amount;
-		$this->currency = $currency;
-	}
-
-
-
-	function getHayoType(): string
-	{
-		return MoneyProvider::Name;
-	}
-
-
-
-	function getAmount(): int
-	{
-		return $this->amount;
-	}
-
-
-
-	function getCurrency(): string
-	{
-		return $this->currency;
-	}
-
-
-
-	function __toString(): string
-	{
-		return "{$this->amount} {$this->currency}";
+		return [self::Type];
 	}
 
 }
 
 
 
-class MoneyProvider implements SymbolProvider, TypeDescriptor
+/**
+ * Typový objekt Money — produktový typ s poli (Int, Str).
+ */
+class MoneyTypeDef implements ProductTypeDef
 {
 
-	const Ns = 'TestMyMoney';
-	const Name = 'Money';
-
-	function getTypeName(): string
+	/**
+	 * @return list<string>
+	 */
+	function getFieldTypes(): array
 	{
-		return self::Name;
-	}
-
-
-
-	function lookup(string $symbol): ?BuildinFunc
-	{
-		switch ($symbol) {
-			case 'fromAmount': // TestMyMoney.fromAmount amount currency → Money
-				return new MoneyFunc('fromAmount');
-			case 'add': // TestMyMoney.add a b → Money
-				return new MoneyFunc('add');
-			case 'format': // TestMyMoney.format src → Str
-				return new MoneyFunc('format');
-			default:
-				return null;
-		}
+		return ['Int', 'Str'];
 	}
 
 }
@@ -304,21 +349,14 @@ class MoneyProvider implements SymbolProvider, TypeDescriptor
 class MoneyFunc implements BuildinFunc
 {
 
-	/**
-	 * @var string
-	 */
-	private $name;
+	private string $ns;
 
-	function __construct(string $name)
+	private string $name;
+
+	function __construct(string $ns, string $name)
 	{
+		$this->ns = $ns;
 		$this->name = $name;
-	}
-
-
-
-	function getQualifiedName(): string
-	{
-		return MoneyProvider::Ns . '.' . $this->name;
 	}
 
 
@@ -328,86 +366,105 @@ class MoneyFunc implements BuildinFunc
 		switch ($this->name) {
 			case 'fromAmount':
 			case 'add':
-				return MoneyProvider::Name;
+				return $this->money();
 			case 'format':
 				return 'Str';
 			default:
-				return '?';
+				throw SymbolNotFound::UnsupportedFunc($this->ns, $this->name);
 		}
 	}
 
 
 
-	/** @return list<BindValue> */
+	/**
+	 * @return list<BindValue>
+	 */
 	function getBinds(): array
 	{
 		switch ($this->name) {
 			case 'fromAmount':
 				return [new BindValue('amount', 'Int'), new BindValue('currency', 'Str')];
 			case 'add':
-				return [new BindValue('a', MoneyProvider::Name), new BindValue('b', MoneyProvider::Name)];
+				return [new BindValue('a', $this->money()), new BindValue('b', $this->money())];
 			case 'format':
-				return [new BindValue('src', MoneyProvider::Name)];
+				return [new BindValue('src', $this->money())];
 			default:
-				return [];
+				throw SymbolNotFound::UnsupportedFunc($this->ns, $this->name);
 		}
 	}
 
 
 
-	/** @param array<string, FinalValue> $args */
+	/**
+	 * @param array<string, FinalValue> $args
+	 */
 	function apply(array $args): Value
 	{
 		$a = array_values($args);
 		switch ($this->name) {
 			case 'fromAmount':
-				return $this->applyFromAmount($a[0], $a[1]);
+				TypeValidator::assertInt($a[0]->unpack());
+				TypeValidator::assertStr($a[1]->unpack());
+				return $this->make($a[0]->unpack(), $a[1]->unpack());
+
 			case 'add':
-				return $this->applyAdd($a[0], $a[1]);
+				[$amountA, $currency] = self::fields($a[0]);
+				[$amountB,] = self::fields($a[1]);
+				return $this->make($amountA + $amountB, $currency);
+
 			case 'format':
-				return $this->applyFormat($a[0]);
+				[$amount, $currency] = self::fields($a[0]);
+				return new FinalValue("{$amount} {$currency}", 'Str');
+
 			default:
-				throw SymbolNotFound::UnsupportedFunc(MoneyProvider::Ns, $this->name);
+				throw SymbolNotFound::UnsupportedFunc($this->ns, $this->name);
 		}
 	}
 
 
 
-	private static function applyFromAmount(FinalValue $amount, FinalValue $currency): FinalValue
+	/**
+	 * Fully-qualified name of the Money type ("TestMyMoney.Money") — the library
+	 * knows its namespace, so its functions prefix the type themselves.
+	 */
+	private function money(): string
 	{
-		TypeValidator::assertInt($amount->unpack());
-		TypeValidator::assertStr($currency->unpack());
-		return new FinalValue(new MoneyValue($amount->unpack(), $currency->unpack()), MoneyProvider::Name);
+		return $this->ns . '.' . MoneyLibrary::Type;
 	}
 
 
 
-	private static function applyAdd(FinalValue $a, FinalValue $b): FinalValue
+	/**
+	 * Builds a Money value via the shared composite() factory — the value shape
+	 * (FinalValue with a positional field payload) lives in FinalValue, not here.
+	 */
+	private function make(int $amount, string $currency): FinalValue
 	{
-		$aVal = $a->getValue();
-		$bVal = $b->getValue();
-		if ( ! $aVal instanceof MoneyValue || ! $bVal instanceof MoneyValue) {
-			throw new InvalidArgumentException(MoneyProvider::Ns . '.add: both arguments must be Money values.');
-		}
-		return new FinalValue(new MoneyValue($aVal->getAmount() + $bVal->getAmount(), $aVal->getCurrency()), MoneyProvider::Name);
+		return FinalValue::composite([
+			new FinalValue($amount, 'Int'),
+			new FinalValue($currency, 'Str'),
+		], $this->money());
 	}
 
 
 
-	private static function applyFormat(FinalValue $src): FinalValue
+	/**
+	 * @return array{0: int, 1: string}
+	 */
+	private static function fields(FinalValue $src): array
 	{
-		$money = $src->getValue();
-		if ( ! $money instanceof MoneyValue) {
-			throw new InvalidArgumentException(MoneyProvider::Ns . '.format: argument must be a Money value.');
+		$fields = $src->fields();
+		if (count($fields) !== 2) {
+			throw new InvalidArgumentException(MoneyLibrary::Type . ': expected a Money value.');
 		}
-		return new FinalValue("{$money->getAmount()} {$money->getCurrency()}", 'Str');
+		return [$fields[0]->unpack(), $fields[1]->unpack()];
 	}
 
 
 
 	function __toString(): string
 	{
-		return '<' . MoneyProvider::Ns . '.' . $this->name . '>';
+		return '<' . $this->ns . '.' . $this->name . '>';
 	}
 
 }

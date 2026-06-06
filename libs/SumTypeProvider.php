@@ -13,13 +13,13 @@ namespace Taco\Hayo;
  * Symbol namespace for one declared sum type, registered in $libs under the type name.
  *
  * Needed because symbol resolution splits 'Color.Green' on the dot and dispatches
- * to $libs['Color']->lookup('Green'). Without this provider the compiler cannot find
+ * to $libs['Color']->lookupFunc('Green'). Without this provider the compiler cannot find
  * constructors at all — SumTypeValue only exists at runtime, after a constructor was called.
  *
- * Also implements TypeDescriptor so HayoEngine::gauseType() can identify a SumTypeValue
- * passed as an external argument.
+ * Also implements SumTypeDef (a TypeDef) so the compiler can collect it for
+ * the type inferrer and perform exhaustiveness checks.
  */
-class SumTypeProvider implements SymbolProvider, TypeDescriptor, SumTypeDescriptor
+class SumTypeProvider implements FuncProvider, SumTypeDef
 {
 
 	private string $typeName;
@@ -56,7 +56,14 @@ class SumTypeProvider implements SymbolProvider, TypeDescriptor, SumTypeDescript
 
 
 
-	function lookup(string $symbol): ?BuildinFunc
+	function getNamespace(): string
+	{
+		return $this->typeName;
+	}
+
+
+
+	function lookupFunc(string $symbol): ?BuildinFunc
 	{
 		if (isset($this->variants[$symbol])) {
 			return new SumTypeConstructor($this->typeName, $this->typeParams, $symbol, $this->variants[$symbol]);

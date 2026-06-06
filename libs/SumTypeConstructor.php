@@ -55,13 +55,6 @@ class SumTypeConstructor implements BuildinFunc
 
 
 
-	function getQualifiedName(): string
-	{
-		return "{$this->typeName}.{$this->variant}";
-	}
-
-
-
 	function type(): string
 	{
 		if ($this->typeParams === []) {

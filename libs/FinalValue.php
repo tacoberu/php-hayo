@@ -39,6 +39,21 @@ class FinalValue implements Value
 
 
 
+	/**
+	 * Builds a composite (product) value: a FinalValue whose payload is the list
+	 * of its field FinalValues, tagged with the type name. The single source of
+	 * truth for the value shape produced by HayoEngine::value() and by library
+	 * constructor functions; read the fields back with fields().
+	 *
+	 * @param list<FinalValue> $fields
+	 */
+	static function composite(array $fields, string $type): self
+	{
+		return new self($fields, $type);
+	}
+
+
+
 	function type(): string
 	{
 		return $this->type;
@@ -52,6 +67,20 @@ class FinalValue implements Value
 	function getValue()
 	{
 		return $this->value;
+	}
+
+
+
+	/**
+	 * Field FinalValues of a composite value built by composite().
+	 * @return list<FinalValue>
+	 */
+	function fields(): array
+	{
+		if ( ! is_array($this->value)) {
+			throw new LogicException("Value of type '{$this->type}' is not composite.");
+		}
+		return array_values($this->value);
 	}
 
 
@@ -96,7 +125,7 @@ class FinalValue implements Value
 	private static function allowedBaseObject(object $inst): bool
     {
         return $inst instanceof DateTimeInterface
-            || $inst instanceof HayoValue;
+            || $inst instanceof SumTypeValue;
     }
 
 

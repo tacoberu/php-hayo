@@ -12,7 +12,7 @@ namespace Taco\Hayo;
 use LogicException;
 
 
-class ListsProvider implements SymbolProvider
+class ListsProvider implements FuncProvider
 {
 
 	/**
@@ -20,7 +20,14 @@ class ListsProvider implements SymbolProvider
 	 */
 	private static array $functionMap = [];
 
-	function lookup(string $symbol): ?BuildinFunc
+	function getNamespace(): string
+	{
+		return 'List';
+	}
+
+
+
+	function lookupFunc(string $symbol): ?BuildinFunc
 	{
 		if (self::$functionMap === []) {
 			self::$functionMap = Utils::getFunctionsFrom(ListFunc::class);
@@ -58,13 +65,6 @@ class ListFunc implements BuildinFunc
 		if (self::$functionMap === []) {
 			self::$functionMap = Utils::getApplyMethodFrom(self::class);
 		}
-	}
-
-
-
-	function getQualifiedName(): string
-	{
-		return self::Name . '.' . $this->name;
 	}
 
 

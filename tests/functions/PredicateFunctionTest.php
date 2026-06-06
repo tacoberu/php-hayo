@@ -18,7 +18,7 @@ class PredicateFunctionTest extends TestCase
 
 	function testPredicatesProvider()
 	{
-		$this->assertEquals(new PredicateFunction('=='), (new PredicatesProvider())->lookup('=='));
+		$this->assertEquals(new PredicateFunction('=='), (new PredicatesProvider())->lookupFunc('=='));
 	}
 
 

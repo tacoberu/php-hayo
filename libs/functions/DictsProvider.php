@@ -9,7 +9,7 @@
 
 namespace Taco\Hayo;
 
-class DictsProvider implements SymbolProvider
+class DictsProvider implements FuncProvider
 {
 
 	/**
@@ -17,7 +17,14 @@ class DictsProvider implements SymbolProvider
 	 */
 	private static array $functionMap = [];
 
-	function lookup(string $symbol): ?BuildinFunc
+	function getNamespace(): string
+	{
+		return 'Dict';
+	}
+
+
+
+	function lookupFunc(string $symbol): ?BuildinFunc
 	{
 		if (self::$functionMap === []) {
 			self::$functionMap = Utils::getFunctionsFrom(DictFunc::class);
@@ -52,13 +59,6 @@ class DictFunc implements BuildinFunc
 		if (self::$functionMap === []) {
 			self::$functionMap = Utils::getApplyMethodFrom(self::class);
 		}
-	}
-
-
-
-	function getQualifiedName(): string
-	{
-		return self::Name . '.' . $this->name;
 	}
 
 

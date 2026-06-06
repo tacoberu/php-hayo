@@ -21,7 +21,7 @@ class Compiler
 {
 
 	/**
-	 * @var array<string, SymbolProvider>
+	 * @var array<string, LibraryProvider>
 	 */
 	private array $libs = [];
 
@@ -32,7 +32,7 @@ class Compiler
 	private array $short = [];
 
 	/**
-	 * @param array<string, SymbolProvider> $libs
+	 * @param array<string, LibraryProvider> $libs
 	 */
 	function __construct(array $libs)
 	{
@@ -214,7 +214,8 @@ class Compiler
 		// We assume exactly one dot. We do not nest namespaces. If needed,
 		// that should be handled at the provider level.
 		list($ns, $symbol) = explode('.', $nx, 2);
-		if (isset($this->libs[$ns]) && $fn = $this->libs[$ns]->lookup($symbol)) {
+		$lib = $this->libs[$ns] ?? Null;
+		if ($lib instanceof FuncProvider && $fn = $lib->lookupFunc($symbol)) {
 			return [$x, $fn];
 		}
 
@@ -315,18 +316,30 @@ class Compiler
 
 
 	/**
-	 * Collects sum-type declarations from registered libraries — used by
-	 * the type inferrer for exhaustiveness checking and instantiation of
-	 * polymorphic types.
+	 * Collects type declarations from registered libraries — used by the type
+	 * inferrer for exhaustiveness checking and instantiation of polymorphic types.
 	 *
-	 * @return array<string, SumTypeDescriptor> typeName => descriptor
+	 * Two sources: sum types registered under namespace == type name (Bool, script
+	 * `type X = …`) are keyed by their bare name; types provided by a TypeProvider
+	 * are namespaced (keyed "Ns.Type"), matching their runtime type names.
+	 *
+	 * @return array<string, SumTypeDef> typeName => descriptor
 	 */
 	private function collectSumTypes(): array
 	{
 		$result = [];
-		foreach ($this->libs as $lib) {
-			if ($lib instanceof SumTypeDescriptor) {
+		foreach ($this->libs as $ns => $lib) {
+			if ($lib instanceof SumTypeDef) {
 				$result[$lib->getTypeName()] = $lib;
+			}
+			if ($lib instanceof TypeProvider) {
+				// Only sum types belong in the inferrer; product types are inert here.
+				foreach ($lib->getProvidedTypeNames() as $local) {
+					$def = $lib->lookupType($local);
+					if ($def instanceof SumTypeDef) {
+						$result["{$ns}.{$local}"] = $def;
+					}
+				}
 			}
 		}
 		return $result;
@@ -470,6 +483,7 @@ class Compiler
 
 		switch (True) {
 			case $term->getNotation() === Expr::NotationInfix:
+				$callName = self::callSiteName($items[1]);
 				foreach ($items as $k => $x) {
 					$items[$k] = $this->partialEvaluate($context, $x);
 				}
@@ -499,7 +513,7 @@ class Compiler
 					if ($left instanceof FinalValue && $right instanceof FinalValue) {
 						try {
 							TypeValidator::assertPartialArgTypes(
-								$items[1]->getQualifiedName(),
+								$callName ?? (string) $items[1],
 								$items[1]->getBinds(),
 								[$left, $right]
 							);
@@ -514,6 +528,7 @@ class Compiler
 				return $term;
 
 			case $term->getNotation() === Expr::NotationPrefix:
+				$callName = self::callSiteName($items[0]);
 				foreach ($items as $k => $x) {
 					$items[$k] = $this->partialEvaluate($context, $x);
 				}
@@ -553,7 +568,7 @@ class Compiler
 					if (count($callArgs) === count($items[0]->getBinds())) {
 						try {
 							TypeValidator::assertPartialArgTypes(
-								$items[0]->getQualifiedName(),
+								$callName ?? (string) $items[0],
 								$items[0]->getBinds(),
 								array_map(static function($x) { return self::castAny($x, False)[0]; }, $callArgs)
 							);
@@ -786,6 +801,30 @@ class Compiler
 			default:
 				throw CompileException::Unexpected();
 		}
+	}
+
+
+
+	/**
+	 * The token a function/operator was referenced by at the call site — e.g.
+	 * the source name "TestMyMoney.format" or "+". Used for error messages so
+	 * they reflect what the script wrote, not the library's internal qualified
+	 * name (the namespace is the caller's choice, unknown to the library).
+	 *
+	 * Returns Null when the operand is not a plain symbol; callers then fall
+	 * back to the resolved function's __toString().
+	 *
+	 * @param mixed $item the operand before it is resolved to a value
+	 */
+	private static function callSiteName($item): ?string
+	{
+		if (is_string($item)) {
+			return $item;
+		}
+		if ($item instanceof Scalar && $item->type() === 'Symbol') {
+			return (string) $item->getValue();
+		}
+		return Null;
 	}
 
 

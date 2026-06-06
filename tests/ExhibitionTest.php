@@ -89,20 +89,20 @@ a + x', [10]);
 	function testRegisterLibrary()
 	{
 		$result = HayoEngine::WithDefaultLibraries()
-			->registerLibrary('my_fns', new class implements SymbolProvider {
+			->registerLibrary(new class implements FuncProvider {
 
-				function lookup(string $name): ?BuildinFunc
+				function getNamespace(): string
+				{
+					return 'my_fns';
+				}
+
+
+
+				function lookupFunc(string $name): ?BuildinFunc
 				{
 					if ($name === 'calculate') {
 						return new class implements BuildinFunc
 						{
-
-							function getQualifiedName(): string
-							{
-								return 'my_fns.calculate';
-							}
-
-
 
 							function type(): string
 							{

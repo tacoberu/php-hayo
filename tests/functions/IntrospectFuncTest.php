@@ -88,6 +88,8 @@ class IntrospectFuncTest extends TestCase
 			['Introspect.of src', ['src' => (object) ['a' => 1]], 'Dict'],
 			['Introspect.of 42', [], 'Int'],
 			['Introspect.of "hi"', [], 'Str'],
+			['Introspect.of (DateTime.fromDate 2024 1 1)', [], 'DateTime'],
+			['Introspect.of (1, 2)', [], 'Tuple'],
 		];
 	}
 
@@ -107,6 +109,9 @@ class IntrospectFuncTest extends TestCase
 			['Introspect.is src "Null"', ['src' => null], true],
 			['Introspect.is src "List"', ['src' => [1, 2]], true],
 			['Introspect.is src "Dict"', ['src' => (object) ['a' => 1]], true],
+			['Introspect.is (DateTime.fromDate 2024 1 1) "DateTime"', [], true],
+			['Introspect.is (1, 2) "Tuple"', [], true],
+			['Introspect.is (1, 2) "List"', [], false],
 		];
 	}
 

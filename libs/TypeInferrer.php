@@ -27,9 +27,9 @@ class TypeInferrer
 	private Unifier $unifier;
 
 	/**
-	 * Registry of sum types: typeName => SumTypeDescriptor instance.
+	 * Registry of sum types: typeName => SumTypeDef instance.
 	 * Used for exhaustiveness checking and type-parameter resolution.
-	 * @var array<string, SumTypeDescriptor>
+	 * @var array<string, SumTypeDef>
 	 */
 	private array $sumTypes;
 
@@ -41,7 +41,7 @@ class TypeInferrer
 	private $variantToType = [];
 
 	/**
-	 * @param array<string, SumTypeDescriptor> $sumTypes
+	 * @param array<string, SumTypeDef> $sumTypes
 	 */
 	function __construct(Unifier $unifier, array $sumTypes = [])
 	{

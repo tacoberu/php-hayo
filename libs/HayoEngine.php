@@ -16,23 +16,20 @@ final class HayoEngine
 {
 
 	/**
-	 * @var array<string, SymbolProvider>
+	 * @var array<string, LibraryProvider>
 	 */
-	private array $libs;
-
-	/**
-	 * @var array<string, TypeDescriptor>
-	 */
-	private array $types = []; // @phpstan-ignore property.onlyWritten
+	private array $libs = [];
 
 	private ?Cache $cache = Null;
 
 	/**
-	 * @param array<string, SymbolProvider> $libs
+	 * @param list<LibraryProvider> $libs
 	 */
-	function __construct(array $libs)
+	function __construct(array $libs = [])
 	{
-		$this->libs = $libs;
+		foreach ($libs as $lib) {
+			$this->libs[$lib->getNamespace()] = $lib;
+		}
 	}
 
 
@@ -40,25 +37,22 @@ final class HayoEngine
 	static function WithDefaultLibraries(): self
 	{
 		return new self([
-			'predicate' => new PredicatesProvider(),
-			'Bool' => new BoolProvider(),
-			'Math' => new MathsProvider(),
-			'Str' => new StringsProvider(),
-			'List' => new ListsProvider(),
-			'Dict' => new DictsProvider(),
-			'DateTime' => new DateTimeProvider(),
-			'Introspect' => new IntrospectProvider(),
+			new PredicatesProvider(),
+			new BoolProvider(),
+			new MathsProvider(),
+			new StringsProvider(),
+			new ListsProvider(),
+			new DictsProvider(),
+			new DateTimeProvider(),
+			new IntrospectProvider(),
 		]);
 	}
 
 
 
-	function registerLibrary(string $ns, SymbolProvider $lib): self
+	function registerLibrary(LibraryProvider $lib): self
 	{
-		$this->libs[$ns] = $lib;
-		if ($lib instanceof TypeDescriptor) {
-			$this->types[$lib->getTypeName()] = $lib;
-		}
+		$this->libs[$lib->getNamespace()] = $lib;
 		return $this;
 	}
 
@@ -68,6 +62,47 @@ final class HayoEngine
 	{
 		$this->cache = $adapter;
 		return $this;
+	}
+
+
+
+	/**
+	 * Builds a value of a custom type from plain PHP data and a fully-qualified
+	 * type name — the PHP-side counterpart of constructing a value inside a script.
+	 *
+	 * `$type` is namespaced ("Ns.Type"); the engine splits it and asks
+	 * $libs[Ns]->lookupType("Type") (a TypeProvider) for the TypeDef. The values
+	 * are validated against the declared field types and wrapped into a FinalValue
+	 * carrying the full type name, ready to pass into evaluate().
+	 *
+	 * For a product type pass just the fields. For a sum type pass the chosen
+	 * variant as $variant (its argument types are then validated); the result is
+	 * a SumTypeValue. Passing $variant for a product type — or omitting it for a
+	 * sum type — is an error.
+	 *
+	 * @param list<mixed> $values
+	 */
+	function value(array $values, string $type, ?string $variant = Null): FinalValue
+	{
+		$def = $this->lookupType($type);
+
+		if ($def instanceof ProductTypeDef) {
+			if ($variant !== Null) {
+				throw new ArgumentsException("Product type '{$type}' takes no variant.");
+			}
+			$payload = $this->packFields($values, $def->getFieldTypes(), $type);
+			return FinalValue::composite($payload, $type);
+		}
+
+		if ($def instanceof SumTypeDef) {
+			if ($variant === Null || ! in_array($variant, $def->getVariantNames(), True)) {
+				throw new ArgumentsException("Sum type '{$type}' requires one of its variants; given '" . ($variant ?? 'null') . "'.");
+			}
+			$payload = $this->packFields($values, $def->getVariantArgTypes($variant), $type);
+			return new FinalValue(new SumTypeValue($type, $variant, $payload), $type);
+		}
+
+		throw ArgumentsException::InvalidValueType($type);
 	}
 
 
@@ -109,6 +144,53 @@ final class HayoEngine
 			default:
 				throw CompileException::UnexpectedResult($expr);
 		}
+	}
+
+
+
+	/**
+	 * Validates plain values against declared field types and packs them into a
+	 * positional payload of FinalValues.
+	 *
+	 * @param list<mixed> $values
+	 * @param list<string> $argTypes
+	 * @return list<FinalValue>
+	 */
+	private function packFields(array $values, array $argTypes, string $type): array
+	{
+		if (count($values) !== count($argTypes)) {
+			$given = array_map(function ($x): string {
+				return $this->gauseType($x);
+			}, $values);
+			throw ArgumentsException::InvalidCountOfArguments($type, $argTypes, $given);
+		}
+
+		$payload = [];
+		foreach ($values as $i => $val) {
+			$packed = $this->pack($val);
+			self::assertFieldType($argTypes[$i], $packed->type());
+			$payload[] = $packed;
+		}
+		return $payload;
+	}
+
+
+
+	/**
+	 * Resolves a fully-qualified type name ("Ns.Type") to its TypeDef via the
+	 * owning library's TypeProvider, or Null if unknown.
+	 */
+	private function lookupType(string $type): ?TypeDef
+	{
+		if (strpos($type, '.') === False) {
+			return Null;
+		}
+		list($ns, $local) = explode('.', $type, 2);
+		$lib = $this->libs[$ns] ?? Null;
+		if ( ! $lib instanceof TypeProvider) {
+			return Null;
+		}
+		return $lib->lookupType($local);
 	}
 
 
@@ -203,12 +285,26 @@ final class HayoEngine
 			case self::is_dict($src):
 				return 'Dict';
 
-			case $src instanceof HayoValue:
-				return $src->getHayoType();
+			case $src instanceof SumTypeValue:
+				return $src->getTypeName();
 
 			default:
 				throw ArgumentsException::InvalidValueType($src);
 		}
+	}
+
+
+
+	private static function assertFieldType(string $expected, string $actual): void
+	{
+		if ($expected === '?' || $expected === 'a' || $expected === $actual) {
+			return;
+		}
+		// Num/Real accept both Int and Real, mirroring the numeric tower elsewhere.
+		if (($expected === 'Num' || $expected === 'Real') && ($actual === 'Int' || $actual === 'Real')) {
+			return;
+		}
+		throw ArgumentsException::InvalidArguments([$expected], [$actual]);
 	}
 
 

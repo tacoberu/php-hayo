@@ -9,10 +9,17 @@
 
 namespace Taco\Hayo;
 
-class IntrospectProvider implements SymbolProvider
+class IntrospectProvider implements FuncProvider
 {
 
-	function lookup(string $symbol): ?BuildinFunc
+	function getNamespace(): string
+	{
+		return 'Introspect';
+	}
+
+
+
+	function lookupFunc(string $symbol): ?BuildinFunc
 	{
 		switch ($symbol) {
 			case 'of': return new IntrospectFunc('of');
@@ -35,13 +42,6 @@ class IntrospectFunc implements BuildinFunc
 	function __construct(string $name)
 	{
 		$this->name = $name;
-	}
-
-
-
-	function getQualifiedName(): string
-	{
-		return self::Name . '.' . $this->name;
 	}
 
 

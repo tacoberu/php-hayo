@@ -12,10 +12,17 @@ namespace Taco\Hayo;
 use DateTime;
 
 
-class DateTimeProvider implements SymbolProvider
+class DateTimeProvider implements FuncProvider
 {
 
-	function lookup(string $symbol): ?BuildinFunc
+	function getNamespace(): string
+	{
+		return 'DateTime';
+	}
+
+
+
+	function lookupFunc(string $symbol): ?BuildinFunc
 	{
 		if (! in_array($symbol, [
 				// Converts to timestamp
@@ -57,13 +64,6 @@ class DateTimeFunc implements BuildinFunc
 		if (self::$functionMap === []) {
 			self::$functionMap = Utils::getApplyMethodFrom(self::class);
 		}
-	}
-
-
-
-	function getQualifiedName(): string
-	{
-		return self::Name . '.' . $this->name;
 	}
 
 
