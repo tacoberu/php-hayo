@@ -3,6 +3,8 @@ php-hayo
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![PHP Version](https://img.shields.io/badge/php-%3E%3D%207.4-8892bf.svg)](https://php.net)
+![Tests Status](https://github.com/tacoberu/php-hayo/actions/workflows/tests.yml/badge.svg)
+
 
 Hayo je odlehčený, čistě funkcionální skriptovací jazyk / runtime implementovaný v PHP. Je určen pro interpretaci uživatelské logiky (podmínky, transformace, byznys pravidla) ze skriptů, které chcete mít uložené (například) v databázi a uživatelsky editovatelné. Předáte skript jako řetězec, necháte z něj sestavit funkci a tu pak voláte s konkrétními daty.
 
@@ -87,7 +89,7 @@ $engine->setCache(new MyCacheAdapter())
 ### Vlastní knihovny funkcí
 Hayo můžete rozšířit o vlastní funkce definované v PHP.
 ```php
-$engine->registerLibrary("MyStrings", new MyStringsProvider())
+$engine->registerLibrary(new MyStringsProvider())
     ->evaluate('MyStrings.format("výsledek: ${0}", [1 + a])', ["a" => 1]);
 ```
 

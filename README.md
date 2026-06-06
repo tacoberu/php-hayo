@@ -3,6 +3,8 @@ php-hayo
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![PHP Version](https://img.shields.io/badge/php-%3E%3D%207.4-8892bf.svg)](https://php.net)
+![Tests Status](https://github.com/tacoberu/php-hayo/actions/workflows/tests.yml/badge.svg)
+
 
 Hayo is a lightweight, purely functional scripting language / runtime implemented in PHP. It is designed for interpreting user-defined logic (conditions, transformations, business rules) from scripts that you may want to store (for example) in a database and keep user-editable. You pass a script as a string, compile it into a function, and then call that function with concrete data.
 
@@ -87,7 +89,7 @@ $engine->setCache(new MyCacheAdapter())
 ### Custom function libraries
 You can extend Hayo with your own PHP-defined functions.
 ```php
-$engine->registerLibrary("MyStrings", new MyStringsProvider())
+$engine->registerLibrary(new MyStringsProvider())
     ->evaluate('MyStrings.format("result: ${0}", [1 + a])', ["a" => 1]);
 ```
 
