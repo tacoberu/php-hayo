@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "a3ee719c965ab3780e32d11c8bc1d3ce",
+    "content-hash": "91b3e388ab543cd9dfbd6704b477f904",
     "packages": [
         {
             "name": "tacoberu/hayo-ast",
@@ -55,16 +55,16 @@
         },
         {
             "name": "tacoberu/hayo-decoder",
-            "version": "v0.3.13",
+            "version": "v0.3.14",
             "source": {
                 "type": "git",
                 "url": "https://github.com/tacoberu/php-hayo-decoder.git",
-                "reference": "0b66187ece4155f068161dc6723e322e144521a0"
+                "reference": "4d96a845a3ef8380f8e1f290a8f7142dded65861"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/tacoberu/php-hayo-decoder/zipball/0b66187ece4155f068161dc6723e322e144521a0",
-                "reference": "0b66187ece4155f068161dc6723e322e144521a0",
+                "url": "https://api.github.com/repos/tacoberu/php-hayo-decoder/zipball/4d96a845a3ef8380f8e1f290a8f7142dded65861",
+                "reference": "4d96a845a3ef8380f8e1f290a8f7142dded65861",
                 "shasum": ""
             },
             "require": {
@@ -98,9 +98,9 @@
             "description": "Hayo scripting language decoder and parser.",
             "support": {
                 "issues": "https://github.com/tacoberu/php-hayo-decoder/issues",
-                "source": "https://github.com/tacoberu/php-hayo-decoder/tree/v0.3.13"
+                "source": "https://github.com/tacoberu/php-hayo-decoder/tree/v0.3.14"
             },
-            "time": "2026-06-03T02:59:23+00:00"
+            "time": "2026-06-06T17:52:58+00:00"
         }
     ],
     "packages-dev": [

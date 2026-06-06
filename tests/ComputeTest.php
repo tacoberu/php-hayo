@@ -573,6 +573,22 @@ else "D"
 					],
 				new FinalValue('D', 'Str'),
 				],
+
+			// inline `if` na pravé straně přiřazení
+			["result = if n < 2 then \"small\" else \"big\"\nresult",
+				[ 'n' => new FinalValue(1, 'Int') ],
+				new FinalValue('small', 'Str'),
+				],
+			["result = if n < 2 then \"small\" else \"big\"\nresult",
+				[ 'n' => new FinalValue(5, 'Int') ],
+				new FinalValue('big', 'Str'),
+				],
+
+			// `if` odsazené na další řádek za přiřazením
+			["result =\n	if n < 2 then \"small\" else \"big\"\nresult",
+				[ 'n' => new FinalValue(1, 'Int') ],
+				new FinalValue('small', 'Str'),
+				],
 		];
 	}
 

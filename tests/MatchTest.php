@@ -52,6 +52,47 @@ result'
 
 
 
+	/**
+	 * `result = match ...` na jednom řádku, ramena odsazená níž.
+	 */
+	function testMatchInlineAssign(): void
+	{
+		$result = $this->engine()->evaluate(
+			"type Color = Red | Green | Blue\n"
+			. "c = Color.Blue\n"
+			. "result = match c\n"
+			. "    case Color.Red   then 1\n"
+			. "    case Color.Green then 2\n"
+			. "    case Color.Blue  then 3\n"
+			. "result"
+		);
+
+		$this->assertSame(3, $result);
+	}
+
+
+
+	/**
+	 * Ramena `case` odsazená hlouběji než `match`.
+	 */
+	function testMatchArmsIndentedDeeper(): void
+	{
+		$result = $this->engine()->evaluate(
+			"type Color = Red | Green | Blue\n"
+			. "c = Color.Blue\n"
+			. "result =\n"
+			. "    match c\n"
+			. "        case Color.Red   then 1\n"
+			. "        case Color.Green then 2\n"
+			. "        case Color.Blue  then 3\n"
+			. "result"
+		);
+
+		$this->assertSame(3, $result);
+	}
+
+
+
 	function testMatchResultUsedInArithmetic(): void
 	{
 		$result = $this->engine()->evaluate(
