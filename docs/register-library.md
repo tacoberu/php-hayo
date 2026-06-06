@@ -507,7 +507,19 @@ registration name; for a type returned from `lookupType()` it is not read.)
 
 `TypeProvider::lookupType()` may also return a `SumTypeDef` — the compiler collects it
 for inference and `match` checking just like script types. Values of such a type are
-created from PHP via `value($fields, $type, $variant)` (see section 2) and are fully
-usable in `match`. 
+created either from PHP via `value($fields, $type, $variant)` (see section 2), or
+directly **in a script via a constructor** using the fully-qualified name
+`Ns.Type.Variant`:
+
+```hayo
+shape = Geo.Shape.Rectangle 10.0 5.0
+match shape
+	case Geo.Shape.Circle r then r * r * 3.14159
+	case Geo.Shape.Rectangle w h then w * h
+	case Geo.Shape.Point then 0.0
+```
+
+In both cases the resulting value carries the fully-qualified type name (`Geo.Shape`)
+— the library namespace prefix — so it is fully usable in `match` and `Introspect.of`.
 
  For `match` syntax details see **[Language syntax](syntax.md)**.

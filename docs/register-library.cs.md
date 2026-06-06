@@ -509,8 +509,19 @@ jméno; u typu z `lookupType()` se nečte.)
 
 `TypeProvider::lookupType()` smí `SumTypeDef` vrátit také — překladač ho posbírá
 pro inferenci a kontrolu `match` stejně jako script typy. Hodnoty takového typu se
-tvoří z PHP přes `value($fields, $type, $variant)` (viz sekce 2) a jsou v `match`
-plnohodnotné. 
+tvoří buď z PHP přes `value($fields, $type, $variant)` (viz sekce 2), nebo přímo
+**ve skriptu konstruktorem** plně kvalifikovaným jménem `Ns.Type.Variant`:
+
+```hayo
+shape = Geo.Shape.Rectangle 10.0 5.0
+match shape
+	case Geo.Shape.Circle r then r * r * 3.14159
+	case Geo.Shape.Rectangle w h then w * h
+	case Geo.Shape.Point then 0.0
+```
+
+V obou případech nese výsledná hodnota plně kvalifikované jméno typu (`Geo.Shape`)
+— prefix namespace knihovny — takže je v `match` i `Introspect.of` plnohodnotná.
 
 
 Podrobnosti k syntaxi `match` viz **[Syntaxe jazyka](syntax.cs.md)**.

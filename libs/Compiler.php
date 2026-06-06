@@ -219,6 +219,26 @@ class Compiler
 			return [$x, $fn];
 		}
 
+		// Library sum-type constructor: `Ns.Type.Variant` (e.g. Geo.Shape.Circle).
+		// Resolves against a TypeProvider's SumTypeDef and builds a constructor
+		// carrying the fully-qualified type name ("Geo.Shape"), so the prefix
+		// propagates into the resulting SumTypeValue — matching value()-built ones.
+		if ($lib instanceof TypeProvider && strpos($symbol, '.')) {
+			list($type, $variant) = explode('.', $symbol, 2);
+			if ( ! strpos($variant, '.')) {
+				$def = $lib->lookupType($type);
+				if ($def instanceof SumTypeDef && in_array($variant, $def->getVariantNames(), True)) {
+					$fn = new SumTypeConstructor(
+						"{$ns}.{$type}",
+						$def->getTypeParams(),
+						$variant,
+						$def->getVariantArgTypes($variant)
+					);
+					return [$x, $fn];
+				}
+			}
+		}
+
 		return Null;
 	}
 
