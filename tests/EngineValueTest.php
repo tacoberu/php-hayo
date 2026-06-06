@@ -174,12 +174,58 @@ class EngineValueTest extends TestCase
 		$engine = $this->engine();
 		$script =
 'match src
-case Probe.Shape.Circle r then r
-case Probe.Shape.Rectangle w h then w * h
-case Probe.Shape.Point then 0.0';
+	case Probe.Shape.Circle r then r
+	case Probe.Shape.Rectangle w h then w * h
+	case Probe.Shape.Point then 0.0';
 
 		$this->assertSame(3.14, $engine->evaluate($script, ['src' => $engine->value([3.14], 'Probe.Shape', 'Circle')]));
 		$this->assertSame(50.0, $engine->evaluate($script, ['src' => $engine->value([10.0, 5.0], 'Probe.Shape', 'Rectangle')]));
+	}
+
+
+
+	/**
+	 * Konstruktor sum typu z knihovny lze volat přímo ve skriptu
+	 * (`Probe.Shape.Circle 3.14`); výsledná hodnota nese plně kvalifikované
+	 * jméno typu (prefix namespace knihovny), stejně jako hodnota z value().
+	 */
+	function testSumConstructorInScript(): void
+	{
+		$engine = $this->engine();
+
+		// Varianta s argumentem.
+		$circle = $engine->evaluate('Probe.Shape.Circle 3.14');
+		$this->assertInstanceOf(SumTypeValue::class, $circle);
+		$this->assertSame('Probe.Shape', $circle->getTypeName());
+		$this->assertSame('Circle', $circle->getVariant());
+		$this->assertSame(3.14, $circle->getPayload()[0]->unpack());
+
+		// Bezargumentová varianta.
+		$point = $engine->evaluate('Probe.Shape.Point');
+		$this->assertInstanceOf(SumTypeValue::class, $point);
+		$this->assertSame('Probe.Shape', $point->getTypeName());
+		$this->assertSame('Point', $point->getVariant());
+
+		// Plně kvalifikované jméno teče i do introspekce.
+		$this->assertSame('Probe.Shape', $engine->evaluate('Introspect.of (Probe.Shape.Rectangle 10.0 5.0)'));
+	}
+
+
+
+	/**
+	 * Hodnota vyrobená konstruktorem ve skriptu je plnohodnotná v `match` —
+	 * konstrukce i rozlišení variant proběhne celé uvnitř skriptu.
+	 */
+	function testSumConstructorInScriptWorksInMatch(): void
+	{
+		$result = $this->engine()->evaluate(
+'shape = Probe.Shape.Rectangle 10.0 5.0
+match shape
+	case Probe.Shape.Circle r then r * r * 3.14159
+	case Probe.Shape.Rectangle w h then w * h
+	case Probe.Shape.Point then 0.0');
+
+		$this->assertSame(50.0, $result);
 	}
 
 
