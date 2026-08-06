@@ -85,7 +85,11 @@ final class Interpret
 				// pass
 			}
 			elseif ($x instanceof ParametricValue) {
-				// pass
+				// Close over any free variables already available in $lets
+				// (e.g. an outer script parameter used inside a lambda passed
+				// to a higher-order function like List.map), while leaving
+				// the callable's own formal parameters unresolved.
+				$items[$i] = $x->partialApply($lets);
 			}
 			else {
 				$items[$i] = self::applyAny($x, $lets);

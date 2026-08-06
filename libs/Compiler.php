@@ -1022,17 +1022,22 @@ class Compiler
 	private static function castLambda(Lambda $val): array
     {
 		$binds = [];
-		//~ foreach ($val->getArgs() as $x) {
-			//~ $binds[$x] = new BindValue($x, '?');
-		//~ }
+		$closureNames = [];
+		// Lambda::refs() returns both its own formal arguments and any free
+		// variables captured from an enclosing scope. Only the latter may be
+		// resolved ahead of time (see ParametricValue::partialApply) — the
+		// former must always come from whoever ultimately invokes the callable.
 		foreach ($val->refs() as $x) {
 			$binds[$x] = new BindValue($x, '?');
+			if ( ! in_array($x, $val->getArgs(), True)) {
+				$closureNames[] = $x;
+			}
 		}
 		$expr = $val->getExpr();
 		if ($expr instanceof Form) { // @phpstan-ignore instanceof.alwaysFalse
-			return [ParametricValue::Form_($expr, '?', array_values($binds)), $binds];
+			return [ParametricValue::Form_($expr, '?', array_values($binds))->markClosureNames($closureNames), $binds];
 		}
-		return [ParametricValue::Expr_($expr, '?', array_values($binds)), $binds]; // @phpstan-ignore argument.type
+		return [ParametricValue::Expr_($expr, '?', array_values($binds))->markClosureNames($closureNames), $binds]; // @phpstan-ignore argument.type
     }
 
 

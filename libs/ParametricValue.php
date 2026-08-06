@@ -36,6 +36,22 @@ class ParametricValue implements HasRefs, Value
 	private array $binds;
 
 	/**
+	 * Names among $binds that were captured from an enclosing scope (closure
+	 * over a lambda's free variables), as opposed to the callable's own
+	 * formal parameters. Only these may be resolved ahead of time, before
+	 * this value is handed to a caller (e.g. List.map) that supplies the
+	 * remaining, genuinely-required arguments.
+	 * @var list<string>
+	 */
+	private array $closureNames = [];
+
+	/**
+	 * Values already resolved for names removed from $binds by partialApply().
+	 * @var array<string, FinalValue | ParametricValue>
+	 */
+	private array $closure = [];
+
+	/**
 	 * @param Expr | Form | Composite | BindValue $expr
 	 * @param list<BindValue> $binds
 	 */
@@ -117,6 +133,63 @@ class ParametricValue implements HasRefs, Value
 
 
 
+	/**
+	 * Marks which of $binds are free variables closed over from an enclosing
+	 * scope, and therefore safe to resolve early via partialApply().
+	 * @param list<string> $names
+	 */
+	function markClosureNames(array $names): self
+	{
+		$clone = clone $this;
+		$clone->closureNames = $names;
+		return $clone;
+	}
+
+
+
+	/**
+	 * Resolves any of this value's closure names that are already available
+	 * in $lets, baking them in and shrinking $binds to only what the eventual
+	 * caller still needs to supply. Own formal parameters (not in
+	 * $closureNames) are never touched here.
+	 *
+	 * @param array<string, FinalValue | ParametricValue> $lets
+	 */
+	function partialApply(array $lets): self
+	{
+		if ($this->closureNames === []) {
+			return $this;
+		}
+
+		$resolved = $this->closure;
+		$remainingBinds = [];
+		$remainingClosureNames = [];
+		foreach ($this->binds as $bind) {
+			$name = $bind->getName();
+			if (in_array($name, $this->closureNames, True) && array_key_exists($name, $lets)) {
+				$resolved[$name] = $lets[$name];
+			}
+			else {
+				$remainingBinds[] = $bind;
+				if (in_array($name, $this->closureNames, True)) {
+					$remainingClosureNames[] = $name;
+				}
+			}
+		}
+
+		if ($resolved === $this->closure) {
+			return $this;
+		}
+
+		$clone = clone $this;
+		$clone->binds = $remainingBinds;
+		$clone->closure = $resolved;
+		$clone->closureNames = $remainingClosureNames;
+		return $clone;
+	}
+
+
+
 	function type(): string
 	{
 		return $this->type;
@@ -191,7 +264,7 @@ class ParametricValue implements HasRefs, Value
 		try {
 			self::assertArguments($args);
 			$this->assertBindArguments($this->getBinds(), $args);
-			return Interpret::applyAny($this->expr, $args);
+			return Interpret::applyAny($this->expr, array_merge($this->closure, $args));
 		}
 		catch (ScriptRuntimeException | SymbolNotFound | ArgumentsException $e) {
 			throw $e;

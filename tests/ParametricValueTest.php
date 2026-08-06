@@ -94,6 +94,40 @@ class ParametricValueTest extends TestCase
 
 
 
+	/**
+	 * A lambda `x -> x + factor`, where `factor` is a closed-over free
+	 * variable and `x` is its own formal argument. Only `factor` may be
+	 * resolved ahead of time via partialApply(); `x` must still come from
+	 * the eventual caller.
+	 */
+	function testPartialApplyClosesOverFreeVariableOnly()
+	{
+		$inst = ParametricValue::Expr_(Expr::Bin_(
+			'x',
+			new MathOperator('+'),
+			'factor'
+		), 'Num', [new BindValue('factor', 'Num'), new BindValue('x', 'Num')])
+			->markClosureNames(['factor']);
+
+		// Supplying an unrelated value under a different name changes nothing.
+		$untouched = $inst->partialApply(['unrelated' => new FinalValue(1, 'Int')]);
+		$this->assertEquals([
+			new BindValue('factor', 'Num'),
+			new BindValue('x', 'Num'),
+			], $untouched->getBinds());
+
+		// factor is available in the surrounding scope -> gets closed over,
+		// leaving only the lambda's own argument `x` to be supplied later.
+		$closed = $inst->partialApply(['factor' => new FinalValue(10, 'Int'), 'x' => new FinalValue(999, 'Int')]);
+		$this->assertEquals([
+			new BindValue('x', 'Num'),
+			], $closed->getBinds());
+
+		$this->assertEquals(new FinalValue(11, 'Int'), $closed->apply(['x' => new FinalValue(1, 'Int')]));
+	}
+
+
+
 	function ____testCompositeDictTerm()
 	{
 		$inst = ParametricValue::Dict_(Composite::Dict_([

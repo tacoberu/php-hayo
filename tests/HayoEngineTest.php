@@ -87,6 +87,18 @@ class HayoEngineTest extends TestCase
 			['a + 1', ['a' => 41.0],
 				42.0,
 				],
+
+			// Lambda passed to List.map closes over an external script
+			// parameter (not just its own bound argument).
+			['List.map xs (x -> x + factor)', ['xs' => [1, 2, 3], 'factor' => 10],
+				[11, 12, 13],
+				],
+
+			// Same, but the closed-over variable is a local constant rather
+			// than an external parameter.
+			["factor = 42\nList.map xs (x -> x + factor)", ['xs' => [1, 2, 3]],
+				[43, 44, 45],
+				],
 		];
 	}
 
