@@ -60,6 +60,7 @@ Str.format "Lorem ${a} doler ist." {a: "ipsum"}
 | `List.filter src fn` | List\<a\> Callable | List\<a\> | filter by predicate |
 | `List.fold src init fn` | List\<a\> b Callable | b | reduce to a single value |
 | `List.split src fn limit` | List\<a\> Callable Int | List\<List\<a\>\> | split by predicate |
+| `List.groupBy src fn` | List\<a\> Callable | List\<List\<a\>\> | groups elements by the key `fn` returns; groups ordered by first occurrence of the key, elements keep their order; keys are compared by content |
 | `List.sort src fn` | List\<a\> Callable | List\<a\> | sort with comparator |
 | `List.sort src "List.Asc"` | List\<a\> | List\<a\> | sort ascending |
 | `List.sort src "List.Desc"` | List\<a\> | List\<a\> | sort descending |

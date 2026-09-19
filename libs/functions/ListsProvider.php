@@ -9,7 +9,9 @@
 
 namespace Taco\Hayo;
 
+use DateTimeInterface;
 use LogicException;
+use stdClass;
 
 
 class ListsProvider implements FuncProvider
@@ -305,6 +307,91 @@ class ListFunc implements BuildinFunc
 		}
 		$parts[] = new FinalValue($acu, 'List');
 		return new FinalValue($parts, 'List');
+	}
+
+
+
+	/**
+	 * Groups elements by the key that `cb` returns for them. Groups are ordered
+	 * by the first occurrence of their key, elements keep their original order
+	 * inside a group. Keys are compared structurally (records, lists and sum
+	 * types by content), so any type can serve as a key.
+	 * @signature "src: List<a>, cb: (a -> k) -> List<List<a>>"
+	 * @phpstan-ignore method.unused
+	 */
+	private static function applyGroupBy(FinalValue $src, ParametricValue $cb): FinalValue
+	{
+		$args = $cb->getArgs();
+		$keys = [];
+		$groups = [];
+		foreach ($src->getValue() as $x) {
+			$params = is_array($x)
+				? $x
+				: [$x];
+			$key = $cb->apply(array_combine($args, $params))->unpack();
+			$found = False;
+			foreach ($keys as $i => $known) {
+				if (self::isSameKey($known, $key)) {
+					$groups[$i][] = $x;
+					$found = True;
+					break;
+				}
+			}
+			if ( ! $found) {
+				$keys[] = $key;
+				$groups[] = [$x];
+			}
+		}
+		return new FinalValue(array_map(static function(array $group): FinalValue {
+			return new FinalValue($group, 'List');
+		}, $groups), 'List');
+	}
+
+
+
+	/**
+	 * Strict structural equality of unpacked values. Unlike `===` it compares
+	 * records and objects by content, and record fields regardless of order.
+	 * @param mixed $a
+	 * @param mixed $b
+	 */
+	private static function isSameKey($a, $b): bool
+	{
+		if ($a instanceof SumTypeValue && $b instanceof SumTypeValue) {
+			return $a->getTypeName() === $b->getTypeName()
+				&& $a->getVariant() === $b->getVariant()
+				&& self::isSameKey(
+					array_map(static function(FinalValue $x) {
+						return $x->unpack();
+					}, $a->getPayload()),
+					array_map(static function(FinalValue $x) {
+						return $x->unpack();
+					}, $b->getPayload())
+				);
+		}
+		if ($a instanceof DateTimeInterface && $b instanceof DateTimeInterface) {
+			return $a->getTimestamp() === $b->getTimestamp()
+				&& $a->format('u') === $b->format('u');
+		}
+		if ($a instanceof stdClass && $b instanceof stdClass) {
+			$a = (array) $a;
+			$b = (array) $b;
+			ksort($a);
+			ksort($b);
+			return self::isSameKey($a, $b);
+		}
+		if (is_array($a) && is_array($b)) {
+			if (array_keys($a) !== array_keys($b)) {
+				return False;
+			}
+			foreach ($a as $i => $x) {
+				if ( ! self::isSameKey($x, $b[$i])) {
+					return False;
+				}
+			}
+			return True;
+		}
+		return $a === $b;
 	}
 
 

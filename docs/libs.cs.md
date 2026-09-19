@@ -60,6 +60,7 @@ Str.format "Lorem ${a} doler ist." {a: "ipsum"}
 | `List.filter src fn` | List\<a\> Callable | List\<a\> | filtrování dle predikátu |
 | `List.fold src init fn` | List\<a\> b Callable | b | redukce na jednu hodnotu |
 | `List.split src fn limit` | List\<a\> Callable Int | List\<List\<a\>\> | rozdělení dle predikátu |
+| `List.groupBy src fn` | List\<a\> Callable | List\<List\<a\>\> | seskupení prvků podle klíče, který vrací `fn`; skupiny dle prvního výskytu klíče, prvky si drží pořadí; klíče se porovnávají obsahem |
 | `List.sort src fn` | List\<a\> Callable | List\<a\> | řazení komparátorem |
 | `List.sort src "List.Asc"` | List\<a\> | List\<a\> | vzestupné řazení |
 | `List.sort src "List.Desc"` | List\<a\> | List\<a\> | sestupné řazení |

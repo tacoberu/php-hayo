@@ -179,6 +179,40 @@ class ListFuncTest extends TestCase
 	// @TODO test for List.slice
 
 
+	// ---- groupBy -----------------------------------------------------------
+
+	function testGroupBy()
+	{
+		$inst = new ListFunc('groupBy');
+		$this->assertSame('List<List<a>>', $inst->type());
+		$this->assertEquals([
+			new BindValue('src', 'List<a>'),
+			new BindValue('cb', '(a -> k)'),
+		], $inst->getBinds());
+		$this->assertSame('<List.groupBy>', (string) $inst);
+	}
+
+
+
+	/**
+	 * The element itself serves as the key (identity lambda), so the test
+	 * exercises how keys of the given type are compared.
+	 *
+	 * @param list<FinalValue> $xs
+	 * @param array<mixed> $expected
+	 * @dataProvider dataGroupByApply
+	 */
+	#[DataProvider('dataGroupByApply')]
+	function testGroupByApply(array $xs, array $expected)
+	{
+		$inst = new ListFunc('groupBy');
+		$this->assertEquals($expected, $inst->apply([
+			new FinalValue($xs, 'List<a>'),
+			ParametricValue::ShortLinkBind(new BindValue('x', '?')),
+		])->unpack());
+	}
+
+
 	// ---- sort --------------------------------------------------------------
 
 	function testSort()
@@ -273,6 +307,70 @@ class ListFuncTest extends TestCase
 		return [
 			[[], 42, [42]],
 			[[1, 2, 3], 4, [1, 2, 3, 4]],
+		];
+	}
+
+
+
+	/**
+	 * @return array<mixed>
+	 */
+	static function dataGroupByApply(): array
+	{
+		$int = static function(int $x): FinalValue {
+			return new FinalValue($x, 'Int');
+		};
+		$str = static function(string $x): FinalValue {
+			return new FinalValue($x, 'Str');
+		};
+		$rec = static function(array $x): FinalValue {
+			return new FinalValue((object) array_map(static function($v): FinalValue {
+				return new FinalValue($v, 'Int');
+			}, $x), 'Dict');
+		};
+		$list = static function(array $x) use ($int): FinalValue {
+			return new FinalValue(array_map($int, $x), 'List');
+		};
+		$sum = static function(string $variant, array $payload): FinalValue {
+			return new FinalValue(new SumTypeValue('Shape', $variant, array_map(static function(int $x): FinalValue {
+				return new FinalValue($x, 'Int');
+			}, $payload)), 'Shape');
+		};
+
+		return [
+			'empty' => [[], []],
+			'groups ordered by first occurrence, items keep their order' => [
+				[$int(5), $int(8), $int(5), $int(2), $int(2)],
+				[[5, 5], [8], [2, 2]],
+				],
+			'single group' => [
+				[$str('a'), $str('a')],
+				[['a', 'a']],
+				],
+			'strict keys, 1 is not "1"' => [
+				[$int(1), $str('1'), $int(1)],
+				[[1, 1], ['1']],
+				],
+			'record keys are compared by content' => [
+				[$rec(['id' => 1]), $rec(['id' => 2]), $rec(['id' => 1])],
+				[[(object) ['id' => 1], (object) ['id' => 1]], [(object) ['id' => 2]]],
+				],
+			'record keys ignore the order of fields' => [
+				[$rec(['a' => 1, 'b' => 2]), $rec(['b' => 2, 'a' => 1]), $rec(['a' => 1, 'b' => 3])],
+				[[(object) ['a' => 1, 'b' => 2], (object) ['b' => 2, 'a' => 1]], [(object) ['a' => 1, 'b' => 3]]],
+				],
+			'list keys are compared by content' => [
+				[$list([1, 2]), $list([3]), $list([1, 2]), $list([2, 1])],
+				[[[1, 2], [1, 2]], [[3]], [[2, 1]]],
+				],
+			'sum type keys are compared by variant and payload' => [
+				[$sum('Circle', [1]), $sum('Circle', [2]), $sum('Circle', [1]), $sum('Point', [])],
+				[
+					[new SumTypeValue('Shape', 'Circle', [new FinalValue(1, 'Int')]), new SumTypeValue('Shape', 'Circle', [new FinalValue(1, 'Int')])],
+					[new SumTypeValue('Shape', 'Circle', [new FinalValue(2, 'Int')])],
+					[new SumTypeValue('Shape', 'Point', [])],
+				],
+				],
 		];
 	}
 

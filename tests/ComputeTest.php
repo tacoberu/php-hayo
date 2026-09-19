@@ -345,6 +345,39 @@ class ComputeTest extends TestCase
 					], 'List'),
 				],
 
+			// List.groupBy
+			["List.groupBy xs (x -> Str.len x)",
+				[ 'xs' => new FinalValue([
+					new FinalValue('a', 'Str'),
+					new FinalValue('bb', 'Str'),
+					new FinalValue('c', 'Str'),
+					new FinalValue('dd', 'Str'),
+					new FinalValue('e', 'Str'),
+					], 'List'),
+					],
+				new FinalValue([
+					new FinalValue([new FinalValue('a', 'Str'), new FinalValue('c', 'Str'), new FinalValue('e', 'Str')], 'List'),
+					new FinalValue([new FinalValue('bb', 'Str'), new FinalValue('dd', 'Str')], 'List'),
+					], 'List'),
+				],
+			["List.groupBy xs (x -> x == 1)",
+				[ 'xs' => new FinalValue([
+					new FinalValue(1, 'Int'),
+					new FinalValue(2, 'Int'),
+					new FinalValue(1, 'Int'),
+					new FinalValue(3, 'Int'),
+					], 'List'),
+					],
+				new FinalValue([
+					new FinalValue([new FinalValue(1, 'Int'), new FinalValue(1, 'Int')], 'List'),
+					new FinalValue([new FinalValue(2, 'Int'), new FinalValue(3, 'Int')], 'List'),
+					], 'List'),
+				],
+			["List.groupBy xs (x -> x + 1)",
+				[ 'xs' => new FinalValue([], 'List')],
+				new FinalValue([], 'List'),
+				],
+
 			// List.sort
 			["List.sort xs (a b -> if a == 4 then -1 elif a == b then 0 elif a < b then -1 else 1)",
 				[ 'xs' => new FinalValue([
