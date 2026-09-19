@@ -99,6 +99,73 @@ class HayoEngineTest extends TestCase
 			["factor = 42\nList.map xs (x -> x + factor)", ['xs' => [1, 2, 3]],
 				[43, 44, 45],
 				],
+
+			// Body of a lambda that is not an expression: a path, a symbol,
+			// a constant, a composite.
+			['List.map xs (x -> x.id)', ['xs' => [(object) ['id' => 5], (object) ['id' => 8]]],
+				[5, 8],
+				],
+			['List.map xs (x -> x)', ['xs' => [1, 2]],
+				[1, 2],
+				],
+			['List.map xs (x -> 1)', ['xs' => ['a', 'b']],
+				[1, 1],
+				],
+			['List.map xs (x -> Null)', ['xs' => ['a']],
+				[Null],
+				],
+			['List.map xs (x -> [x.id, 1])', ['xs' => [(object) ['id' => 5], (object) ['id' => 8]]],
+				[[5, 1], [8, 1]],
+				],
+			['List.map xs (x -> {a: x.id})', ['xs' => [(object) ['id' => 5]]],
+				[(object) ['a' => 5]],
+				],
+			['List.map xs (x -> x.nothing)', ['xs' => [(object) ['id' => 5]]],
+				[Null],
+				],
+
+			// A path inside an expression; a path to a closed-over variable.
+			['List.filter xs (x -> x.id == 5)', ['xs' => [(object) ['id' => 5], (object) ['id' => 8]]],
+				[(object) ['id' => 5]],
+				],
+			['List.map xs (x -> x.id + cfg.n)', ['xs' => [(object) ['id' => 1], (object) ['id' => 2]], 'cfg' => (object) ['n' => 100]],
+				[101, 102],
+				],
+			['List.map xs (x -> cfg.n)', ['xs' => [1, 2], 'cfg' => (object) ['n' => 100]],
+				[100, 100],
+				],
+			['List.map xs (x -> n)', ['xs' => [1, 2], 'n' => 7],
+				[7, 7],
+				],
+
+			// The order of parameters is kept when a path leads through one of them.
+			['List.fold xs 0 (acc b -> acc + b.id)', ['xs' => [(object) ['id' => 1], (object) ['id' => 3]]],
+				4,
+				],
+			['List.fold xs 0 (b acc -> b + acc.id)', ['xs' => [(object) ['id' => 1], (object) ['id' => 3]]],
+				4,
+				],
+
+			// List.groupBy by a field of a record.
+			['List.groupBy xs (x -> x.id)', ['xs' => [
+				(object) ['id' => 5, 'count' => 1],
+				(object) ['id' => 8, 'count' => 2],
+				(object) ['id' => 5, 'count' => 11],
+				(object) ['id' => 2, 'count' => 3],
+				(object) ['id' => 2, 'count' => 1],
+				]],
+				[
+					[(object) ['id' => 5, 'count' => 1], (object) ['id' => 5, 'count' => 11]],
+					[(object) ['id' => 8, 'count' => 2]],
+					[(object) ['id' => 2, 'count' => 3], (object) ['id' => 2, 'count' => 1]],
+				],
+				],
+			['List.groupBy xs (x -> {a: x.id, b: 1})', ['xs' => [(object) ['id' => 5], (object) ['id' => 8], (object) ['id' => 5]]],
+				[[(object) ['id' => 5], (object) ['id' => 5]], [(object) ['id' => 8]]],
+				],
+			['List.groupBy xs (x -> x)', ['xs' => [(object) ['a' => 1, 'b' => 2], (object) ['b' => 2, 'a' => 1], (object) ['a' => 2]]],
+				[[(object) ['a' => 1, 'b' => 2], (object) ['b' => 2, 'a' => 1]], [(object) ['a' => 2]]],
+				],
 		];
 	}
 

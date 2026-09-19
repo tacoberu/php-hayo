@@ -1021,23 +1021,71 @@ class Compiler
 	 */
 	private static function castLambda(Lambda $val): array
     {
+		$args = $val->getArgs();
+		$body = $val->getExpr();
 		$binds = [];
 		$closureNames = [];
 		// Lambda::refs() returns both its own formal arguments and any free
 		// variables captured from an enclosing scope. Only the latter may be
 		// resolved ahead of time (see ParametricValue::partialApply) — the
 		// former must always come from whoever ultimately invokes the callable.
-		foreach ($val->refs() as $x) {
-			$binds[$x] = new BindValue($x, '?');
-			if ( ! in_array($x, $val->getArgs(), True)) {
-				$closureNames[] = $x;
+		// A path such as `x.id` depends on the symbol `x`, so it is bound by
+		// its root; library symbols (`Str.len`) are kept whole to be reported
+		// as missing. A body that is a plain symbol is not listed among refs().
+		$refs = is_string($body)
+			? array_merge([$body], $val->refs())
+			: $val->refs();
+		foreach ($refs as $x) {
+			$ref = new BindValue($x, '?');
+			$name = $ref->isLibrarySymbol()
+				? $x
+				: $ref->getName();
+			if ( ! in_array($name, $args, True) && ! isset($binds[$name])) {
+				$binds[$name] = new BindValue($name, '?');
+				$closureNames[] = $name;
 			}
 		}
-		$expr = $val->getExpr();
-		if ($expr instanceof Form) { // @phpstan-ignore instanceof.alwaysFalse
-			return [ParametricValue::Form_($expr, '?', array_values($binds))->markClosureNames($closureNames), $binds];
+		foreach ($args as $x) {
+			$binds[$x] = new BindValue($x, '?');
 		}
-		return [ParametricValue::Expr_($expr, '?', array_values($binds))->markClosureNames($closureNames), $binds]; // @phpstan-ignore argument.type
+
+		// The body is cast the same way as a script, so that paths (`x.id`),
+		// constants (`1`) and composites (`{id: x}`) work as well as expressions.
+		list($term) = self::castAny($body, True);
+		$list = array_values($binds);
+		switch (True) {
+			case $term instanceof FinalValue:
+				$fn = ParametricValue::Const_($term, $list);
+				break;
+
+			case $term instanceof BindValue:
+				$fn = ParametricValue::Link_($term, $list);
+				break;
+
+			case $term instanceof Expr:
+				$fn = ParametricValue::Expr_($term, '?', $list);
+				break;
+
+			case $term instanceof Form:
+				$fn = ParametricValue::Form_($term, '?', $list);
+				break;
+
+			case $term instanceof Composite && $term->type() === Composite::TypeDict:
+				$fn = ParametricValue::Dict_($term, $list);
+				break;
+
+			case $term instanceof Composite && $term->type() === Composite::TypeList:
+				$fn = ParametricValue::List_($term, $list);
+				break;
+
+			case $term instanceof Composite && $term->type() === Composite::TypeTuple:
+				$fn = ParametricValue::Tuple_($term, $list);
+				break;
+
+			default:
+				throw CompileException::UnsupportedException('lambda body', $term);
+		}
+		return [$fn->markClosureNames($closureNames), $binds];
     }
 
 

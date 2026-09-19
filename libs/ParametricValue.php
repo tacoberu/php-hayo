@@ -24,7 +24,7 @@ class ParametricValue implements HasRefs, Value
 {
 
 	/**
-	 * @var Expr | Form | Composite | BindValue
+	 * @var Expr | Form | Composite | BindValue | FinalValue
 	 */
 	private $expr;
 
@@ -52,7 +52,7 @@ class ParametricValue implements HasRefs, Value
 	private array $closure = [];
 
 	/**
-	 * @param Expr | Form | Composite | BindValue $expr
+	 * @param Expr | Form | Composite | BindValue | FinalValue $expr
 	 * @param list<BindValue> $binds
 	 */
 	private function __construct($expr, string $type, array $binds)
@@ -129,6 +129,31 @@ class ParametricValue implements HasRefs, Value
 	static function ShortLinkBind(BindValue $expr): self
 	{
 		return new self($expr, '?', [$expr]);
+	}
+
+
+
+	/**
+	 * Body that only refers to a symbol or a path, such as `x -> x` or `x -> x.id`.
+	 * Unlike ShortLinkBind the callable may take other arguments than the linked one.
+	 *
+	 * @param list<BindValue> $binds
+	 */
+	static function Link_(BindValue $expr, array $binds): self
+	{
+		return new self($expr, '?', $binds);
+	}
+
+
+
+	/**
+	 * Body that is a constant, such as `x -> 1`. The arguments are required, but ignored.
+	 *
+	 * @param list<BindValue> $binds
+	 */
+	static function Const_(FinalValue $expr, array $binds): self
+	{
+		return new self($expr, $expr->type(), $binds);
 	}
 
 
