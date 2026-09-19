@@ -291,7 +291,7 @@ class ParametricValue implements HasRefs, Value
 			$this->assertBindArguments($this->getBinds(), $args);
 			return Interpret::applyAny($this->expr, array_merge($this->closure, $args));
 		}
-		catch (ScriptRuntimeException | SymbolNotFound | ArgumentsException $e) {
+		catch (ArgumentsException | ScriptRuntimeException | SymbolNotFound $e) {
 			throw $e;
 		}
 		catch (Throwable $e) {

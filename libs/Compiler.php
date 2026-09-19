@@ -412,7 +412,7 @@ class Compiler
 					try {
 						return $resolved->apply([]);
 					}
-					catch (DivisionByZeroError | ScriptTypeException | InvalidArgumentException $e) {
+					catch (DivisionByZeroError | InvalidArgumentException | ScriptTypeException $e) {
 						throw CompileException::EvaluationError($e);
 					}
 				}
@@ -520,7 +520,7 @@ class Compiler
 						try {
 							return $items[1]->apply([$left, $right]); // @phpstan-ignore method.nonObject
 						}
-						catch (DivisionByZeroError | ScriptTypeException | InvalidArgumentException $e) {
+						catch (DivisionByZeroError | InvalidArgumentException | ScriptTypeException $e) {
 							throw CompileException::EvaluationError($e);
 						}
 					}
@@ -672,7 +672,7 @@ class Compiler
 				try {
 					return $fn->apply($args); // @phpstan-ignore argument.type
 				}
-				catch (DivisionByZeroError | ScriptTypeException | InvalidArgumentException $e) {
+				catch (DivisionByZeroError | InvalidArgumentException | ScriptTypeException $e) {
 					throw CompileException::EvaluationError($e);
 				}
 
