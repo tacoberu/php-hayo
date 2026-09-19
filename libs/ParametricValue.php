@@ -344,7 +344,7 @@ class ParametricValue implements HasRefs, Value
 	{
 		if ( ! $val instanceof FinalValue // @phpstan-ignore booleanAnd.alwaysFalse
 				&& ! $val instanceof self) { // @phpstan-ignore instanceof.alwaysTrue
-			throw SymbolNotFound::InvalidArgumentWrapper($key, is_object($val) ? get_class($val) : gettype($val)); // @phpstan-ignore argument.type, function.alreadyNarrowedType
+			throw SymbolNotFound::InvalidArgumentWrapper($key, is_object($val) ? get_class($val) : gettype($val)); // @phpstan-ignore function.alreadyNarrowedType
 		}
 	}
 
