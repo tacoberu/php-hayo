@@ -166,6 +166,43 @@ class HayoEngineTest extends TestCase
 			['List.groupBy xs (x -> x)', ['xs' => [(object) ['a' => 1, 'b' => 2], (object) ['b' => 2, 'a' => 1], (object) ['a' => 2]]],
 				[[(object) ['a' => 1, 'b' => 2], (object) ['b' => 2, 'a' => 1]], [(object) ['a' => 2]]],
 				],
+
+			// F3 — `.pole` on the result of an arbitrary expression, not just
+			// a bareword symbol.
+			['(List.first xs Null).product', ['xs' => [(object) ['product' => 'apple'], (object) ['product' => 'pear']]],
+				'apple',
+				],
+			['(List.first xs Null).product', ['xs' => []],
+				Null,
+				],
+			['List.map xss (xs -> {product: (List.first xs Null).product})', ['xss' => [
+				[(object) ['product' => 'apple']],
+				[],
+				]],
+				[(object) ['product' => 'apple'], (object) ['product' => Null]],
+				],
+			['{a: 1, b: 2}.a', [],
+				1,
+				],
+			['(if c then {a: 1} else {a: 2}).a', ['c' => True],
+				1,
+				],
+			// Chaining `.a.b` on the result of a lambda call.
+			['((x -> {a: {b: x}}) 5).a.b', [],
+				5,
+				],
+			// Chaining through a missing field resolves to Null, not an error.
+			['((x -> {a: x}) 5).a.nothing', [],
+				Null,
+				],
+			// A base that is not a record does not crash; the field is Null.
+			['(1 + 1).foo', [],
+				Null,
+				],
+			// The plain bareword path still works unchanged.
+			['x.product', ['x' => (object) ['product' => 'kiwi']],
+				'kiwi',
+				],
 		];
 	}
 

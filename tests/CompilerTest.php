@@ -29,6 +29,7 @@ class CompilerTest extends TestCase
 	 * @dataProvider dataShortLinkBind
 	 * @dataProvider dataPaths
 	 * @dataProvider dataDicts
+	 * @dataProvider dataPropertyAccess
 	 */
 	#[DataProvider('dataScalar')]
 	#[DataProvider('dataCompositeFinal')]
@@ -42,6 +43,7 @@ class CompilerTest extends TestCase
 	#[DataProvider('dataShortLinkBind')]
 	#[DataProvider('dataPaths')]
 	#[DataProvider('dataDicts')]
+	#[DataProvider('dataPropertyAccess')]
 	function testCompile(string $code, $expected)
 	{
 		$this->assertEquals($expected, $this->compile($code));
@@ -1206,6 +1208,44 @@ content = [
 				],
 			["x = { foo: { doo: 41 } }\ny = x.foo\n1 + y.doo",
 				new FinalValue(42, 'Int'),
+				],
+		];
+	}
+
+
+
+	/**
+	 * F3 — `.pole` on the result of an arbitrary expression, not just a
+	 * bareword symbol (`(List.first xs Null).product`).
+	 * @return array<array<mixed>>
+	 */
+	static function dataPropertyAccess(): array
+	{
+		return [
+			// A fully resolved base folds the field access at compile time,
+			// same as `x.foo.doo` does for a bareword symbol.
+			['{foo: {doo: 41}}.foo.doo',
+				new FinalValue(41, '?'),
+				],
+			['1 + {foo: {doo: 41}}.foo.doo',
+				new FinalValue(42, 'Int'),
+				],
+
+			// A base with a free variable stays a ParametricValue: the field
+			// access compiles down to an ordinary Expr call of the internal
+			// accessor function, reusing the same runtime machinery as any
+			// other function call.
+			['(List.first xs Null).product',
+				ParametricValue::Expr_(
+					Expr::Func_(new PropertyAccessFunc('product'), [
+						Expr::Func_(new ListFunc('first'), [
+							new BindValue('xs', 'List<a>'),
+							new FinalValue(Null, 'Symbol'),
+							]),
+						]),
+					'?',
+					[new BindValue('xs', 'List<a>')]
+					),
 				],
 		];
 	}

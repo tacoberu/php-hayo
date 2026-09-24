@@ -189,6 +189,14 @@ class Compiler
 			return $symbols;
 		}
 
+		if ($src instanceof PropertyAccess) {
+			$base = $src->getBase();
+			if ($base instanceof Value) {
+				return $this->scanForConstructors($base);
+			}
+			return $symbols;
+		}
+
 		return $symbols;
 	}
 
@@ -450,6 +458,11 @@ class Compiler
 			case $term instanceof Form && $term->getName() === 'match':
 				return $this->partialEvaluateFormMatch($context, $term);
 
+			// `.field` on the result of an arbitrary expression, not just a
+			// bareword symbol — `(List.first xs Null).product`.
+			case $term instanceof PropertyAccess:
+				return $this->partialEvaluatePropertyAccess($context, $term);
+
 			default:
 				throw CompileException::UnsupportedException('partial evaluate', $term);
 		}
@@ -605,6 +618,34 @@ class Compiler
 			default:
 				throw CompileException::UnsupportedException('partial evaluate expr of term', $term);
 		}
+	}
+
+
+
+	/**
+	 * `(f x).product` — evaluates the base, then folds the field access
+	 * immediately once the base is fully resolved (no free refs left);
+	 * otherwise defers it to runtime as a `PropertyAccess` around the
+	 * partially-evaluated base.
+	 */
+	private function partialEvaluatePropertyAccess(Context $context, PropertyAccess $term): Value
+	{
+		$base = $this->partialEvaluate($context, $term->getBase());
+		$term = PropertyAccess::Of_($base, $term->getField());
+
+		if ($term->refs() === []) {
+			$baseVal = self::castAny($base, False)[0];
+			if ($baseVal instanceof FinalValue) {
+				try {
+					return (new PropertyAccessFunc($term->getField()))->apply([$baseVal]); // @phpstan-ignore argument.type
+				}
+				catch (DivisionByZeroError | InvalidArgumentException | ScriptTypeException $e) {
+					throw CompileException::EvaluationError($e);
+				}
+			}
+		}
+
+		return $term;
 	}
 
 
@@ -983,6 +1024,9 @@ class Compiler
 			case $src instanceof Form && $src->getName() === 'match':
 				return self::castFormMatch($src);
 
+			case $src instanceof PropertyAccess:
+				return self::castPropertyAccess($src, $packref);
+
 			case is_string($src):
 				if ($packref) {
 					$x = new BindValue($src, "?");
@@ -1157,6 +1201,28 @@ class Compiler
 			default:
 				throw CompileException::Unexpected();
 		}
+	}
+
+
+
+	/**
+	 * `(f x).product` — casts the base and, unless it is already a resolved
+	 * FinalValue (fold it right away), wraps the field extraction into an
+	 * ordinary `Expr::Func_()` call of an internal accessor function. This
+	 * reuses the whole existing Expr/ParametricValue machinery (closures,
+	 * partial application, runtime dispatch) instead of needing any of it
+	 * duplicated for PropertyAccess specifically.
+	 *
+	 * @return array{0: Value|string, 1: array<string, BindValue>}
+	 */
+	private static function castPropertyAccess(PropertyAccess $src, bool $packref): array
+	{
+		list($base, $lets) = self::castAny($src->getBase(), $packref);
+		$fn = new PropertyAccessFunc($src->getField());
+		if ($base instanceof FinalValue) {
+			return [$fn->apply([$base]), $lets]; // @phpstan-ignore argument.type
+		}
+		return [Expr::Func_($fn, [$base]), $lets];
 	}
 
 
