@@ -203,6 +203,45 @@ class HayoEngineTest extends TestCase
 			['x.product', ['x' => (object) ['product' => 'kiwi']],
 				'kiwi',
 				],
+
+			// F2 — a lambda nested inside another lambda's body must not leak
+			// its own argument as a spurious free variable of the outer one,
+			// when that argument is used as a `.path` operand of a binary
+			// expression (`it.quantity` inside `acc + it.quantity`).
+			['groupsArg |> List.map (xs -> {'
+			.'    quantity: (List.fold xs 0 (acc it -> acc + it.quantity))'
+			.'    })', ['groupsArg' => [
+				[(object) ['quantity' => 1], (object) ['quantity' => 2]],
+				]],
+				[(object) ['quantity' => 3]],
+				],
+			// Two sibling dict fields, each with its own nested lambda / path
+			// access — the leak was reported to survive here even once the
+			// single-field case above was fixed.
+			['groupsArg |> List.map (xs -> {'
+			.'    product: (List.first xs Null).product,'
+			.'    quantity: (List.fold xs 0 (acc it -> acc + it.quantity))'
+			.'    })', ['groupsArg' => [
+				[(object) ['product' => 'apple', 'quantity' => 1], (object) ['product' => 'apple', 'quantity' => 2]],
+				]],
+				[(object) ['product' => 'apple', 'quantity' => 3]],
+				],
+			// The full motivational example from the issue.
+			["items\n"
+			."    |> List.groupBy (x -> x.product)\n"
+			."    |> List.map (xs -> {\n"
+			."        product: (List.first xs Null).product,\n"
+			."        quantity: (List.fold xs 0 (acc it -> acc + it.quantity))\n"
+			."        })", ['items' => [
+				(object) ['product' => 'apple', 'quantity' => 2],
+				(object) ['product' => 'pear', 'quantity' => 5],
+				(object) ['product' => 'apple', 'quantity' => 3],
+				]],
+				[
+					(object) ['product' => 'apple', 'quantity' => 5],
+					(object) ['product' => 'pear', 'quantity' => 5],
+				],
+				],
 		];
 	}
 
@@ -352,6 +391,20 @@ class HayoEngineTest extends TestCase
 				'Division by zero'],
 
 		];
+	}
+
+
+
+	/**
+	 * Tentýž argument použitý na víc místech (`c.x`, `c.y`) je pořád jeden argument.
+	 */
+	function testEvaluateSameArgumentUsedMoreThanOnce()
+	{
+		$engine = HayoEngine::WithDefaultLibraries();
+		$this->assertEquals(
+			(object) ['a' => 1, 'b' => 2],
+			$engine->evaluate('{a: c.x, b: c.y}', ['c' => (object) ['x' => 1, 'y' => 2]])
+		);
 	}
 
 }

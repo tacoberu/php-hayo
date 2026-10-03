@@ -132,7 +132,41 @@ class FinalValue implements Value
 
 	function __toString(): string
 	{
-		return (string) $this->unpack();
+		return self::dump($this->unpack());
+	}
+
+
+
+	/**
+	 * Safe textual form of any unpacked value. Used in diagnostics (exception
+	 * messages), so it must never throw - a plain `(string)` cast fails on
+	 * stdClass and arrays, which would hide the original error.
+	 *
+	 * @param mixed $val
+	 */
+	private static function dump($val): string
+	{
+		if ($val instanceof DateTimeInterface) {
+			return $val->format(DateTimeInterface::ATOM);
+		}
+		switch (True) {
+			case is_null($val):
+				return 'Null';
+			case is_scalar($val):
+				return (string) $val;
+			case is_array($val):
+				return '[' . implode(', ', array_map([self::class, 'dump'], $val)) . ']';
+			case $val instanceof stdClass:
+				$xs = [];
+				foreach ((array) $val as $k => $v) {
+					$xs[] = $k . ': ' . self::dump($v);
+				}
+				return '{' . implode(', ', $xs) . '}';
+			case $val instanceof \Stringable:
+				return (string) $val;
+			default:
+				return is_object($val) ? get_class($val) : gettype($val);
+		}
 	}
 
 }

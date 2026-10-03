@@ -84,7 +84,7 @@ class SumTypeValue
 	function __toString(): string
 	{
 		$args = implode(' ', array_map(static function (FinalValue $v): string {
-			return (string) $v->unpack();
+			return (string) $v;
 		}, $this->payload));
 		return $args !== '' && $args !== '0'
 			? "{$this->typeName}.{$this->variant} {$args}"

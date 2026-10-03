@@ -77,4 +77,22 @@ class ValTest extends TestCase
 			, $inst->apply([]));
 	}
 
+
+
+	/**
+	 * `__toString()` slouží diagnostice (texty výjimek) - nesmí spadnout na stdClass/poli,
+	 * jinak zamaskuje původní chybu ("Object of class stdClass could not be converted to string").
+	 */
+	function testToStringOfStructuredValueDoesNotThrow()
+	{
+		$val = new FinalValue((object) [
+			'name' => new FinalValue('a', 'Str'),
+			'tags' => new FinalValue([new FinalValue(1, 'Int'), new FinalValue(null, 'Null')], 'List'),
+		], 'Dict');
+		$this->assertSame('{name: a, tags: [1, Null]}', (string) $val);
+
+		$sum = new SumTypeValue('Cmd', 'Ok', [$val]);
+		$this->assertSame('Cmd.Ok {name: a, tags: [1, Null]}', (string) $sum);
+	}
+
 }

@@ -309,9 +309,10 @@ class ParametricValue implements HasRefs, Value
 	 */
 	private function assertBindArguments(array $binds, array $args): void
 	{
-		$binds = array_values(array_map(static function(BindValue $x): string {
+		// Více použití téže proměnné (`contact.name`, `contact.email`) je jeden argument.
+		$binds = array_values(array_unique(array_map(static function(BindValue $x): string {
 			return $x->getName();
-		}, $binds));
+		}, $binds)));
 		$args = array_keys($args);
 		if (count($binds) !== count($args)) {
 			throw ArgumentsException::InvalidCountOfArguments((string) $this, $binds, $args);
