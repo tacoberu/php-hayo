@@ -66,6 +66,20 @@ class HayoEngineTest extends TestCase
 
 
 	/**
+	 * Tentýž argument použitý na víc místech (`c.x`, `c.y`) je pořád jeden argument.
+	 */
+	function testEvaluateSameArgumentUsedMoreThanOnce()
+	{
+		$engine = HayoEngine::WithDefaultLibraries();
+		$this->assertEquals(
+			(object) ['a' => 1, 'b' => 2],
+			$engine->evaluate('{a: c.x, b: c.y}', ['c' => (object) ['x' => 1, 'y' => 2]])
+		);
+	}
+
+
+
+	/**
 	 * @return array<array<mixed>>
 	 */
 	static function dataCorrect(): array
@@ -391,20 +405,6 @@ class HayoEngineTest extends TestCase
 				'Division by zero'],
 
 		];
-	}
-
-
-
-	/**
-	 * Tentýž argument použitý na víc místech (`c.x`, `c.y`) je pořád jeden argument.
-	 */
-	function testEvaluateSameArgumentUsedMoreThanOnce()
-	{
-		$engine = HayoEngine::WithDefaultLibraries();
-		$this->assertEquals(
-			(object) ['a' => 1, 'b' => 2],
-			$engine->evaluate('{a: c.x, b: c.y}', ['c' => (object) ['x' => 1, 'y' => 2]])
-		);
 	}
 
 }

@@ -12,6 +12,7 @@ namespace Taco\Hayo;
 use LogicException;
 use DateTimeInterface;
 use stdClass;
+use Stringable;
 
 
 /**
@@ -130,13 +131,6 @@ class FinalValue implements Value
 
 
 
-	function __toString(): string
-	{
-		return self::dump($this->unpack());
-	}
-
-
-
 	/**
 	 * Safe textual form of any unpacked value. Used in diagnostics (exception
 	 * messages), so it must never throw - a plain `(string)` cast fails on
@@ -162,11 +156,20 @@ class FinalValue implements Value
 					$xs[] = $k . ': ' . self::dump($v);
 				}
 				return '{' . implode(', ', $xs) . '}';
-			case $val instanceof \Stringable:
+			case $val instanceof Stringable:
 				return (string) $val;
 			default:
-				return is_object($val) ? get_class($val) : gettype($val);
+				return is_object($val)
+					? get_class($val)
+					: gettype($val);
 		}
+	}
+
+
+
+	function __toString(): string
+	{
+		return self::dump($this->unpack());
 	}
 
 }
