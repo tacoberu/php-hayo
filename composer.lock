@@ -8,16 +8,16 @@
     "packages": [
         {
             "name": "tacoberu/hayo-ast",
-            "version": "v0.1.6",
+            "version": "v0.1.7",
             "source": {
                 "type": "git",
                 "url": "https://github.com/tacoberu/php-hayo-ast.git",
-                "reference": "c8013d5c6d6ced0c9b0ff39d975976be017214a4"
+                "reference": "4f1e15dd953ef5cf0fc925cf52c861eccc4c657e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/tacoberu/php-hayo-ast/zipball/c8013d5c6d6ced0c9b0ff39d975976be017214a4",
-                "reference": "c8013d5c6d6ced0c9b0ff39d975976be017214a4",
+                "url": "https://api.github.com/repos/tacoberu/php-hayo-ast/zipball/4f1e15dd953ef5cf0fc925cf52c861eccc4c657e",
+                "reference": "4f1e15dd953ef5cf0fc925cf52c861eccc4c657e",
                 "shasum": ""
             },
             "require": {
@@ -49,22 +49,22 @@
             "description": "Abstract Syntax Tree (AST) implementation for the Hayo scripting language.",
             "support": {
                 "issues": "https://github.com/tacoberu/php-hayo-ast/issues",
-                "source": "https://github.com/tacoberu/php-hayo-ast/tree/v0.1.6"
+                "source": "https://github.com/tacoberu/php-hayo-ast/tree/v0.1.7"
             },
-            "time": "2026-09-24T22:00:39+00:00"
+            "time": "2026-09-25T15:23:07+00:00"
         },
         {
             "name": "tacoberu/hayo-decoder",
-            "version": "v0.3.18",
+            "version": "v0.3.19",
             "source": {
                 "type": "git",
                 "url": "https://github.com/tacoberu/php-hayo-decoder.git",
-                "reference": "76421fc770922313f7856d581d2fe4a06c527ca0"
+                "reference": "d973dcf6982ddecb3b7ec9ae40010dd1d51f037e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/tacoberu/php-hayo-decoder/zipball/76421fc770922313f7856d581d2fe4a06c527ca0",
-                "reference": "76421fc770922313f7856d581d2fe4a06c527ca0",
+                "url": "https://api.github.com/repos/tacoberu/php-hayo-decoder/zipball/d973dcf6982ddecb3b7ec9ae40010dd1d51f037e",
+                "reference": "d973dcf6982ddecb3b7ec9ae40010dd1d51f037e",
                 "shasum": ""
             },
             "require": {
@@ -98,9 +98,9 @@
             "description": "Hayo scripting language decoder and parser.",
             "support": {
                 "issues": "https://github.com/tacoberu/php-hayo-decoder/issues",
-                "source": "https://github.com/tacoberu/php-hayo-decoder/tree/v0.3.18"
+                "source": "https://github.com/tacoberu/php-hayo-decoder/tree/v0.3.19"
             },
-            "time": "2026-09-25T00:57:54+00:00"
+            "time": "2026-09-25T01:27:55+00:00"
         }
     ],
     "packages-dev": [
